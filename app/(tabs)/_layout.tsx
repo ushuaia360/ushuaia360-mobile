@@ -1,33 +1,54 @@
+import CustomTabBar from '@/components/custom-tab-bar';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          href: '/(tabs)',
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="search"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          href: '/(tabs)/search',
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          href: '/(tabs)/map',
+        }}
+      />
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          href: '/(tabs)/favorites',
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          href: '/(tabs)/profile',
+        }}
+      />
+      <Tabs.Screen
+        name="places"
+        options={{
+          href: null, // Oculta del tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="trails"
+        options={{
+          href: null, // Oculta del tab bar
         }}
       />
     </Tabs>
