@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import SearchPanel from '@/components/home/search-panel';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -22,6 +23,7 @@ export default function RootLayout() {
           <Stack.Screen name="register" options={{ headerShown: false, presentation: 'card' }} />
         </Stack>
         <StatusBar style="auto" />
+        <SearchPanel />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

@@ -1,9 +1,16 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useHomeStore } from '@/store/home-store';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import React from 'react';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 interface TabItem {
   name: string;
@@ -22,18 +29,39 @@ const tabs: TabItem[] = [
 export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const { searchOpen } = useHomeStore();
+
+  const translateY = useSharedValue(0);
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    if (searchOpen) {
+      opacity.value = withTiming(0, { duration: 120 });
+      translateY.value = withTiming(150, { duration: 180, easing: Easing.out(Easing.exp) });
+    } else {
+      translateY.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
+      opacity.value = withTiming(1, { duration: 250 });
+    }
+  }, [searchOpen]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+    opacity: opacity.value,
+  }));
 
   return (
-    <View
+    <Animated.View
       style={[
         styles.tabBar,
         {
           backgroundColor: colors.background,
           borderTopColor: colorScheme === 'dark' ? '#2a2a2a' : '#e5e5e5',
         },
-      ]}>
+        animatedStyle,
+      ]}
+      pointerEvents={searchOpen ? 'none' : 'auto'}>
       {state.routes.map((route, index) => {
-               const { options } = descriptors[route.key];
+        const { options } = descriptors[route.key];
         const isFocused = state.index === index;
 
         const onPress = () => {
@@ -77,7 +105,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
           </TouchableOpacity>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 

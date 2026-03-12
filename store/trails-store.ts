@@ -5,7 +5,9 @@ interface TrailsStore {
   trails: Trail[];
   featuredTrails: Trail[];
   searchQuery: string;
+  recentSearches: string[];
   setSearchQuery: (query: string) => void;
+  addRecentSearch: (query: string) => void;
   filteredTrails: () => Trail[];
 }
 
@@ -13,7 +15,15 @@ export const useTrailsStore = create<TrailsStore>((set, get) => ({
   trails: MOCK_TRAILS,
   featuredTrails: MOCK_TRAILS.filter((t) => t.featured),
   searchQuery: '',
+  recentSearches: ['Laguna Esmeralda', 'Glaciar Martial', 'Cerro Guanaco', 'Bahía Lapataia', 'Paso Garibaldi'],
   setSearchQuery: (query) => set({ searchQuery: query }),
+  addRecentSearch: (query) => {
+    const q = query.trim();
+    if (!q) return;
+    set((state) => ({
+      recentSearches: [q, ...state.recentSearches.filter((r) => r !== q)].slice(0, 5),
+    }));
+  },
   filteredTrails: () => {
     const { trails, searchQuery } = get();
     if (!searchQuery.trim()) return trails;

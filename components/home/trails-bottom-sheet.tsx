@@ -2,12 +2,12 @@ import { ThemedText } from "@/components/themed-text";
 import { Trail } from "@/constants/mock-trails";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useHomeStore } from "@/store/home-store";
 import { useTrailsStore } from "@/store/trails-store";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useMemo, useRef } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import TrailFeaturedCard from "./trail-featured-card";
+import { useHomeStore } from "@/store/home-store";
 
 interface Props {
   onTrailPress?: (trail: Trail) => void;
@@ -22,7 +22,7 @@ export default function TrailsBottomSheet({ onTrailPress }: Props) {
   const { setMode } = useHomeStore();
 
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => [230, "72%"], []);
+  const snapPoints = useMemo(() => [180, "72%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
 
   return (

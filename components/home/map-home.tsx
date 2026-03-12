@@ -14,6 +14,8 @@ import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import SearchBar from './search-bar';
 import TrailsBottomSheet from './trails-bottom-sheet';
+import { useHomeStore } from '@/store/home-store';
+import { CARD_PADDING_TOP } from '@/constants/search-layout';
 
 // Ushuaia: lat=-54.8019, lon=-68.3030
 // Fractional tile position at zoom 12:
@@ -37,7 +39,6 @@ function calcTiles(state: MapState, width: number, height: number, baseUrl: stri
   const { zoom, panX, panY } = state;
   const zoomScale = Math.pow(2, zoom - BASE_ZOOM);
 
-  // Fractional world tile position at current zoom
   const worldX = BASE_TILE_X * zoomScale - panX / TILE_SIZE;
   const worldY = BASE_TILE_Y * zoomScale - panY / TILE_SIZE;
 
@@ -79,6 +80,7 @@ export default function MapHome() {
     : 'https://tile.openstreetmap.org';
 
   const [committed, setCommitted] = useState<MapState>({ zoom: BASE_ZOOM, panX: 0, panY: 0 });
+  const { searchOpen, setSearchOpen } = useHomeStore();
 
   // Animated values for smooth gesture feedback
   const animPanX = useRef(new Animated.Value(0)).current;
@@ -133,7 +135,6 @@ export default function MapHome() {
 
       onPanResponderRelease: () => {
         if (gesture.current.isPinching) {
-          // Commit zoom
           const rawScale = gesture.current.pinchCurrentScale;
           const deltaZoom = Math.round(Math.log2(rawScale));
           animScale.setValue(1);
@@ -150,7 +151,6 @@ export default function MapHome() {
           animPanX.setValue(0);
           animPanY.setValue(0);
         } else {
-          // Commit pan
           animPanX.flattenOffset();
           animPanY.flattenOffset();
           const dx = (animPanX as any)._value;
@@ -208,30 +208,33 @@ export default function MapHome() {
       </Animated.View>
 
       {/* Search bar */}
-      <View style={[styles.searchOverlay, { paddingTop: top + 8 }]} pointerEvents="box-none">
-        <SearchBar />
+      <View style={[styles.searchOverlay, { paddingTop: top + CARD_PADDING_TOP }]}>
+        <SearchBar
+          onPress={() => setSearchOpen(true)}
+          isActive={searchOpen}
+        />
       </View>
 
-      {/* Zoom buttons */}
-      <View style={[styles.zoomButtons, { bottom: bottom + 300 }]} pointerEvents="box-none">
-        <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn} activeOpacity={0.8}>
-          <IconSymbol name="plus" size={18} color="rgba(0,0,0,0.5)" />
+      {/* Zoom buttons, location, bottom sheet */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+        <View style={[styles.zoomButtons, { bottom: bottom + 300 }]} pointerEvents="box-none">
+          <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn} activeOpacity={0.8}>
+            <IconSymbol name="plus" size={18} color="rgba(0,0,0,0.5)" />
+          </TouchableOpacity>
+          <View style={styles.zoomDivider} />
+          <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut} activeOpacity={0.8}>
+            <IconSymbol name="minus" size={18} color="rgba(0,0,0,0.5)" />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.locationButton, { bottom: bottom + 220, borderColor: colors.tint }]}
+          activeOpacity={0.8}>
+          <IconSymbol name="location.fill" size={20} color={colors.tint} />
         </TouchableOpacity>
-        <View style={styles.zoomDivider} />
-        <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut} activeOpacity={0.8}>
-          <IconSymbol name="minus" size={18} color="rgba(0,0,0,0.5)" />
-        </TouchableOpacity>
+
+        <TrailsBottomSheet />
       </View>
-
-      {/* Location button */}
-      <TouchableOpacity
-        style={[styles.locationButton, { bottom: bottom + 220, borderColor: colors.tint }]}
-        activeOpacity={0.8}>
-        <IconSymbol name="location.fill" size={20} color={colors.tint} />
-      </TouchableOpacity>
-
-      {/* Bottom sheet */}
-      <TrailsBottomSheet />
     </View>
   );
 }
@@ -251,6 +254,12 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   zoomButtons: {
     position: 'absolute',
