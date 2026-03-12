@@ -8,6 +8,8 @@ interface HomeStore {
   toggleMode: () => void;
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
+  mapPanning: boolean;
+  setMapPanning: (panning: boolean) => void;
 }
 
 export const useHomeStore = create<HomeStore>((set, get) => ({
@@ -16,4 +18,6 @@ export const useHomeStore = create<HomeStore>((set, get) => ({
   toggleMode: () => set({ mode: get().mode === 'map' ? 'list' : 'map' }),
   searchOpen: false,
   setSearchOpen: (open) => set({ searchOpen: open }),
+  mapPanning: false,
+  setMapPanning: (panning) => set({ mapPanning: panning }),
 }));

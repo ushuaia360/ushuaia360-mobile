@@ -80,7 +80,7 @@ export default function MapHome() {
     : 'https://tile.openstreetmap.org';
 
   const [committed, setCommitted] = useState<MapState>({ zoom: BASE_ZOOM, panX: 0, panY: 0 });
-  const { searchOpen, setSearchOpen } = useHomeStore();
+  const { searchOpen, setSearchOpen, setMapPanning } = useHomeStore();
 
   // Animated values for smooth gesture feedback
   const animPanX = useRef(new Animated.Value(0)).current;
@@ -100,6 +100,7 @@ export default function MapHome() {
       onMoveShouldSetPanResponder: () => true,
 
       onPanResponderGrant: (evt) => {
+        setMapPanning(true);
         const touches = evt.nativeEvent.touches;
         if (touches.length >= 2) {
           gesture.current.isPinching = true;
@@ -166,6 +167,7 @@ export default function MapHome() {
             panY: prev.panY + dy,
           }));
         }
+        setMapPanning(false);
       },
     }),
   ).current;
@@ -217,7 +219,7 @@ export default function MapHome() {
 
       {/* Zoom buttons, location, bottom sheet */}
       <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
-        <View style={[styles.zoomButtons, { bottom: bottom + 300 }]} pointerEvents="box-none">
+        <View style={[styles.zoomButtons, { bottom: bottom + 240 }]} pointerEvents="box-none">
           <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn} activeOpacity={0.8}>
             <IconSymbol name="plus" size={18} color="rgba(0,0,0,0.5)" />
           </TouchableOpacity>
@@ -228,7 +230,7 @@ export default function MapHome() {
         </View>
 
         <TouchableOpacity
-          style={[styles.locationButton, { bottom: bottom + 220, borderColor: colors.tint }]}
+          style={[styles.locationButton, { bottom: bottom + 160, borderColor: colors.tint }]}
           activeOpacity={0.8}>
           <IconSymbol name="location.fill" size={20} color={colors.tint} />
         </TouchableOpacity>

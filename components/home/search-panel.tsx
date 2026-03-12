@@ -31,7 +31,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -52,15 +51,13 @@ const SUGGESTED = [
   { name: "Puerto Williams", icon: "camera-outline", stats: [{ icon: "heart-outline", value: "1.8k likes" }, { icon: "eye-outline", value: "11k visitas" }, { icon: "star-outline", value: "4.6" }] },
 ];
 
-const CLOSE_DURATION = 220;
-const EASE_OUT   = Easing.out(Easing.cubic);
-const EASE_CLOSE = Easing.bezier(0.4, 0, 1, 1);
 const EXPAND_THRESHOLD = 40;
 
-const SP_DROP     = { damping: 22, stiffness: 300, mass: 0.85 } as const;
-const SP_MARGIN   = { damping: 24, stiffness: 320, mass: 0.8  } as const;
-const SP_EXPAND   = { damping: 26, stiffness: 280, mass: 0.9  } as const;
-const SP_COLLAPSE = { damping: 24, stiffness: 260, mass: 0.85 } as const;
+// Smooth expo-out — arranca rápido, desacelera gradualmente
+const EASE_DROP  = Easing.bezier(0.22, 1, 0.36, 1);
+// Aceleración suave al cerrar
+const EASE_CLOSE = Easing.bezier(0.4, 0, 1, 1);
+const EASE_OUT   = Easing.out(Easing.cubic);
 
 export default function SearchPanel() {
   const { top, bottom } = useSafeAreaInsets();
@@ -77,12 +74,13 @@ export default function SearchPanel() {
   const targetTop = top + CARD_PADDING_TOP;
 
   // Animated values
-  const cardHeight      = useSharedValue(SB_INPUT_HEIGHT);
-  const cardHMargin     = useSharedValue(SB_PADDING_H);
-  const cardRadius      = useSharedValue(SB_INPUT_RADIUS);
-  const backdropOpacity = useSharedValue(0);
-  const contentOpacity  = useSharedValue(0);
-  const fadeOpacity     = useSharedValue(1);
+  const cardHeight       = useSharedValue(SB_INPUT_HEIGHT);
+  const cardHMargin      = useSharedValue(SB_PADDING_H);
+  const cardRadius       = useSharedValue(SB_INPUT_RADIUS);
+  const backdropOpacity  = useSharedValue(0);
+  const contentOpacity   = useSharedValue(0);  // content inside card
+  const externalOpacity  = useSharedValue(0);  // card2 + buttons
+  const fadeOpacity      = useSharedValue(1);
 
   const focusInput = useCallback(() => inputRef.current?.focus(), []);
   const unmount    = useCallback(() => setMounted(false), []);
@@ -91,30 +89,39 @@ export default function SearchPanel() {
     cardHeight.value      = SB_INPUT_HEIGHT;
     cardHMargin.value     = SB_PADDING_H;
     cardRadius.value      = SB_INPUT_RADIUS;
-    backdropOpacity.value = 0;
-    contentOpacity.value  = 0;
-    fadeOpacity.value     = 1;
-    isExpanded.current    = false;
+    backdropOpacity.value  = 0;
+    contentOpacity.value   = 0;
+    externalOpacity.value  = 0;
+    fadeOpacity.value      = 1;
+    isExpanded.current     = false;
 
-    backdropOpacity.value = withTiming(1, { duration: 180, easing: EASE_OUT });
-    cardHeight.value      = withSpring(CARD_TARGET_HEIGHT, SP_DROP);
-    cardHMargin.value     = withSpring(CARD_MARGIN, SP_MARGIN);
-    cardRadius.value      = withTiming(CARD_RADIUS, { duration: 360, easing: EASE_OUT });
+    // Backdrop
+    backdropOpacity.value = withTiming(1, { duration: 320, easing: EASE_OUT });
 
+    // Card cae hacia abajo — expo-out, muy smooth
+    cardHeight.value  = withTiming(CARD_TARGET_HEIGHT, { duration: 540, easing: EASE_DROP });
+    cardHMargin.value = withTiming(CARD_MARGIN,        { duration: 500, easing: EASE_DROP });
+    cardRadius.value  = withTiming(CARD_RADIUS,        { duration: 500, easing: EASE_DROP });
+
+    // Contenido dentro de la card
     contentOpacity.value = withDelay(
-      160,
-      withTiming(1, { duration: 200, easing: EASE_OUT }, (finished) => {
+      220,
+      withTiming(1, { duration: 240, easing: EASE_OUT }, (finished) => {
         if (finished) runOnJS(focusInput)();
       })
     );
+
+    // Card2 + botones — cuando la card ya está asentada
+    externalOpacity.value = withDelay(460, withTiming(1, { duration: 200, easing: EASE_OUT }));
   };
 
   const close = (cb?: () => void) => {
-    const opt = { duration: CLOSE_DURATION, easing: EASE_CLOSE };
+    const opt = { duration: 300, easing: EASE_CLOSE };
 
-    contentOpacity.value  = withTiming(0, { duration: 80 });
+    contentOpacity.value  = withTiming(0, { duration: 120 });
+    externalOpacity.value = withTiming(0, { duration: 100 });
     backdropOpacity.value = withTiming(0, opt);
-    cardHMargin.value     = withTiming(SB_PADDING_H, opt);
+    cardHMargin.value     = withTiming(SB_PADDING_H,   opt);
     cardRadius.value      = withTiming(SB_INPUT_RADIUS, opt);
 
     cardHeight.value = withTiming(SB_INPUT_HEIGHT, opt, (finished) => {
@@ -144,9 +151,10 @@ export default function SearchPanel() {
     height: cardHeight.value,
     borderRadius: cardRadius.value,
   }));
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
-  const contentStyle  = useAnimatedStyle(() => ({ opacity: contentOpacity.value }));
-  const fadeStyle     = useAnimatedStyle(() => ({ opacity: fadeOpacity.value }));
+  const backdropStyle  = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
+  const contentStyle   = useAnimatedStyle(() => ({ opacity: contentOpacity.value }));
+  const externalStyle  = useAnimatedStyle(() => ({ opacity: externalOpacity.value }));
+  const fadeStyle      = useAnimatedStyle(() => ({ opacity: fadeOpacity.value }));
 
   // Handlers
   const handleClose = () => close(() => setSearchOpen(false));
@@ -169,9 +177,10 @@ export default function SearchPanel() {
     if (!isExpanded.current && e.nativeEvent.contentOffset.y > EXPAND_THRESHOLD) {
       isExpanded.current = true;
       const fullHeight = screenHeight - targetTop;
-      fadeOpacity.value = withTiming(0, { duration: 150 });
-      cardHeight.value  = withSpring(fullHeight, SP_EXPAND);
-      cardHMargin.value = withSpring(0, SP_EXPAND);
+      fadeOpacity.value     = withTiming(0, { duration: 180 });
+      externalOpacity.value = withTiming(0, { duration: 180 });
+      cardHeight.value  = withTiming(fullHeight, { duration: 480, easing: EASE_DROP });
+      cardHMargin.value = withTiming(0,          { duration: 460, easing: EASE_DROP });
     }
   }, [screenHeight, targetTop]);
 
@@ -182,9 +191,10 @@ export default function SearchPanel() {
       (e.nativeEvent.velocity?.y ?? 0) < -0.5
     ) {
       isExpanded.current = false;
-      cardHeight.value  = withSpring(CARD_TARGET_HEIGHT, SP_COLLAPSE);
-      cardHMargin.value = withSpring(CARD_MARGIN, SP_COLLAPSE);
-      fadeOpacity.value = withTiming(1, { duration: 250 });
+      cardHeight.value      = withTiming(CARD_TARGET_HEIGHT, { duration: 420, easing: EASE_DROP });
+      cardHMargin.value     = withTiming(CARD_MARGIN,        { duration: 400, easing: EASE_DROP });
+      fadeOpacity.value     = withTiming(1, { duration: 300, easing: EASE_OUT });
+      externalOpacity.value = withTiming(1, { duration: 280, easing: EASE_OUT });
     }
   }, []);
 
@@ -308,9 +318,26 @@ export default function SearchPanel() {
         </Animated.View>
       </Animated.View>
 
+      {/* Puntos cercanos */}
+      <Animated.View
+        style={[styles.card2, { top: targetTop + CARD_TARGET_HEIGHT + 10, left: CARD_MARGIN, right: CARD_MARGIN, backgroundColor: cardBg }, externalStyle]}
+        pointerEvents="auto"
+      >
+        <TouchableOpacity style={styles.row} onPress={handleClose} activeOpacity={0.75}>
+          <View style={[styles.iconWrap, { backgroundColor: colors.tint + "18" }]}>
+            <Ionicons name="location-outline" size={18} color={colors.tint} />
+          </View>
+          <View style={styles.rowText}>
+            <ThemedText style={styles.rowTitle}>Puntos cercanos</ThemedText>
+            <ThemedText style={[styles.rowSub, { color: colors.icon }]}>Senderos y lugares cerca tuyo</ThemedText>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.icon} />
+        </TouchableOpacity>
+      </Animated.View>
+
       {/* Bottom actions — fade in with content */}
       <Animated.View
-        style={[styles.bottomActions, { bottom: bottom + 24 }, contentStyle]}
+        style={[styles.bottomActions, { bottom: bottom + 24 }, externalStyle]}
         pointerEvents="auto"
       >
         <TouchableOpacity style={styles.cancelBtn} onPress={handleClose} activeOpacity={0.7}>
@@ -384,6 +411,17 @@ const styles = StyleSheet.create({
   statSeparator: { fontSize: 12, opacity: 0.4 },
   emptySmall: { paddingHorizontal: 16, paddingVertical: 12 },
   emptyText: { fontSize: 13 },
+  card2: {
+    position: "absolute",
+    borderRadius: 14,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 16,
+  },
+  rowSub: { fontSize: 14 },
   bottomActions: {
     position: "absolute",
     left: 32,

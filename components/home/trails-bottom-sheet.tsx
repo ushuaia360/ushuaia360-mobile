@@ -4,7 +4,7 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTrailsStore } from "@/store/trails-store";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import TrailFeaturedCard from "./trail-featured-card";
 import { useHomeStore } from "@/store/home-store";
@@ -19,16 +19,24 @@ export default function TrailsBottomSheet({ onTrailPress }: Props) {
   const isDark = colorScheme === "dark";
 
   const { featuredTrails } = useTrailsStore();
-  const { setMode } = useHomeStore();
+  const { setMode, mapPanning } = useHomeStore();
 
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => [180, "72%"], []);
+  const snapPoints = useMemo(() => [90, 180, "72%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
+
+  useEffect(() => {
+    if (mapPanning) {
+      bottomSheetRef.current?.snapToIndex(0);
+    } else {
+      bottomSheetRef.current?.snapToIndex(1);
+    }
+  }, [mapPanning]);
 
   return (
     <BottomSheet
       ref={bottomSheetRef}
-      index={0}
+      index={1}
       snapPoints={snapPoints}
       onChange={handleSheetChanges}
       backgroundStyle={[
