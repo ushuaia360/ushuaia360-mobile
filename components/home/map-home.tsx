@@ -34,6 +34,7 @@ const TDF_BOUNDS = {
   maxLon: -68.15, // east: east of the city
 };
 
+
 interface MapState {
   zoom: number;
   panX: number;
