@@ -2,6 +2,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHomeStore } from '@/store/home-store';
+import { Feather } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { useEffect } from 'react';
 import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
@@ -19,7 +20,7 @@ interface TabItem {
 }
 
 const tabs: TabItem[] = [
-  { name: 'index', icon: 'house', iconFilled: 'house.fill' },
+  { name: 'index', icon: 'house.circle', iconFilled: 'house.circle.fill' },
   { name: 'search', icon: 'magnifyingglass', iconFilled: 'magnifyingglass' },
   { name: 'map', icon: 'map', iconFilled: 'map.fill' },
   { name: 'favorites', icon: 'heart', iconFilled: 'heart.fill' },
@@ -97,11 +98,19 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
             onLongPress={onLongPress}
             style={styles.tabButton}
             activeOpacity={0.7}>
-            <IconSymbol
-              size={24}
-              name={isFocused ? tab.iconFilled : tab.icon}
-              color={isFocused ? colors.tint : colors.tabIconDefault}
-            />
+            {route.name === 'index' ? (
+              <Feather
+                size={24}
+                name="home"
+                color={isFocused ? colors.tint : colors.tabIconDefault}
+              />
+            ) : (
+              <IconSymbol
+                size={24}
+                name={isFocused ? tab.iconFilled : tab.icon}
+                color={isFocused ? colors.tint : colors.tabIconDefault}
+              />
+            )}
           </TouchableOpacity>
         );
       })}

@@ -20,7 +20,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false, presentation: 'card' }} />
-          <Stack.Screen name="register" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen name="register" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         </Stack>
         <StatusBar style="auto" />
         <SearchPanel />

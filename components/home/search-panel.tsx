@@ -13,7 +13,6 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useHomeStore } from "@/store/home-store";
 import { useTrailsStore } from "@/store/trails-store";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   StyleSheet,
@@ -99,7 +98,7 @@ const memoStyles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 11 },
   iconWrap: { width: 42, height: 42, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },
-  rowTitle: { flex: 1, fontSize: 15, fontWeight: "600" },
+  rowTitle: { flex: 1, fontSize: 15, fontWeight: "500" },
   suggestionStats: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 3 },
   suggestionStat: { flexDirection: "row", alignItems: "center", gap: 3 },
   suggestionStatText: { fontSize: 14 },
@@ -348,15 +347,10 @@ export default function SearchPanel() {
             <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>Sugeridas</ThemedText>
             {suggestedRows}
           </Animated.ScrollView>
-          <Animated.View style={[styles.fadeOverlay, fadeStyle]} pointerEvents="none">
-            <LinearGradient
-              colors={isDark
-                ? ["rgba(28,28,30,0)", "rgba(28,28,30,0.6)"]
-                : ["rgba(255,255,255,0)", "rgba(255,255,255,0.5)"]
-              }
-              style={StyleSheet.absoluteFillObject}
-            />
-          </Animated.View>
+          <Animated.View
+            style={[styles.fadeOverlay, fadeStyle, { backgroundColor: isDark ? "rgba(28,28,30,0.5)" : "rgba(255,255,255,0.5)" }]}
+            pointerEvents="none"
+          />
         </Animated.View>
       </Animated.View>
 
@@ -442,7 +436,7 @@ const styles = StyleSheet.create({
   divider: { height: 1, marginHorizontal: 16 },
   sectionLabel: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "500",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     paddingHorizontal: 16,
@@ -452,7 +446,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 11 },
   iconWrap: { width: 42, height: 42, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },
-  rowTitle: { flex: 1, fontSize: 15, fontWeight: "600" },
+  rowTitle: { flex: 1, fontSize: 15, fontWeight: "500" },
   emptySmall: { paddingHorizontal: 16, paddingVertical: 12 },
   emptyText: { fontSize: 13 },
   card2: {
@@ -475,7 +469,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cancelBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 100, backgroundColor: "#212121" },
-  cancelText: { fontSize: 15, fontWeight: "600", color: "#fff" },
+  cancelText: { fontSize: 15, fontWeight: "500", color: "#fff" },
   searchBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 100 },
-  searchBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  searchBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
 });

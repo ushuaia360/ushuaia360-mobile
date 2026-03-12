@@ -9,6 +9,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: { backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0 },
+        animation: 'none',
       }}>
       <Tabs.Screen
         name="index"

@@ -17,7 +17,7 @@ export default function ListHome() {
   const isDark = colorScheme === 'dark';
 
   const { filteredTrails } = useTrailsStore();
-  const { setMode } = useHomeStore();
+  const { setMode, searchOpen, setSearchOpen } = useHomeStore();
 
   const results = filteredTrails();
 
@@ -32,15 +32,10 @@ export default function ListHome() {
           borderBottomColor: isDark ? '#2a2a2a' : '#EDF0F5',
         },
       ]}>
-        <View style={styles.titleRow}>
-          <ThemedText style={styles.title}>Senderos</ThemedText>
-          <View style={[styles.countBadge, { backgroundColor: colors.tint + '18' }]}>
-            <ThemedText style={[styles.countText, { color: colors.tint }]}>
-              {results.length}
-            </ThemedText>
-          </View>
-        </View>
-        <SearchBar />
+        <SearchBar
+          onPress={() => setSearchOpen(true)}
+          isActive={searchOpen}
+        />
       </View>
 
       {/* Trail list */}
@@ -91,27 +86,6 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 10,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  countBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  countText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
   list: {
     paddingTop: 14,
     paddingBottom: 110,
@@ -142,6 +116,6 @@ const styles = StyleSheet.create({
   mapFabText: {
     color: 'rgba(0,0,0,0.5)',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 });

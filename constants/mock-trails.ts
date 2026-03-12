@@ -10,6 +10,7 @@ export interface Trail {
   elevationGain: string;
   type: string;
   image: string;
+  images: string[];
   description: string;
   featured: boolean;
   rating: number;
@@ -39,6 +40,11 @@ export const MOCK_TRAILS: Trail[] = [
     elevationGain: '520 m',
     type: 'Trekking',
     image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
+    images: [
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800',
+      'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800',
+    ],
     description: 'Sendero clásico con vistas panorámicas de la ciudad y el Canal Beagle.',
     featured: true,
     rating: 4.8,
@@ -55,6 +61,12 @@ export const MOCK_TRAILS: Trail[] = [
     elevationGain: '250 m',
     type: 'Senderismo',
     image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800',
+    images: [
+      'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800',
+      'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
+      'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=800',
+    ],
     description: 'Laguna glaciar de aguas turquesas rodeada de bosque subantártico.',
     featured: true,
     rating: 4.9,
@@ -71,6 +83,11 @@ export const MOCK_TRAILS: Trail[] = [
     elevationGain: '680 m',
     type: 'Trekking',
     image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800',
+    images: [
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800',
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
+      'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800',
+    ],
     description: 'Acceso al glaciar con vistas únicas sobre la ciudad de Ushuaia.',
     featured: true,
     rating: 4.6,
@@ -87,6 +104,11 @@ export const MOCK_TRAILS: Trail[] = [
     elevationGain: '380 m',
     type: 'Trekking',
     image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
+    images: [
+      'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
+      'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800',
+      'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=800',
+    ],
     description: 'Sendero en el interior del Parque Nacional con avistamiento de fauna.',
     featured: true,
     rating: 4.7,
@@ -103,6 +125,11 @@ export const MOCK_TRAILS: Trail[] = [
     elevationGain: '970 m',
     type: 'Trekking',
     image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800',
+    images: [
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800',
+      'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800',
+      'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
+    ],
     description: 'Una de las cumbres más desafiantes del Parque Nacional Tierra del Fuego.',
     featured: false,
     rating: 4.5,
@@ -119,6 +146,11 @@ export const MOCK_TRAILS: Trail[] = [
     elevationGain: '80 m',
     type: 'Senderismo',
     image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800',
+    images: [
+      'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800',
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800',
+    ],
     description: 'Recorrido costero por la orilla del Lago Roca con vistas al Canal Beagle.',
     featured: false,
     rating: 4.4,

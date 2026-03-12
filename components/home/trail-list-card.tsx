@@ -1,13 +1,43 @@
 import { Trail } from '@/constants/mock-trails';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useRef, useState } from 'react';
+import { Dimensions, FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH - 32; // marginHorizontal: 16 * 2
+const IMAGE_WIDTH = CARD_WIDTH - 20;  // imageContainer marginHorizontal: 10 * 2
+import Animated, {
+  Easing,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+
+function AnimatedDot({ active }: { active: boolean }) {
+  const width = useSharedValue(active ? 18 : 6);
+
+  useEffect(() => {
+    width.value = withSpring(active ? 18 : 6, { damping: 20, stiffness: 300, mass: 0.6 });
+  }, [active]);
+
+  const style = useAnimatedStyle(() => ({
+    height: 6,
+    width: width.value,
+    borderRadius: 3,
+    backgroundColor: active ? '#fff' : 'rgba(255,255,255,0.55)',
+  }));
+
+  return <Animated.View style={style} />;
+}
 
 const DIFFICULTY_COLOR: Record<Trail['difficulty'], string> = {
-  Fácil: '#34c759',
-  Media: '#ff9500',
+  Fácil:   '#34c759',
+  Media:   '#ff9500',
   Difícil: '#ff3b30',
 };
 
@@ -21,78 +51,121 @@ export default function TrailListCard({ trail, onPress, onMapPress }: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
+  const diffColor = DIFFICULTY_COLOR[trail.difficulty];
+
+  const [liked, setLiked] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+  const images = trail.images ?? [trail.image];
+  const heartRotate = useSharedValue(0);
+  const heartStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${heartRotate.value}deg` }],
+  }));
+
+  const w = (deg: number, ms: number) =>
+    withTiming(deg, { duration: ms, easing: Easing.inOut(Easing.sin) });
+
+  const onHeartPress = () => {
+    setLiked((prev) => !prev);
+    heartRotate.value = withSequence(
+      w(-18, 120), w(14, 100), w(-10, 90), w(6, 80), w(-3, 70), w(0, 60),
+    );
+  };
 
   return (
     <TouchableOpacity
-      style={[
-        styles.card,
-        {
-          backgroundColor: isDark ? '#1c1c1e' : '#fff',
-          borderColor: 'rgba(0,0,0,0.2)',
-        },
-      ]}
+      style={[styles.card, { backgroundColor: isDark ? '#1c1c1e' : '#fff' }]}
       onPress={() => onPress?.(trail)}
-      activeOpacity={0.82}>
+      activeOpacity={0.92}>
 
-      {/* Header: icon + title + bookmark */}
-      <View style={styles.header}>
-        <View style={[styles.typeIcon, { backgroundColor: colors.tint + '18' }]}>
-          <IconSymbol name="figure.hiking" size={22} color={colors.tint} />
+      {/* Carousel */}
+      <View style={styles.imageContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={images}
+          keyExtractor={(_, i) => String(i)}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={(e) => {
+            const index = Math.round(e.nativeEvent.contentOffset.x / IMAGE_WIDTH);
+            if (index !== activeIndex) setActiveIndex(index);
+          }}
+          renderItem={({ item }) => (
+            <Image source={{ uri: item }} style={styles.image} resizeMode="cover" />
+          )}
+        />
+
+        {/* Difficulty — top left */}
+        <View style={[styles.diffBadge, { backgroundColor: diffColor, position: 'absolute', top: 10, left: 10 }]}>
+          <ThemedText style={styles.diffText}>{trail.difficulty}</ThemedText>
         </View>
-        <View style={styles.titleBlock}>
-          <ThemedText style={styles.name} numberOfLines={2}>{trail.name}</ThemedText>
-          <View style={styles.metaRow}>
-            <ThemedText style={[styles.type, { color: colors.icon }]}>{trail.type}</ThemedText>
-            <View style={[styles.difficultyPill, { backgroundColor: DIFFICULTY_COLOR[trail.difficulty] + '20' }]}>
-              <ThemedText style={[styles.difficultyText, { color: DIFFICULTY_COLOR[trail.difficulty] }]}>
-                {trail.difficulty}
-              </ThemedText>
-            </View>
-          </View>
-        </View>
-        <TouchableOpacity hitSlop={12} activeOpacity={0.7}>
-          <IconSymbol name="heart" size={20} color={isDark ? '#555' : '#ccc'} />
+
+        {/* Heart */}
+        <TouchableOpacity
+          style={[styles.heartBtn, { backgroundColor: liked ? '#fff' : 'rgba(0,0,0,0.3)' }]}
+          hitSlop={12}
+          activeOpacity={0.8}
+          onPress={onHeartPress}>
+          <Animated.View style={heartStyle}>
+            <Ionicons
+              name={liked ? 'heart' : 'heart-outline'}
+              size={20}
+              color={liked ? '#ff3b30' : '#fff'}
+            />
+          </Animated.View>
         </TouchableOpacity>
+
+        {/* Dots */}
+        {images.length > 1 && (
+          <View style={styles.dots}>
+            {images.map((_, i) => (
+              <AnimatedDot key={i} active={i === activeIndex} />
+            ))}
+          </View>
+        )}
       </View>
 
-      {/* Divider */}
-      <View style={[styles.divider, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]} />
+      {/* Info */}
+      <View style={styles.info}>
 
-      {/* Stats + image */}
-      <View style={styles.body}>
-        <View style={styles.stats}>
-          <View style={styles.statRow}>
-            <ThemedText style={[styles.statLabel, { color: colors.icon }]}>Distancia</ThemedText>
-            <ThemedText style={styles.statValue}>{trail.distance}</ThemedText>
-          </View>
-          <View style={styles.statRow}>
-            <ThemedText style={[styles.statLabel, { color: colors.icon }]}>Desnivel</ThemedText>
-            <ThemedText style={styles.statValue}>{trail.elevationGain}</ThemedText>
-          </View>
-          <View style={styles.statRow}>
-            <ThemedText style={[styles.statLabel, { color: colors.icon }]}>Duración</ThemedText>
-            <ThemedText style={styles.statValue}>{trail.duration}</ThemedText>
+        {/* Name + rating */}
+        <View style={styles.nameRow}>
+          <ThemedText style={styles.name} numberOfLines={1}>{trail.name}</ThemedText>
+          <View style={styles.ratingBlock}>
+            <Ionicons name="star" size={13} color={isDark ? '#fff' : '#000'} />
+            <ThemedText style={styles.ratingText}>{trail.rating.toFixed(1)} ({trail.reviewCount})</ThemedText>
           </View>
         </View>
-        <Image source={{ uri: trail.image }} style={styles.image} resizeMode="cover" />
-      </View>
 
-      {/* Footer: rating + CTA */}
-      <View style={[styles.footer, { borderTopColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
-        <View style={styles.ratingRow}>
-          <IconSymbol name="star.fill" size={13} color={colors.accent} />
-          <ThemedText style={styles.rating}>{trail.rating.toFixed(1)}</ThemedText>
-          <ThemedText style={[styles.reviewCount, { color: colors.icon }]}>
-            · {trail.reviewCount} reseñas
+        {/* Type + difficulty */}
+        <View style={styles.metaRow}>
+          <ThemedText style={[styles.type, { color: colors.icon }]}>{trail.type}</ThemedText>
+          <View style={styles.dot} />
+          <ThemedText style={[styles.type, { color: colors.icon }]}>
+            Dificultad {trail.difficulty.toLowerCase()}
           </ThemedText>
         </View>
-        <TouchableOpacity
-          style={[styles.mapButton, { backgroundColor: colors.tint }]}
-          onPress={() => onMapPress?.(trail)}
-          activeOpacity={0.85}>
-          <IconSymbol name="map.fill" size={13} color="#fff" />
-          <ThemedText style={styles.mapButtonText}>Ver Mapa</ThemedText>
-        </TouchableOpacity>
+
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Ionicons name="map-outline" size={13} color={colors.icon} />
+            <ThemedText style={[styles.statText, { color: colors.icon }]}>{trail.distance}</ThemedText>
+          </View>
+          <View style={styles.statDot} />
+          <View style={styles.stat}>
+            <Ionicons name="time-outline" size={13} color={colors.icon} />
+            <ThemedText style={[styles.statText, { color: colors.icon }]}>{trail.duration}</ThemedText>
+          </View>
+          <View style={styles.statDot} />
+          <View style={styles.stat}>
+            <Ionicons name="trending-up-outline" size={13} color={colors.icon} />
+            <ThemedText style={[styles.statText, { color: colors.icon }]}>{trail.elevationGain}</ThemedText>
+          </View>
+        </View>
+
       </View>
     </TouchableOpacity>
   );
@@ -102,119 +175,110 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     marginHorizontal: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    overflow: 'hidden',
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  header: {
+  imageContainer: {
+    position: 'relative',
+    marginHorizontal: 10,
+    marginTop: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  image: {
+    width: IMAGE_WIDTH,
+    height: 200,
+  },
+  dots: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 16,
-    paddingBottom: 12,
+    justifyContent: 'center',
+    gap: 5,
   },
-  typeIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  heartBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  titleBlock: {
-    flex: 1,
-    gap: 5,
+  info: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   name: {
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 20,
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '500',
+  },
+  ratingBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  ratingText: {
+    fontSize: 15,
+    fontWeight: '500',
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   type: {
-    fontSize: 13,
+    fontSize: 14,
   },
-  difficultyPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
-  difficultyText: {
-    fontSize: 11,
-    fontWeight: '700',
+  diffBadge: {
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
-  divider: {
-    height: 1,
-    marginHorizontal: 16,
+  diffText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
   },
-  body: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    paddingTop: 14,
-    paddingBottom: 12,
-  },
-  stats: {
-    flex: 1,
-    gap: 10,
-    justifyContent: 'center',
-  },
-  statRow: {
-    gap: 1,
-  },
-  statLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  statValue: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  image: {
-    width: 110,
-    height: 90,
-    borderRadius: 10,
-  },
-  footer: {
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
+    gap: 8,
+    marginTop: 2,
   },
-  ratingRow: {
+  stat: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  rating: {
+  statText: {
     fontSize: 14,
-    fontWeight: '700',
   },
-  reviewCount: {
-    fontSize: 12,
-  },
-  mapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  mapButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
+  statDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(0,0,0,0.15)',
   },
 });

@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   name: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   difficultyBadge: {
     paddingHorizontal: 8,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   type: {
     fontSize: 12,
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   statDivider: {
     width: 1,

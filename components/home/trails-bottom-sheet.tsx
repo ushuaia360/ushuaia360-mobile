@@ -70,11 +70,11 @@ export default function TrailsBottomSheet({ onTrailPress }: Props) {
             </ThemedText>
           </View>
           <TouchableOpacity
-            style={styles.viewAllButton}
+            style={[styles.viewAllButton, { backgroundColor: colors.tint }]}
             onPress={() => setMode("list")}
             activeOpacity={0.8}
           >
-            <ThemedText style={styles.viewAllText}>Ver todos</ThemedText>
+            <ThemedText style={[styles.viewAllText, { color: "#fff" }]}>Ver todos</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "600",
     lineHeight: 24,
   },
   subtitle: {
@@ -151,13 +151,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 100,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.2)",
   },
   viewAllText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "500",
     color: "rgba(0,0,0,0.5)",
   },
   headerDivider: {
@@ -182,6 +179,6 @@ const styles = StyleSheet.create({
   ctaText: {
     color: "rgba(0,0,0,0.5)",
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "500",
   },
 });
