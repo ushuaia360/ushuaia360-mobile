@@ -1,3 +1,9 @@
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { CARD_PADDING_TOP } from '@/constants/search-layout';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useHomeStore } from '@/store/home-store';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -7,32 +13,69 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { useRef, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import SearchBar from './search-bar';
 import TrailsBottomSheet from './trails-bottom-sheet';
-import { useHomeStore } from '@/store/home-store';
-import { CARD_PADDING_TOP } from '@/constants/search-layout';
 
-// Ushuaia: lat=-54.8019, lon=-68.3030
-// Fractional tile position at zoom 12:
-//   x = (lon+180)/360 * 2^12 = 1270.790
-//   y = 0.68340 * 2^12       = 2799.870
 const BASE_ZOOM = 12;
 const TILE_SIZE = 256;
-const BASE_TILE_X = 1270.79;
-const BASE_TILE_Y = 2799.87;
+// Ushuaia city center: lat=-54.8019, lon=-68.3030 (Web Mercator / OSM formula at zoom 12)
+const BASE_TILE_X = 1270.8636;
+const BASE_TILE_Y = 2796.524;
 const BUFFER = 4;
-const MIN_ZOOM = 5;
+const MIN_ZOOM = 11;
 const MAX_ZOOM = 18;
+
+// Ushuaia geographic bounds (city + surroundings + Parque Nacional TdF)
+const TDF_BOUNDS = {
+  minLat: -55.05, // south: Beagle Channel south shore
+  maxLat: -54.55, // north: mountains above the city
+  minLon: -68.85, // west: Lapataia / Parque Nacional
+  maxLon: -68.15, // east: east of the city
+};
 
 interface MapState {
   zoom: number;
   panX: number;
   panY: number;
+}
+
+function lonToTileX(lon: number, zoom: number): number {
+  return ((lon + 180) / 360) * Math.pow(2, zoom);
+}
+
+function latToTileY(lat: number, zoom: number): number {
+  const latRad = (lat * Math.PI) / 180;
+  return (
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) *
+    Math.pow(2, zoom)
+  );
+}
+
+function clampPan(state: MapState): MapState {
+  const { zoom, panX, panY } = state;
+  const zoomScale = Math.pow(2, zoom - BASE_ZOOM);
+
+  // Convert lat/lon bounds to tile coordinates at current zoom
+  const minTileX = lonToTileX(TDF_BOUNDS.minLon, zoom);
+  const maxTileX = lonToTileX(TDF_BOUNDS.maxLon, zoom);
+  // Note: smaller tileY = further north (Mercator projection)
+  const minTileY = latToTileY(TDF_BOUNDS.maxLat, zoom); // north = small Y
+  const maxTileY = latToTileY(TDF_BOUNDS.minLat, zoom); // south = large Y
+
+  // From: worldX = BASE_TILE_X * zoomScale - panX / TILE_SIZE
+  // For worldX ∈ [minTileX, maxTileX]:
+  //   panX ∈ [(BASE_TILE_X * zoomScale - maxTileX) * TILE_SIZE, (BASE_TILE_X * zoomScale - minTileX) * TILE_SIZE]
+  const minPanX = (BASE_TILE_X * zoomScale - maxTileX) * TILE_SIZE;
+  const maxPanX = (BASE_TILE_X * zoomScale - minTileX) * TILE_SIZE;
+  const minPanY = (BASE_TILE_Y * zoomScale - maxTileY) * TILE_SIZE;
+  const maxPanY = (BASE_TILE_Y * zoomScale - minTileY) * TILE_SIZE;
+
+  return {
+    zoom,
+    panX: Math.max(minPanX, Math.min(maxPanX, panX)),
+    panY: Math.max(minPanY, Math.min(maxPanY, panY)),
+  };
 }
 
 function calcTiles(state: MapState, width: number, height: number, baseUrl: string) {
@@ -82,24 +125,56 @@ export default function MapHome() {
   const [committed, setCommitted] = useState<MapState>({ zoom: BASE_ZOOM, panX: 0, panY: 0 });
   const { searchOpen, setSearchOpen, setMapPanning } = useHomeStore();
 
-  // Animated values for smooth gesture feedback
   const animPanX = useRef(new Animated.Value(0)).current;
   const animPanY = useRef(new Animated.Value(0)).current;
   const animScale = useRef(new Animated.Value(1)).current;
 
-  // Gesture refs
   const gesture = useRef({
     isPinching: false,
     pinchStartDist: 0,
     pinchCurrentScale: 1,
   });
 
+  // Ref mirror of committed so panResponder can read current state without stale closure.
+  const committedRef = useRef<MapState>({ zoom: BASE_ZOOM, panX: 0, panY: 0 });
+
+  // Stores pending animation reset after committed state updates.
+  // useLayoutEffect will apply it atomically in the same native batch as the new tiles.
+  const pendingAnimReset = useRef(false);
+
+  // Store current animation values to avoid accessing private _value property
+  const currentAnimPanX = useRef(0);
+  const currentAnimPanY = useRef(0);
+  
+  // Track if we're currently processing a release to prevent race conditions
+  const isProcessingRelease = useRef(false);
+
+  // After React commits the new tile positions, reset animations in the same native frame.
+  // This prevents the 1-frame flash where tiles are at new position but animation still has delta.
+  useLayoutEffect(() => {
+    committedRef.current = committed;
+    if (pendingAnimReset.current) {
+      // Use flushSync-like behavior: reset animations synchronously
+      animPanX.setValue(0);
+      animPanY.setValue(0);
+      animPanX.setOffset(0);
+      animPanY.setOffset(0);
+      currentAnimPanX.current = 0;
+      currentAnimPanY.current = 0;
+      pendingAnimReset.current = false;
+      isProcessingRelease.current = false;
+    }
+  }, [committed, animPanX, animPanY]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
 
       onPanResponderGrant: (evt) => {
+        // Reset processing flag to allow new gestures
+        isProcessingRelease.current = false;
         setMapPanning(true);
         const touches = evt.nativeEvent.touches;
         if (touches.length >= 2) {
@@ -111,78 +186,115 @@ export default function MapHome() {
           gesture.current.pinchCurrentScale = 1;
         } else {
           gesture.current.isPinching = false;
-          animPanX.setOffset((animPanX as any)._value);
-          animPanY.setOffset((animPanY as any)._value);
           animPanX.setValue(0);
           animPanY.setValue(0);
+          animPanX.setOffset(0);
+          animPanY.setOffset(0);
+          currentAnimPanX.current = 0;
+          currentAnimPanY.current = 0;
         }
       },
 
       onPanResponderMove: (evt, gestureState) => {
+        // Skip if we're processing a release to avoid race conditions
+        if (isProcessingRelease.current) return;
+        
         const touches = evt.nativeEvent.touches;
         if (touches.length >= 2 && gesture.current.isPinching) {
           const dist = Math.hypot(
             touches[1].pageX - touches[0].pageX,
             touches[1].pageY - touches[0].pageY,
           );
-          const scale = dist / gesture.current.pinchStartDist;
-          gesture.current.pinchCurrentScale = scale;
-          animScale.setValue(scale);
+          gesture.current.pinchCurrentScale = dist / gesture.current.pinchStartDist;
+          animScale.setValue(gesture.current.pinchCurrentScale);
         } else if (!gesture.current.isPinching) {
-          animPanX.setValue(gestureState.dx);
-          animPanY.setValue(gestureState.dy);
+          // Clamp animation in real-time so the map hard-stops at bounds (no bounce).
+          const base = committedRef.current;
+          const clamped = clampPan({
+            zoom: base.zoom,
+            panX: base.panX + gestureState.dx,
+            panY: base.panY + gestureState.dy,
+          });
+          const deltaX = clamped.panX - base.panX;
+          const deltaY = clamped.panY - base.panY;
+          currentAnimPanX.current = deltaX;
+          currentAnimPanY.current = deltaY;
+          animPanX.setValue(deltaX);
+          animPanY.setValue(deltaY);
         }
       },
 
-      onPanResponderRelease: () => {
+      onPanResponderRelease: (evt, gestureState) => {
         if (gesture.current.isPinching) {
           const rawScale = gesture.current.pinchCurrentScale;
           const deltaZoom = Math.round(Math.log2(rawScale));
-          animScale.setValue(1);
           gesture.current.isPinching = false;
-
+          animScale.setValue(1);
+          animPanX.setValue(0);
+          animPanY.setValue(0);
+          currentAnimPanX.current = 0;
+          currentAnimPanY.current = 0;
+          isProcessingRelease.current = true;
           setCommitted((prev) => {
             const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev.zoom + deltaZoom));
             const panMult = Math.pow(2, newZoom - prev.zoom);
-            return { zoom: newZoom, panX: prev.panX * panMult, panY: prev.panY * panMult };
+            const newState = clampPan({ zoom: newZoom, panX: prev.panX * panMult, panY: prev.panY * panMult });
+            committedRef.current = newState;
+            isProcessingRelease.current = false;
+            return newState;
           });
-
-          animPanX.setOffset(0);
-          animPanY.setOffset(0);
-          animPanX.setValue(0);
-          animPanY.setValue(0);
         } else {
-          animPanX.flattenOffset();
-          animPanY.flattenOffset();
-          const dx = (animPanX as any)._value;
-          const dy = (animPanY as any)._value;
-          animPanX.setValue(0);
-          animPanY.setValue(0);
-          animPanX.setOffset(0);
-          animPanY.setOffset(0);
+          // Prevent multiple rapid releases from causing race conditions
+          if (isProcessingRelease.current) return;
+          isProcessingRelease.current = true;
 
-          setCommitted((prev) => ({
-            ...prev,
-            panX: prev.panX + dx,
-            panY: prev.panY + dy,
-          }));
+          // Read the already-clamped animation value (set during onPanResponderMove).
+          // This ensures the committed state matches exactly what the user saw on screen.
+          const dx = currentAnimPanX.current;
+          const dy = currentAnimPanY.current;
+
+          // Schedule animation reset to happen AFTER React commits new tile positions.
+          // useLayoutEffect will run synchronously after commit, in the same native batch,
+          // so there's never a frame where tiles are at new position but animation has old delta.
+          pendingAnimReset.current = true;
+
+          setCommitted((prev) => {
+            const newState = clampPan({
+              ...prev,
+              panX: prev.panX + dx,
+              panY: prev.panY + dy,
+            });
+            // Update ref immediately to prevent race conditions
+            committedRef.current = newState;
+            // Reset flag will be cleared in useLayoutEffect
+            return newState;
+          });
         }
         setMapPanning(false);
       },
     }),
   ).current;
 
-  const tiles = calcTiles(committed, width, height, baseUrl);
+  const tiles = useMemo(
+    () => calcTiles(committed, width, height, baseUrl),
+    [committed.zoom, committed.panX, committed.panY, width, height, baseUrl],
+  );
 
   const zoomIn = () =>
-    setCommitted((p) =>
-      p.zoom < MAX_ZOOM ? { zoom: p.zoom + 1, panX: p.panX * 2, panY: p.panY * 2 } : p,
-    );
+    setCommitted((p) => {
+      if (p.zoom >= MAX_ZOOM) return p;
+      const newState = clampPan({ zoom: p.zoom + 1, panX: p.panX * 2, panY: p.panY * 2 });
+      committedRef.current = newState;
+      return newState;
+    });
 
   const zoomOut = () =>
-    setCommitted((p) =>
-      p.zoom > MIN_ZOOM ? { zoom: p.zoom - 1, panX: p.panX / 2, panY: p.panY / 2 } : p,
-    );
+    setCommitted((p) => {
+      if (p.zoom <= MIN_ZOOM) return p;
+      const newState = clampPan({ zoom: p.zoom - 1, panX: p.panX / 2, panY: p.panY / 2 });
+      committedRef.current = newState;
+      return newState;
+    });
 
   return (
     <View style={styles.container}>

@@ -13,11 +13,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useHomeStore } from "@/store/home-store";
 import { useTrailsStore } from "@/store/trails-store";
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -28,6 +26,7 @@ import {
 import Animated, {
   Easing,
   runOnJS,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -53,6 +52,60 @@ const SUGGESTED = [
 
 const EXPAND_THRESHOLD = 40;
 
+/* ── Memoized row for suggested trails ── */
+const SuggestedRow = React.memo(function SuggestedRow({
+  item,
+  iconColor,
+  iconBg,
+  statColor,
+  onPress,
+}: {
+  item: (typeof SUGGESTED)[number];
+  iconColor: string;
+  iconBg: string;
+  statColor: string;
+  onPress: (name: string) => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={memoStyles.row}
+      onPress={() => onPress(item.name)}
+      activeOpacity={0.75}
+    >
+      <View style={[memoStyles.iconWrap, { backgroundColor: iconBg }]}>
+        <Ionicons name={item.icon as any} size={18} color={iconColor} />
+      </View>
+      <View style={memoStyles.rowText}>
+        <ThemedText style={memoStyles.rowTitle}>{item.name}</ThemedText>
+        <View style={memoStyles.suggestionStats}>
+          {item.stats.map((stat, i) => (
+            <View key={i} style={memoStyles.suggestionStat}>
+              {i > 0 && (
+                <ThemedText style={[memoStyles.statSeparator, { color: statColor }]}>|</ThemedText>
+              )}
+              <Ionicons name={stat.icon as any} size={11} color={statColor} />
+              <ThemedText style={[memoStyles.suggestionStatText, { color: statColor }]}>
+                {stat.value}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+const memoStyles = StyleSheet.create({
+  row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 11 },
+  iconWrap: { width: 42, height: 42, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  rowText: { flex: 1 },
+  rowTitle: { flex: 1, fontSize: 15, fontWeight: "600" },
+  suggestionStats: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 3 },
+  suggestionStat: { flexDirection: "row", alignItems: "center", gap: 3 },
+  suggestionStatText: { fontSize: 14 },
+  statSeparator: { fontSize: 12, opacity: 0.4 },
+});
+
 // Smooth expo-out — arranca rápido, desacelera gradualmente
 const EASE_DROP  = Easing.bezier(0.22, 1, 0.36, 1);
 // Aceleración suave al cerrar
@@ -66,10 +119,9 @@ export default function SearchPanel() {
   const colors = Colors[colorScheme ?? "light"];
   const isDark = colorScheme === "dark";
   const { searchQuery, setSearchQuery, recentSearches, addRecentSearch } = useTrailsStore();
-  const { searchOpen, setSearchOpen, setMode } = useHomeStore();
+  const { searchOpen, setSearchOpen, setMode, setBottomSheetIndex } = useHomeStore();
   const inputRef = useRef<TextInput>(null);
   const [mounted, setMounted] = useState(false);
-  const isExpanded = useRef(false);
 
   const targetTop = top + CARD_PADDING_TOP;
 
@@ -93,8 +145,6 @@ export default function SearchPanel() {
     contentOpacity.value   = 0;
     externalOpacity.value  = 0;
     fadeOpacity.value      = 1;
-    isExpanded.current     = false;
-
     // Backdrop
     backdropOpacity.value = withTiming(1, { duration: 320, easing: EASE_OUT });
 
@@ -166,37 +216,57 @@ export default function SearchPanel() {
     }
   };
 
-  const handleSelectRecent = (q: string) => {
+  const handleSelectRecent = useCallback((q: string) => {
     setSearchQuery(q);
     addRecentSearch(q);
     close(() => { setSearchOpen(false); setMode("list"); });
-  };
-
-  // Scroll expand
-  const handleScroll = useCallback((e: any) => {
-    if (!isExpanded.current && e.nativeEvent.contentOffset.y > EXPAND_THRESHOLD) {
-      isExpanded.current = true;
-      const fullHeight = screenHeight - targetTop;
-      fadeOpacity.value     = withTiming(0, { duration: 180 });
-      externalOpacity.value = withTiming(0, { duration: 180 });
-      cardHeight.value  = withTiming(fullHeight, { duration: 480, easing: EASE_DROP });
-      cardHMargin.value = withTiming(0,          { duration: 460, easing: EASE_DROP });
-    }
-  }, [screenHeight, targetTop]);
-
-  const handleScrollEndDrag = useCallback((e: any) => {
-    if (
-      isExpanded.current &&
-      e.nativeEvent.contentOffset.y <= 0 &&
-      (e.nativeEvent.velocity?.y ?? 0) < -0.5
-    ) {
-      isExpanded.current = false;
-      cardHeight.value      = withTiming(CARD_TARGET_HEIGHT, { duration: 420, easing: EASE_DROP });
-      cardHMargin.value     = withTiming(CARD_MARGIN,        { duration: 400, easing: EASE_DROP });
-      fadeOpacity.value     = withTiming(1, { duration: 300, easing: EASE_OUT });
-      externalOpacity.value = withTiming(1, { duration: 280, easing: EASE_OUT });
-    }
   }, []);
+
+  // Pre-compute stable colors for memoized rows
+  const iconBg = colors.tint + "18";
+  const suggestedRows = useMemo(
+    () =>
+      SUGGESTED.map((s) => (
+        <SuggestedRow
+          key={s.name}
+          item={s}
+          iconColor={colors.tint}
+          iconBg={iconBg}
+          statColor={colors.icon}
+          onPress={handleSelectRecent}
+        />
+      )),
+    [colors.tint, colors.icon, iconBg, handleSelectRecent],
+  );
+
+  // Scroll expand — runs entirely on UI thread via worklets
+  const expanded = useSharedValue(false);
+  const fullHeight = screenHeight - targetTop;
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      if (!expanded.value && event.contentOffset.y > EXPAND_THRESHOLD) {
+        expanded.value = true;
+        fadeOpacity.value     = withTiming(0, { duration: 180 });
+        externalOpacity.value = withTiming(0, { duration: 180 });
+        cardHeight.value  = withTiming(fullHeight, { duration: 480, easing: EASE_DROP });
+        cardHMargin.value = withTiming(0,          { duration: 460, easing: EASE_DROP });
+      }
+    },
+    onEndDrag: (event) => {
+      if (
+        expanded.value &&
+        event.contentOffset.y <= 0 &&
+        (event.velocity?.y ?? 0) < -0.5
+      ) {
+        expanded.value = false;
+        cardHeight.value      = withTiming(CARD_TARGET_HEIGHT, { duration: 420, easing: EASE_DROP });
+        cardHMargin.value     = withTiming(CARD_MARGIN,        { duration: 400, easing: EASE_DROP });
+        fadeOpacity.value     = withTiming(1, { duration: 300, easing: EASE_OUT });
+        externalOpacity.value = withTiming(1, { duration: 280, easing: EASE_OUT });
+      }
+    },
+  });
 
   if (!mounted) return null;
 
@@ -208,14 +278,14 @@ export default function SearchPanel() {
 
       {/* Backdrop */}
       <TouchableWithoutFeedback onPress={handleClose}>
-        <Animated.View style={[StyleSheet.absoluteFillObject, backdropStyle]}>
-          <BlurView
-            style={StyleSheet.absoluteFillObject}
-            intensity={80}
-            tint={isDark ? "dark" : "light"}
-          />
-          <View style={[StyleSheet.absoluteFillObject, styles.backdropOverlay]} />
-        </Animated.View>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            styles.backdrop,
+            { backgroundColor: isDark ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.25)" },
+            backdropStyle,
+          ]}
+        />
       </TouchableWithoutFeedback>
 
       {/* Card — drops down from search bar position */}
@@ -241,14 +311,13 @@ export default function SearchPanel() {
 
         {/* Content — fades in after card expands */}
         <Animated.View style={[styles.contentArea, contentStyle]}>
-          <ScrollView
+          <Animated.ScrollView
             showsVerticalScrollIndicator={false}
             bounces={false}
             overScrollMode="never"
             scrollEventThrottle={16}
             contentContainerStyle={styles.scrollContent}
-            onScroll={handleScroll}
-            onScrollEndDrag={handleScrollEndDrag}
+            onScroll={scrollHandler}
           >
             <View style={[styles.divider, { backgroundColor: dividerColor }]} />
             <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>
@@ -277,35 +346,8 @@ export default function SearchPanel() {
             )}
             <View style={[styles.divider, { backgroundColor: dividerColor }]} />
             <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>Sugeridas</ThemedText>
-            {SUGGESTED.map((s) => (
-              <TouchableOpacity
-                key={s.name}
-                style={styles.row}
-                onPress={() => handleSelectRecent(s.name)}
-                activeOpacity={0.75}
-              >
-                <View style={[styles.iconWrap, { backgroundColor: colors.tint + "18" }]}>
-                  <Ionicons name={s.icon as any} size={18} color={colors.tint} />
-                </View>
-                <View style={styles.rowText}>
-                  <ThemedText style={styles.rowTitle}>{s.name}</ThemedText>
-                  <View style={styles.suggestionStats}>
-                    {s.stats.map((stat, i) => (
-                      <View key={i} style={styles.suggestionStat}>
-                        {i > 0 && (
-                          <ThemedText style={[styles.statSeparator, { color: colors.icon }]}>|</ThemedText>
-                        )}
-                        <Ionicons name={stat.icon as any} size={11} color={colors.icon} />
-                        <ThemedText style={[styles.suggestionStatText, { color: colors.icon }]}>
-                          {stat.value}
-                        </ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+            {suggestedRows}
+          </Animated.ScrollView>
           <Animated.View style={[styles.fadeOverlay, fadeStyle]} pointerEvents="none">
             <LinearGradient
               colors={isDark
@@ -323,7 +365,15 @@ export default function SearchPanel() {
         style={[styles.card2, { top: targetTop + CARD_TARGET_HEIGHT + 10, left: CARD_MARGIN, right: CARD_MARGIN, backgroundColor: cardBg }, externalStyle]}
         pointerEvents="auto"
       >
-        <TouchableOpacity style={styles.row} onPress={handleClose} activeOpacity={0.75}>
+        <TouchableOpacity
+          style={styles.row}
+          onPress={() => {
+            // Expand bottom sheet to max (index 2 = "72%") and close search panel
+            setBottomSheetIndex(2);
+            close(() => setSearchOpen(false));
+          }}
+          activeOpacity={0.75}
+        >
           <View style={[styles.iconWrap, { backgroundColor: colors.tint + "18" }]}>
             <Ionicons name="location-outline" size={18} color={colors.tint} />
           </View>
@@ -358,9 +408,7 @@ export default function SearchPanel() {
 }
 
 const styles = StyleSheet.create({
-  backdropOverlay: {
-    backgroundColor: "rgba(0,0,0,0.12)",
-  },
+  backdrop: {},
   card: {
     position: "absolute",
     overflow: "hidden",
@@ -405,10 +453,6 @@ const styles = StyleSheet.create({
   iconWrap: { width: 42, height: 42, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   rowText: { flex: 1 },
   rowTitle: { flex: 1, fontSize: 15, fontWeight: "600" },
-  suggestionStats: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 3 },
-  suggestionStat: { flexDirection: "row", alignItems: "center", gap: 3 },
-  suggestionStatText: { fontSize: 14 },
-  statSeparator: { fontSize: 12, opacity: 0.4 },
   emptySmall: { paddingHorizontal: 16, paddingVertical: 12 },
   emptyText: { fontSize: 13 },
   card2: {

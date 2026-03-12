@@ -10,6 +10,8 @@ interface HomeStore {
   setSearchOpen: (open: boolean) => void;
   mapPanning: boolean;
   setMapPanning: (panning: boolean) => void;
+  bottomSheetIndex: number | null;
+  setBottomSheetIndex: (index: number | null) => void;
 }
 
 export const useHomeStore = create<HomeStore>((set, get) => ({
@@ -20,4 +22,6 @@ export const useHomeStore = create<HomeStore>((set, get) => ({
   setSearchOpen: (open) => set({ searchOpen: open }),
   mapPanning: false,
   setMapPanning: (panning) => set({ mapPanning: panning }),
+  bottomSheetIndex: null,
+  setBottomSheetIndex: (index) => set({ bottomSheetIndex: index }),
 }));

@@ -19,19 +19,28 @@ export default function TrailsBottomSheet({ onTrailPress }: Props) {
   const isDark = colorScheme === "dark";
 
   const { featuredTrails } = useTrailsStore();
-  const { setMode, mapPanning } = useHomeStore();
+  const { setMode, mapPanning, bottomSheetIndex, setBottomSheetIndex } = useHomeStore();
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => [90, 180, "72%"], []);
-  const handleSheetChanges = useCallback((_index: number) => {}, []);
+  const handleSheetChanges = useCallback((index: number) => {
+    // Reset the store index when user manually changes the sheet
+    if (bottomSheetIndex !== null && index !== bottomSheetIndex) {
+      setBottomSheetIndex(null);
+    }
+  }, [bottomSheetIndex, setBottomSheetIndex]);
 
   useEffect(() => {
     if (mapPanning) {
       bottomSheetRef.current?.snapToIndex(0);
+    } else if (bottomSheetIndex !== null) {
+      // If there's a requested index from store, use it
+      bottomSheetRef.current?.snapToIndex(bottomSheetIndex);
     } else {
+      // Default behavior: return to index 1
       bottomSheetRef.current?.snapToIndex(1);
     }
-  }, [mapPanning]);
+  }, [mapPanning, bottomSheetIndex]);
 
   return (
     <BottomSheet

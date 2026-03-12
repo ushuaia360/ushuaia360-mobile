@@ -27,7 +27,7 @@ export default function ListHome() {
       <View style={[
         styles.header,
         {
-          paddingTop: top + 10,
+          paddingTop: top + 16,
           backgroundColor: isDark ? '#1c1c1e' : '#fff',
           borderBottomColor: isDark ? '#2a2a2a' : '#EDF0F5',
         },
@@ -96,10 +96,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 20,
-    paddingBottom: 6,
+    paddingBottom: 12,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '800',
   },
   countBadge: {
