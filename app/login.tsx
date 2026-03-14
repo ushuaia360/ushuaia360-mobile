@@ -16,6 +16,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '@/store/auth-store';
 
 const BG_IMAGE = 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1200';
 
@@ -25,28 +26,41 @@ export default function LoginScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
-  const [step, setStep] = useState<'method' | 'form'>('method');
+  const { login, isLoading } = useAuthStore();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // 'method' → pantalla de bienvenida | 'form' → formulario de email
+  const [step, setStep] = useState<'method' | 'form'>('method');
 
   const inputBg = isDark ? '#1c1c1e' : '#fff';
   const borderColor = isDark ? '#2a2a2a' : '#ebebeb';
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+      Alert.alert('Error', 'Por favor completá todos los campos');
       return;
     }
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await login(email.trim(), password);
       router.replace('/(tabs)');
-    }, 1000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      // Email no verificado → ofrecer reenviar
+      if (msg.includes('verificad')) {
+        Alert.alert(
+          'Email no verificado',
+          'Revisá tu bandeja de entrada y verificá tu cuenta antes de ingresar.',
+          [{ text: 'OK' }],
+        );
+      } else {
+        Alert.alert('Error', msg);
+      }
+    }
   };
 
-  // ─── Step 1: Method selection ───────────────────────────────
+  // ─── Step 1: pantalla de bienvenida ────────────────────────
   if (step === 'method') {
     return (
       <ImageBackground source={{ uri: BG_IMAGE }} style={styles.bgImage} resizeMode="cover">
@@ -71,36 +85,51 @@ export default function LoginScreen() {
         {/* Back */}
         <TouchableOpacity
           style={[styles.backBtn, { borderColor: 'rgba(255,255,255,0.4)', position: 'absolute', top: top + 16, left: 24 }]}
-          onPress={() => router.back()}
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}
           activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
 
-        <View style={[styles.container, { paddingTop: top + 440 }]}>
+        <View style={[styles.container, { paddingTop: top + 400 }]}>
           <View style={styles.methodButtons}>
+
+            {/* Correo */}
             <TouchableOpacity
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
               onPress={() => setStep('form')}
               activeOpacity={0.85}>
               <Ionicons name="mail" size={20} color="#000" />
-              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>Continuar con correo</ThemedText>
+              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
+                Continuar con correo
+              </ThemedText>
             </TouchableOpacity>
 
+            {/* Google */}
             <TouchableOpacity
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
-              onPress={() => setStep('form')}
+              onPress={() => Alert.alert('Próximamente', 'El acceso con Google estará disponible pronto.')}
               activeOpacity={0.85}>
-              <Ionicons name="logo-apple" size={20} color="#000" />
-              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>Continuar con Apple</ThemedText>
+              {/* G de Google con colores */}
+              <View style={styles.googleIcon}>
+                <ThemedText style={styles.googleG}>G</ThemedText>
+              </View>
+              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
+                Continuar con Google
+              </ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.methodBtn, { backgroundColor: '#fff' }]}
-              onPress={() => setStep('form')}
-              activeOpacity={0.85}>
-              <Ionicons name="logo-google" size={20} color="#000" />
-              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>Continuar con Google</ThemedText>
-            </TouchableOpacity>
+            {/* Apple — solo iOS */}
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={[styles.methodBtn, { backgroundColor: '#000' }]}
+                onPress={() => Alert.alert('Próximamente', 'El acceso con Apple estará disponible pronto.')}
+                activeOpacity={0.85}>
+                <Ionicons name="logo-apple" size={22} color="#fff" />
+                <ThemedText style={[styles.methodBtnText, { color: '#fff' }]}>
+                  Continuar con Apple
+                </ThemedText>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.orRow}>
               <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.4)' }]} />
@@ -120,7 +149,7 @@ export default function LoginScreen() {
     );
   }
 
-  // ─── Step 2: Form ────────────────────────────────────────────
+  // ─── Step 2: formulario email/contraseña ─────────────────────
   return (
     <View style={[styles.formContainer, { backgroundColor: isDark ? '#121212' : '#fff' }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -136,8 +165,13 @@ export default function LoginScreen() {
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
 
-          <View style={styles.fields}>
+          <ThemedText style={[styles.title, { color: colors.text }]}>Iniciar sesión</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
+            Ingresá con tu correo electrónico
+          </ThemedText>
 
+          <View style={styles.fields}>
+            {/* Email */}
             <View style={styles.fieldGroup}>
               <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
                 <Ionicons name="mail-outline" size={18} color={colors.icon} />
@@ -154,6 +188,7 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            {/* Contraseña */}
             <View style={styles.fieldGroup}>
               <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
                 <Ionicons name="lock-closed-outline" size={18} color={colors.icon} />
@@ -167,20 +202,23 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                 />
                 <TouchableOpacity onPress={() => setShowPassword(p => !p)} hitSlop={8}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.icon} />
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={18}
+                    color={colors.icon}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
-
           </View>
 
           <TouchableOpacity
-            style={[styles.submitBtn, { backgroundColor: colors.tint, opacity: loading ? 0.7 : 1 }]}
+            style={[styles.submitBtn, { backgroundColor: colors.tint, opacity: isLoading ? 0.7 : 1 }]}
             onPress={handleLogin}
-            disabled={loading}
+            disabled={isLoading}
             activeOpacity={0.85}>
             <ThemedText style={styles.submitText}>
-              {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </ThemedText>
           </TouchableOpacity>
 
@@ -189,8 +227,15 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.forgotBtn}
             activeOpacity={0.7}
-            onPress={() => Alert.alert('Recuperar contraseña', 'Funcionalidad próximamente')}>
-            <ThemedText style={[styles.forgotText, { color: colors.icon }]}>¿Olvidaste tu contraseña?</ThemedText>
+            onPress={() =>
+              Alert.alert(
+                'Recuperar contraseña',
+                'Ingresá tu correo en el campo de arriba y presioná el botón para enviarte un enlace de recuperación.',
+              )
+            }>
+            <ThemedText style={[styles.forgotText, { color: colors.icon }]}>
+              ¿Olvidaste tu contraseña?
+            </ThemedText>
           </TouchableOpacity>
 
         </ScrollView>
@@ -245,6 +290,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 48,
   },
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 15,
+    marginBottom: 28,
+  },
   fields: {
     gap: 20,
     marginBottom: 28,
@@ -285,5 +339,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#fff',
+  },
+  googleIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#dadce0',
+  },
+  googleG: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#4285F4',
+    lineHeight: 16,
   },
 });

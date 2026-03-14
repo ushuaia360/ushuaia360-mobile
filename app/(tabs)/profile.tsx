@@ -1,4 +1,6 @@
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useEffect } from 'react';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -6,15 +8,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '@/store/auth-store';
 
-const MOCK_USER = {
-  name: 'Nombre',
-  location: 'Ushuaia, Argentina',
-  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
-  trails: 4,
-  reviews: 2,
-  months: 3,
-};
+const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200';
 
 const SETTINGS = [
   { icon: 'person-outline',        label: 'Información personal' },
@@ -30,9 +26,34 @@ export default function ProfileScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
+  const { user, logout } = useAuthStore();
+
+  // Si no está logueado, redirigir al login
+  useEffect(() => {
+    if (!user) {
+      router.replace('/login');
+    }
+  }, [user]);
+
+  if (!user) return null;
+
   const cardBg    = isDark ? '#1c1c1e' : '#fff';
   const divider   = isDark ? '#2a2a2a' : '#f0f0f0';
   const textSub   = colors.icon;
+
+  const handleLogout = () => {
+    Alert.alert('Cerrar sesión', '¿Estás seguro que querés salir?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar sesión',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/login');
+        },
+      },
+    ]);
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -45,24 +66,34 @@ export default function ProfileScreen() {
         <View style={[styles.card, { backgroundColor: cardBg }]}>
           <View style={styles.profileRow}>
             <View style={styles.avatarWrap}>
-              <Image source={{ uri: MOCK_USER.avatar }} style={styles.avatar} />
-              <ThemedText style={[styles.userName, { marginTop: 10 }]}>{MOCK_USER.name}</ThemedText>
-              <ThemedText style={[styles.userLocation, { color: textSub }]}>{MOCK_USER.location}</ThemedText>
+              <Image
+                source={{ uri: user?.avatar_url ?? DEFAULT_AVATAR }}
+                style={styles.avatar}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+              />
+              <ThemedText style={[styles.userName, { marginTop: 10 }]}>
+                {user?.full_name ?? 'Usuario'}
+              </ThemedText>
+              <ThemedText style={[styles.userLocation, { color: textSub }]}>
+                {user?.email ?? ''}
+              </ThemedText>
             </View>
             <View style={styles.stats}>
               <View style={styles.statItem}>
-                <ThemedText style={styles.statNum}>{MOCK_USER.trails}</ThemedText>
+                <ThemedText style={styles.statNum}>0</ThemedText>
                 <ThemedText style={[styles.statLabel, { color: textSub }]}>Senderos</ThemedText>
               </View>
               <View style={[styles.statDivider, { backgroundColor: divider }]} />
               <View style={styles.statItem}>
-                <ThemedText style={styles.statNum}>{MOCK_USER.reviews}</ThemedText>
+                <ThemedText style={styles.statNum}>0</ThemedText>
                 <ThemedText style={[styles.statLabel, { color: textSub }]}>Reseñas</ThemedText>
               </View>
               <View style={[styles.statDivider, { backgroundColor: divider }]} />
               <View style={styles.statItem}>
-                <ThemedText style={styles.statNum}>{MOCK_USER.months}</ThemedText>
-                <ThemedText style={[styles.statLabel, { color: textSub }]}>Meses</ThemedText>
+                <ThemedText style={styles.statNum}>0</ThemedText>
+                <ThemedText style={[styles.statLabel, { color: textSub }]}>Favoritos</ThemedText>
               </View>
             </View>
           </View>
@@ -113,7 +144,7 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={styles.settingRow}
                 activeOpacity={0.7}
-                onPress={label === 'Cerrar sesión' ? () => router.replace('/login') : undefined}>
+                onPress={label === 'Cerrar sesión' ? handleLogout : undefined}>
                 <View style={styles.settingIconWrap}>
                   <Ionicons name={icon as any} size={24} color={danger ? '#ff3b30' : colors.text} />
                 </View>
@@ -125,21 +156,6 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* ── Not logged in ── */}
-        <View style={styles.authRow}>
-          <TouchableOpacity
-            style={[styles.authBtn, { backgroundColor: colors.tint }]}
-            onPress={() => router.push('/login')}
-            activeOpacity={0.85}>
-            <ThemedText style={styles.authBtnText}>Iniciar sesión</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.authBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.tint }]}
-            onPress={() => router.push('/register')}
-            activeOpacity={0.85}>
-            <ThemedText style={[styles.authBtnText, { color: colors.tint }]}>Registrarse</ThemedText>
-          </TouchableOpacity>
-        </View>
 
       </ScrollView>
     </ThemedView>
@@ -183,7 +199,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginTop: 4,
   },
-  avatarWrap: { position: 'relative', flex: 1, alignItems: 'center', marginLeft: -20 },
+  avatarWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatar: {
     width: 100,
     height: 100,
@@ -201,7 +221,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stats: { flex: 1, gap: 8, paddingLeft: 30, paddingTop: 10 },
+  stats: { flex: 1, gap: 8, paddingLeft: 16 },
   statItem: { gap: 1 },
   statNum: { fontSize: 20, fontWeight: '600' },
   statLabel: { fontSize: 13 },
