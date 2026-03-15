@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -9,6 +9,54 @@ import SearchBar from './search-bar';
 import TrailListCard from './trail-list-card';
 import { useTrailsStore } from '@/store/trails-store';
 import { useHomeStore } from '@/store/home-store';
+import { useCallback, useEffect, useRef } from 'react';
+import { Trail } from '@/constants/mock-trails';
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function SkeletonCard({ shimmer }: { shimmer: Animated.Value }) {
+  const opacity = shimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.35, 0.9],
+  });
+
+  return (
+    <Animated.View style={[styles.skeletonCard, { opacity }]}>
+      <View style={styles.skeletonImage} />
+      <View style={styles.skeletonInfo}>
+        <View style={styles.skeletonRow}>
+          <View style={[styles.skeletonBlock, { flex: 1, height: 14 }]} />
+          <View style={[styles.skeletonBlock, { width: 48, height: 20, borderRadius: 6 }]} />
+        </View>
+        <View style={[styles.skeletonBlock, { width: '45%', height: 11, marginTop: 6 }]} />
+        <View style={[styles.skeletonBlock, { width: '70%', height: 11, marginTop: 12 }]} />
+      </View>
+    </Animated.View>
+  );
+}
+
+function SkeletonList() {
+  const shimmer = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 0, duration: 800, useNativeDriver: true }),
+      ]),
+    ).start();
+  }, [shimmer]);
+
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <SkeletonCard key={i} shimmer={shimmer} />
+      ))}
+    </>
+  );
+}
+
+// ── ListHome ──────────────────────────────────────────────────────────────────
 
 export default function ListHome() {
   const { top } = useSafeAreaInsets();
@@ -16,14 +64,52 @@ export default function ListHome() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
-  const { filteredTrails } = useTrailsStore();
+  const {
+    filteredTrails,
+    loading,
+    loadingMore,
+    fetchTrails,
+    loadMoreTrails,
+    total,
+    trails,
+    searchQuery,
+  } = useTrailsStore();
   const { setMode, searchOpen, setSearchOpen } = useHomeStore();
+
+  // Carga inicial
+  useEffect(() => {
+    if (trails.length === 0) {
+      fetchTrails(true);
+    }
+  }, []);
 
   const results = filteredTrails();
 
+  const renderItem = useCallback(
+    ({ item }: { item: Trail }) => (
+      <TrailListCard trail={item} onMapPress={() => setMode('map')} />
+    ),
+    [setMode],
+  );
+
+  const keyExtractor = useCallback((item: Trail) => item.id, []);
+
+  const renderFooter = useCallback(() => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator color={colors.tint} />
+      </View>
+    );
+  }, [loadingMore, colors.tint]);
+
+  const handleEndReached = useCallback(() => {
+    if (!searchQuery.trim()) loadMoreTrails();
+  }, [searchQuery, loadMoreTrails]);
+
   return (
     <ThemedView style={styles.container}>
-      {/* Fixed header */}
+      {/* Header */}
       <View style={[
         styles.header,
         {
@@ -32,35 +118,48 @@ export default function ListHome() {
           borderBottomColor: isDark ? '#2a2a2a' : '#EDF0F5',
         },
       ]}>
-        <SearchBar
-          onPress={() => setSearchOpen(true)}
-          isActive={searchOpen}
-        />
+        <SearchBar onPress={() => setSearchOpen(true)} isActive={searchOpen} />
+        {total > 0 && (
+          <ThemedText style={[styles.countText, { color: colors.icon }]}>
+            {total} senderos
+          </ThemedText>
+        )}
       </View>
 
-      {/* Trail list */}
-      <FlatList
-        data={results}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TrailListCard
-            trail={item}
-            onMapPress={() => setMode('map')}
-          />
-        )}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <IconSymbol name="magnifyingglass" size={40} color={isDark ? '#444' : '#ccc'} />
-            <ThemedText style={[styles.emptyText, { color: colors.icon }]}>
-              No se encontraron senderos
-            </ThemedText>
-          </View>
-        }
-      />
+      {/* Skeleton o lista */}
+      {loading ? (
+        <View style={styles.skeletonContainer}>
+          <SkeletonList />
+        </View>
+      ) : (
+        <FlatList
+          data={results}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          // ── Paginación ──
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={renderFooter}
+          // ── Performance ──
+          removeClippedSubviews={true}
+          initialNumToRender={4}
+          maxToRenderPerBatch={5}
+          updateCellsBatchingPeriod={80}
+          windowSize={7}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <IconSymbol name="magnifyingglass" size={40} color={isDark ? '#444' : '#ccc'} />
+              <ThemedText style={[styles.emptyText, { color: colors.icon }]}>
+                No se encontraron senderos
+              </ThemedText>
+            </View>
+          }
+        />
+      )}
 
-      {/* Floating "Ver Mapa" FAB */}
+      {/* FAB Ver Mapa */}
       <TouchableOpacity
         style={[styles.mapFab, { borderColor: colors.tint }]}
         onPress={() => setMode('map')}
@@ -72,10 +171,12 @@ export default function ListHome() {
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const SKELETON_BG = '#E0E0E0';
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     borderBottomWidth: 1,
     paddingBottom: 10,
@@ -86,9 +187,62 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 10,
   },
+  countText: {
+    fontSize: 12,
+    textAlign: 'center',
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  // ── Skeleton ──
+  skeletonContainer: {
+    flex: 1,
+    paddingTop: 14,
+    paddingHorizontal: 16,
+  },
+  skeletonCard: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    marginBottom: 24,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  skeletonImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: SKELETON_BG,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  skeletonInfo: {
+    flex: 1,
+    padding: 14,
+    marginTop: 200,
+  },
+  skeletonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  skeletonBlock: {
+    backgroundColor: SKELETON_BG,
+    borderRadius: 4,
+    height: 12,
+  },
+  // ── Lista ──
   list: {
     paddingTop: 14,
     paddingBottom: 110,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
   empty: {
     alignItems: 'center',
@@ -96,9 +250,8 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     gap: 12,
   },
-  emptyText: {
-    fontSize: 15,
-  },
+  emptyText: { fontSize: 15 },
+  // ── FAB ──
   mapFab: {
     position: 'absolute',
     bottom: 28,

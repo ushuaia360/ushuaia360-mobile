@@ -5,7 +5,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTrailsStore } from "@/store/trails-store";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import TrailFeaturedCard from "./trail-featured-card";
 import { useHomeStore } from "@/store/home-store";
 
@@ -18,8 +18,12 @@ export default function TrailsBottomSheet({ onTrailPress }: Props) {
   const colors = Colors[colorScheme ?? "light"];
   const isDark = colorScheme === "dark";
 
-  const { featuredTrails } = useTrailsStore();
+  const { featuredTrails, loadingFeatured, fetchFeaturedTrails, fetchTrails } = useTrailsStore();
   const { setMode, mapPanning, bottomSheetIndex, setBottomSheetIndex } = useHomeStore();
+
+  useEffect(() => {
+    fetchFeaturedTrails();
+  }, []);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => [90, 180, "72%"], []);
@@ -64,14 +68,14 @@ export default function TrailsBottomSheet({ onTrailPress }: Props) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <ThemedText style={styles.title}>Puntos Cercanos</ThemedText>
+            <ThemedText style={styles.title}>Senderos para ti</ThemedText>
             <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-              {featuredTrails.length} Puntos cerca tuyo
+              {featuredTrails.length} senderos destacados
             </ThemedText>
           </View>
           <TouchableOpacity
             style={[styles.viewAllButton, { backgroundColor: colors.tint }]}
-            onPress={() => setMode("list")}
+            onPress={() => { fetchTrails(true); setMode("list"); }}
             activeOpacity={0.8}
           >
             <ThemedText style={[styles.viewAllText, { color: "#fff" }]}>Ver todos</ThemedText>
@@ -88,19 +92,23 @@ export default function TrailsBottomSheet({ onTrailPress }: Props) {
 
         {/* Cards */}
         <View style={styles.cardList}>
-          {featuredTrails.map((trail) => (
-            <TrailFeaturedCard
-              key={trail.id}
-              trail={trail}
-              onPress={onTrailPress}
-            />
-          ))}
+          {loadingFeatured ? (
+            <ActivityIndicator style={{ marginVertical: 24 }} />
+          ) : (
+            featuredTrails.map((trail) => (
+              <TrailFeaturedCard
+                key={trail.id}
+                trail={trail}
+                onPress={onTrailPress}
+              />
+            ))
+          )}
         </View>
 
         {/* CTA button */}
         <TouchableOpacity
           style={[styles.ctaButton, { borderColor: colors.tint }]}
-          onPress={() => setMode("list")}
+          onPress={() => { fetchTrails(true); setMode("list"); }}
           activeOpacity={0.85}
         >
           <ThemedText style={[styles.ctaText, { color: colors.tint }]}>

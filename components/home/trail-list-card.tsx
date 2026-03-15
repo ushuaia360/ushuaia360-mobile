@@ -47,7 +47,7 @@ interface Props {
   onMapPress?: (trail: Trail) => void;
 }
 
-export default function TrailListCard({ trail, onPress, onMapPress }: Props) {
+function TrailListCard({ trail, onPress, onMapPress }: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -170,6 +170,8 @@ export default function TrailListCard({ trail, onPress, onMapPress }: Props) {
     </TouchableOpacity>
   );
 }
+
+export default TrailListCard;
 
 const styles = StyleSheet.create({
   card: {
