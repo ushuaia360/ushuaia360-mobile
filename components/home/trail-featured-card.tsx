@@ -3,7 +3,8 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import TrailImage from './trail-image';
 
 const DIFFICULTY_COLOR: Record<Trail['difficulty'], string> = {
   Fácil: '#34c759',
@@ -33,7 +34,11 @@ export default function TrailFeaturedCard({ trail, onPress }: Props) {
       onPress={() => onPress?.(trail)}
       activeOpacity={0.82}>
 
-      <Image source={{ uri: trail.image }} style={styles.image} resizeMode="cover" />
+      <TrailImage
+        uri={trail.image || trail.images?.[0]}
+        style={styles.image}
+        contentFit="cover"
+      />
 
       <View style={styles.info}>
         {/* Name + difficulty */}

@@ -4,7 +4,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
-import { Dimensions, FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import TrailImage from './trail-image';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 32; // marginHorizontal: 16 * 2
@@ -56,7 +57,8 @@ function TrailListCard({ trail, onPress, onMapPress }: Props) {
   const [liked, setLiked] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
-  const images = trail.images ?? [trail.image];
+  const images = (trail.images?.length ? trail.images : [trail.image].filter(Boolean)) as string[];
+  const displayImages = images.length > 0 ? images : [''];
   const heartRotate = useSharedValue(0);
   const heartStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${heartRotate.value}deg` }],
@@ -82,7 +84,7 @@ function TrailListCard({ trail, onPress, onMapPress }: Props) {
       <View style={styles.imageContainer}>
         <FlatList
           ref={flatListRef}
-          data={images}
+          data={displayImages}
           keyExtractor={(_, i) => String(i)}
           horizontal
           pagingEnabled
@@ -93,7 +95,7 @@ function TrailListCard({ trail, onPress, onMapPress }: Props) {
             if (index !== activeIndex) setActiveIndex(index);
           }}
           renderItem={({ item }) => (
-            <Image source={{ uri: item }} style={styles.image} resizeMode="cover" />
+            <TrailImage uri={item || undefined} style={styles.image} contentFit="cover" />
           )}
         />
 
@@ -118,9 +120,9 @@ function TrailListCard({ trail, onPress, onMapPress }: Props) {
         </TouchableOpacity>
 
         {/* Dots */}
-        {images.length > 1 && (
+        {displayImages.length > 1 && (
           <View style={styles.dots}>
-            {images.map((_, i) => (
+            {displayImages.map((_, i) => (
               <AnimatedDot key={i} active={i === activeIndex} />
             ))}
           </View>
