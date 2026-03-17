@@ -20,7 +20,7 @@ export default function SearchScreen() {
         </View>
         <View style={styles.content}>
           <View style={[styles.searchBar, { backgroundColor: colorScheme === 'dark' ? '#2a2a2a' : '#f5f5f5' }]}>
-            <IconSymbol name="magnifyingglass" size={20} color={colors.icon} />
+            <IconSymbol name="search-outline" size={20} color={colors.icon} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
               placeholder="Buscar..."

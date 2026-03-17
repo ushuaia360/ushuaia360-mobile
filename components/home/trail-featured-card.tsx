@@ -52,17 +52,17 @@ export default function TrailFeaturedCard({ trail, onPress }: Props) {
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <IconSymbol name="figure.walk" size={12} color={colors.tint} />
+            <IconSymbol name="walk-outline" size={12} color={colors.tint} />
             <ThemedText style={styles.statText}>{trail.distance}</ThemedText>
           </View>
           <View style={[styles.statDivider, { backgroundColor: isDark ? '#3a3a3a' : '#ddd' }]} />
           <View style={styles.stat}>
-            <IconSymbol name="clock" size={12} color={colors.tint} />
+            <IconSymbol name="time-outline" size={12} color={colors.tint} />
             <ThemedText style={styles.statText}>{trail.duration}</ThemedText>
           </View>
           <View style={[styles.statDivider, { backgroundColor: isDark ? '#3a3a3a' : '#ddd' }]} />
           <View style={styles.stat}>
-            <IconSymbol name="arrow.up.right" size={12} color={colors.tint} />
+            <IconSymbol name="trending-up-outline" size={12} color={colors.tint} />
             <ThemedText style={styles.statText}>{trail.elevationGain}</ThemedText>
           </View>
         </View>

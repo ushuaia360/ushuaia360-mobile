@@ -1,11 +1,11 @@
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHomeStore } from '@/store/home-store';
-import { Feather } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { useEffect } from 'react';
 import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -15,22 +15,23 @@ import Animated, {
 
 interface TabItem {
   name: string;
-  icon: string;
-  iconFilled: string;
+  icon: IconSymbolName;
+  iconFilled: IconSymbolName;
 }
 
 const tabs: TabItem[] = [
-  { name: 'index', icon: 'house.circle', iconFilled: 'house.circle.fill' },
-  { name: 'search', icon: 'magnifyingglass', iconFilled: 'magnifyingglass' },
-  { name: 'map', icon: 'map', iconFilled: 'map.fill' },
-  { name: 'favorites', icon: 'heart', iconFilled: 'heart.fill' },
-  { name: 'profile', icon: 'person', iconFilled: 'person.fill' },
+  { name: 'index', icon: 'home-outline', iconFilled: 'home' },
+  { name: 'search', icon: 'search-outline', iconFilled: 'search' },
+  { name: 'map', icon: 'map-outline', iconFilled: 'map' },
+  { name: 'favorites', icon: 'heart-outline', iconFilled: 'heart' },
+  { name: 'profile', icon: 'person-outline', iconFilled: 'person' },
 ];
 
 export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { searchOpen } = useHomeStore();
+  const { bottom: bottomInset } = useSafeAreaInsets();
 
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(1);
@@ -57,6 +58,8 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
         {
           backgroundColor: colors.background,
           borderTopColor: colorScheme === 'dark' ? '#2a2a2a' : '#e5e5e5',
+          paddingBottom: Platform.OS === 'ios' ? 28 : Math.max(bottomInset, 8),
+          height: Platform.OS === 'ios' ? 88 : 56 + Math.max(bottomInset, 8),
         },
         animatedStyle,
       ]}
@@ -98,19 +101,11 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
             onLongPress={onLongPress}
             style={styles.tabButton}
             activeOpacity={0.7}>
-            {route.name === 'index' ? (
-              <Feather
-                size={24}
-                name="home"
-                color={isFocused ? colors.tint : colors.tabIconDefault}
-              />
-            ) : (
-              <IconSymbol
-                size={24}
-                name={isFocused ? tab.iconFilled : tab.icon}
-                color={isFocused ? colors.tint : colors.tabIconDefault}
-              />
-            )}
+            <IconSymbol
+              size={24}
+              name={isFocused ? tab.iconFilled : tab.icon}
+              color={isFocused ? colors.tint : colors.tabIconDefault}
+            />
           </TouchableOpacity>
         );
       })}
@@ -121,8 +116,6 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
-    height: Platform.OS === 'ios' ? 88 : 64,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
     paddingTop: 8,
     borderTopWidth: 1,
     alignItems: 'center',

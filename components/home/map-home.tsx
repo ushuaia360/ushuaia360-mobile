@@ -3,11 +3,12 @@ import { CARD_PADDING_TOP } from '@/constants/search-layout';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHomeStore } from '@/store/home-store';
+import { Image } from 'expo-image';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
-  Image,
   PanResponder,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -121,7 +122,7 @@ export default function MapHome() {
 
   const baseUrl = isDark
     ? 'https://a.basemaps.cartocdn.com/dark_all'
-    : 'https://tile.openstreetmap.org';
+    : 'https://a.basemaps.cartocdn.com/light_all';
 
   const [committed, setCommitted] = useState<MapState>({ zoom: BASE_ZOOM, panX: 0, panY: 0 });
   const { searchOpen, setSearchOpen, setMapPanning } = useHomeStore();
@@ -315,9 +316,10 @@ export default function MapHome() {
         {tiles.map((t) => (
           <Image
             key={t.key}
-            source={{ uri: t.url }}
+            source={t.url}
             style={[styles.tile, { left: t.posX, top: t.posY }]}
-            fadeDuration={0}
+            cachePolicy="memory-disk"
+            transition={0}
           />
         ))}
       </Animated.View>
@@ -332,20 +334,20 @@ export default function MapHome() {
 
       {/* Zoom buttons, location, bottom sheet */}
       <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
-        <View style={[styles.zoomButtons, { bottom: bottom + 240 }]} pointerEvents="box-none">
+        <View style={[styles.zoomButtons, { bottom: bottom + (Platform.OS === 'android' ? 268 : 240) }]} pointerEvents="box-none">
           <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn} activeOpacity={0.8}>
-            <IconSymbol name="plus" size={18} color="rgba(0,0,0,0.5)" />
+            <IconSymbol name="add" size={18} color="rgba(0,0,0,0.5)" />
           </TouchableOpacity>
           <View style={styles.zoomDivider} />
           <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut} activeOpacity={0.8}>
-            <IconSymbol name="minus" size={18} color="rgba(0,0,0,0.5)" />
+            <IconSymbol name="remove-outline" size={18} color="rgba(0,0,0,0.5)" />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={[styles.locationButton, { bottom: bottom + 160, borderColor: colors.tint }]}
+          style={[styles.locationButton, { bottom: bottom + (Platform.OS === 'android' ? 188 : 160), borderColor: colors.tint }]}
           activeOpacity={0.8}>
-          <IconSymbol name="location.fill" size={20} color={colors.tint} />
+          <IconSymbol name="location" size={20} color={colors.tint} />
         </TouchableOpacity>
 
         <TrailsBottomSheet />

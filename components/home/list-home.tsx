@@ -150,7 +150,7 @@ export default function ListHome() {
           windowSize={7}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <IconSymbol name="magnifyingglass" size={40} color={isDark ? '#444' : '#ccc'} />
+              <IconSymbol name="search-outline" size={40} color={isDark ? '#444' : '#ccc'} />
               <ThemedText style={[styles.emptyText, { color: colors.icon }]}>
                 No se encontraron senderos
               </ThemedText>
@@ -164,7 +164,7 @@ export default function ListHome() {
         style={[styles.mapFab, { borderColor: colors.tint }]}
         onPress={() => setMode('map')}
         activeOpacity={0.85}>
-        <IconSymbol name="map.fill" size={17} color={colors.tint} />
+        <IconSymbol name="map" size={17} color={colors.tint} />
         <ThemedText style={[styles.mapFabText, { color: colors.tint }]}>Ver Mapa</ThemedText>
       </TouchableOpacity>
     </ThemedView>
