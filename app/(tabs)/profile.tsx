@@ -1,14 +1,14 @@
-import { useEffect } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/auth-store';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200';
 
@@ -27,6 +27,7 @@ export default function ProfileScreen() {
   const isDark = colorScheme === 'dark';
 
   const { user, logout } = useAuthStore();
+  const [personalInfoOpen, setPersonalInfoOpen] = useState(false);
 
   // Si no está logueado, redirigir al login
   useEffect(() => {
@@ -34,6 +35,8 @@ export default function ProfileScreen() {
       router.replace('/login');
     }
   }, [user]);
+
+  const isVerified = useMemo(() => Boolean(user?.email_verified), [user?.email_verified]);
 
   if (!user) return null;
 
@@ -54,6 +57,93 @@ export default function ProfileScreen() {
       },
     ]);
   };
+
+  if (personalInfoOpen) {
+    const premiumLabel = user?.is_premium ? 'Premium' : 'No premium';
+    const emailForWrap = (user?.email ?? '').replace(/[@.]/g, (ch) => `${ch}\u200B`);
+    return (
+      <ThemedView style={styles.container}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          contentContainerStyle={[styles.scroll, { paddingTop: top + 12 }]}>
+          <View style={[styles.personalHeader, { backgroundColor: cardBg }]}>
+            <TouchableOpacity
+              style={styles.backButton}
+              activeOpacity={0.7}
+              onPress={() => setPersonalInfoOpen(false)}>
+              <Ionicons name="chevron-back" size={20} color={textSub} />
+            </TouchableOpacity>
+            <ThemedText style={[styles.personalTitle, { color: colors.text }]}>
+              Información personal
+            </ThemedText>
+          </View>
+
+          <View style={[styles.personalCard, { backgroundColor: cardBg }]}>
+            <View style={styles.personalAvatarRow}>
+              <View style={styles.personalAvatarWrap}>
+                <Image
+                  source={{ uri: user?.avatar_url ?? DEFAULT_AVATAR }}
+                  style={styles.personalAvatar}
+                  contentFit="cover"
+                  transition={200}
+                  cachePolicy="memory-disk"
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldList}>
+              <View style={[styles.fieldRow, { alignItems: 'flex-start' }]}>
+                <ThemedText style={styles.fieldLabel}>Email</ThemedText>
+                <ThemedText style={[styles.fieldValue, { flex: 1, textAlign: 'right' }]}>
+                  {emailForWrap}
+                </ThemedText>
+              </View>
+
+              <View style={styles.fieldRow}>
+                <ThemedText style={styles.fieldLabel}>Verificado</ThemedText>
+                <View style={styles.valueBadgeWrap}>
+                  <Ionicons
+                    name={isVerified ? 'checkmark-circle' : 'close-circle'}
+                    size={16}
+                    color={isVerified ? '#34c759' : '#ff3b30'}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.valueBadgeText,
+                      { color: isVerified ? '#34c759' : '#ff3b30' },
+                    ]}>
+                    {isVerified ? 'Sí' : 'No'}
+                  </ThemedText>
+                </View>
+              </View>
+
+              <View style={styles.fieldRow}>
+                <ThemedText style={styles.fieldLabel}>Nombre completo</ThemedText>
+                <ThemedText style={[styles.fieldValue, { flex: 1, textAlign: 'right' }]}>
+                  {user?.full_name ?? ''}
+                </ThemedText>
+              </View>
+
+              <View style={styles.fieldRow}>
+                <ThemedText style={styles.fieldLabel}>Plan</ThemedText>
+                <View style={styles.valueBadgeWrap}>
+                  <Ionicons
+                    name={user?.is_premium ? 'star' : 'star-outline'}
+                    size={16}
+                    color={user?.is_premium ? colors.tint : textSub}
+                  />
+                  <ThemedText style={[styles.valueBadgeText, { color: user?.is_premium ? colors.tint : textSub }]}>
+                    {premiumLabel}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -144,7 +234,13 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={styles.settingRow}
                 activeOpacity={0.7}
-                onPress={label === 'Cerrar sesión' ? handleLogout : undefined}>
+                onPress={
+                  label === 'Cerrar sesión'
+                    ? handleLogout
+                    : label === 'Información personal'
+                      ? () => setPersonalInfoOpen(true)
+                      : undefined
+                }>
                 <View style={styles.settingIconWrap}>
                   <Ionicons name={icon as any} size={24} color={danger ? '#ff3b30' : colors.text} />
                 </View>
@@ -310,6 +406,76 @@ const styles = StyleSheet.create({
   },
   settingLabel: { flex: 1, fontSize: 15 },
   rowDivider: { height: 1, marginLeft: 66 },
+
+  // Personal info
+  personalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personalTitle: { fontSize: 18, fontWeight: '700' },
+  personalCard: {
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 20,
+    elevation: 4,
+    gap: 14,
+  },
+  personalAvatarRow: { alignItems: 'center' },
+  personalAvatarWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personalAvatar: {
+    width: 96,
+    height: 96,
+  },
+  fieldList: { gap: 18 },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 6,
+  },
+  fieldLabel: {
+    fontSize: 15,
+    opacity: 0.7,
+    flex: 1,
+    fontWeight: '600',
+  },
+  fieldValue: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  valueBadgeWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  valueBadgeText: { fontSize: 15, fontWeight: '800' },
 
   // Auth
   authRow: { flexDirection: 'row', gap: 12 },

@@ -1,16 +1,17 @@
-import { ActivityIndicator, Animated, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Trail } from '@/constants/mock-trails';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useHomeStore } from '@/store/home-store';
+import { useTrailsStore } from '@/store/trails-store';
+import { router } from 'expo-router';
+import { useCallback, useEffect, useRef } from 'react';
+import { ActivityIndicator, Animated, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SearchBar from './search-bar';
 import TrailListCard from './trail-list-card';
-import { useTrailsStore } from '@/store/trails-store';
-import { useHomeStore } from '@/store/home-store';
-import { useCallback, useEffect, useRef } from 'react';
-import { Trail } from '@/constants/mock-trails';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -81,13 +82,17 @@ export default function ListHome() {
     if (trails.length === 0) {
       fetchTrails(true);
     }
-  }, []);
+  }, [fetchTrails, trails.length]);
 
   const results = filteredTrails();
 
   const renderItem = useCallback(
     ({ item }: { item: Trail }) => (
-      <TrailListCard trail={item} onMapPress={() => setMode('map')} />
+      <TrailListCard
+        trail={item}
+        onMapPress={() => setMode('map')}
+        onPress={(trail) => router.push({ pathname: '/trails/[id]', params: { id: trail.id } } as any)}
+      />
     ),
     [setMode],
   );

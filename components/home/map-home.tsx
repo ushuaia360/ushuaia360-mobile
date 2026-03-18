@@ -4,6 +4,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHomeStore } from '@/store/home-store';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -279,7 +280,7 @@ export default function MapHome() {
 
   const tiles = useMemo(
     () => calcTiles(committed, width, height, baseUrl),
-    [committed.zoom, committed.panX, committed.panY, width, height, baseUrl],
+    [committed, width, height, baseUrl],
   );
 
   const zoomIn = () =>
@@ -350,7 +351,11 @@ export default function MapHome() {
           <IconSymbol name="location" size={20} color={colors.tint} />
         </TouchableOpacity>
 
-        <TrailsBottomSheet />
+        <TrailsBottomSheet
+          onTrailPress={(trail) =>
+            router.push({ pathname: '/trails/[id]', params: { id: trail.id } } as any)
+          }
+        />
       </View>
     </View>
   );

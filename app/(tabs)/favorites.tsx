@@ -1,6 +1,6 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 export default function FavoritesScreen() {
   return (
@@ -13,7 +13,7 @@ export default function FavoritesScreen() {
           </ThemedText>
         </View>
         <View style={styles.content}>
-          <ThemedText>No tienes favoritos aún</ThemedText>
+          <ThemedText>No tienes favoritos todavía</ThemedText>
         </View>
       </ScrollView>
     </ThemedView>

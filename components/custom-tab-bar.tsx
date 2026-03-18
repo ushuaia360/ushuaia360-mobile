@@ -44,7 +44,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
       translateY.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
       opacity.value = withTiming(1, { duration: 250 });
     }
-  }, [searchOpen]);
+  }, [searchOpen, opacity, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -97,7 +97,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
             accessibilityRole="button"
             accessibilityState={isFocused ? { selected: true } : {}}
             accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={options.tabBarTestID}
+            testID={(options as any).tabBarTestID}
             onPress={onPress}
             onLongPress={onLongPress}
             style={styles.tabButton}

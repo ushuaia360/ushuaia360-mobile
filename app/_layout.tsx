@@ -27,6 +27,7 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="trails/[id]" options={{ headerShown: true }} />
           <Stack.Screen name="login" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="register" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         </Stack>
