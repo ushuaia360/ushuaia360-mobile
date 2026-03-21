@@ -2,9 +2,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { redirectToLogin } from '@/lib/needAuth';
+import { useAuthStore } from '@/store/auth-store';
+import { useFavoritesStore } from '@/store/favorites-store';
 import { useTrailsStore } from '@/store/trails-store';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { Stack, useLocalSearchParams, usePathname } from 'expo-router';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -13,6 +18,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -31,11 +37,17 @@ export default function TrailDetailScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
+  const navigation = useNavigation();
 
   const { id } = useLocalSearchParams<{ id?: string }>();
   const trailId = typeof id === 'string' ? id : undefined;
 
   const { trails, featuredTrails, fetchTrails, loading } = useTrailsStore();
+  const token = useAuthStore((s) => s.token);
+  const pathname = usePathname();
+  const trailFavorited = useFavoritesStore((s) => (trailId ? s.isFavorite(trailId) : false));
+  const toggleTrailFavorite = useFavoritesStore((s) => s.toggleTrail);
+
   const [activeImage, setActiveImage] = useState(0);
   const galleryRef = useRef<FlatList<string>>(null);
 
@@ -56,6 +68,30 @@ export default function TrailDetailScreen() {
 
   const images = trail?.images?.length ? trail.images : trail?.image ? [trail.image] : [];
   const heroHeight = Math.round(SCREEN_WIDTH * 0.62);
+
+  useLayoutEffect(() => {
+    if (!trailId) return;
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={async () => {
+            if (!token) {
+              redirectToLogin(pathname || '/(tabs)');
+              return;
+            }
+            await toggleTrailFavorite(trailId, token, !trailFavorited);
+          }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{ marginRight: 4 }}>
+          <Ionicons
+            name={trailFavorited ? 'heart' : 'heart-outline'}
+            size={24}
+            color={trailFavorited ? '#ff3b30' : colors.tint}
+          />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, trailId, token, trailFavorited, toggleTrailFavorite, colors.tint, pathname]);
 
   return (
     <ThemedView style={styles.container}>

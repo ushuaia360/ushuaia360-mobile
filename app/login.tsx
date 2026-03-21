@@ -10,7 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { DEFAULT_AFTER_LOGIN, sanitizeReturnPath } from '@/lib/needAuth';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -27,6 +28,7 @@ export default function LoginScreen() {
   const isDark = colorScheme === 'dark';
 
   const { login, isLoading } = useAuthStore();
+  const { next: nextParam } = useLocalSearchParams<{ next?: string }>();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,7 +46,9 @@ export default function LoginScreen() {
     }
     try {
       await login(email.trim(), password);
-      router.replace('/(tabs)');
+      const rawNext = Array.isArray(nextParam) ? nextParam[0] : nextParam;
+      const dest = sanitizeReturnPath(rawNext ?? DEFAULT_AFTER_LOGIN);
+      router.replace(dest as Href);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al iniciar sesión';
       // Email no verificado → ofrecer reenviar

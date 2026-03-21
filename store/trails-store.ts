@@ -27,7 +27,7 @@ function formatDuration(minutes: number | null): string {
   return low === high ? `${low} hs` : `${low}-${high} hs`;
 }
 
-function mapBackendTrail(t: BackendTrail): Trail {
+export function mapBackendTrail(t: BackendTrail): Trail {
   const images =
     Array.isArray(t.image_urls) && t.image_urls.length > 0
       ? t.image_urls

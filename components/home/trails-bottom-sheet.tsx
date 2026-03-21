@@ -4,16 +4,24 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useHomeStore } from "@/store/home-store";
 import { useTrailsStore } from "@/store/trails-store";
+import type { MapMarker } from "@/services/api";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import MapMarkerBottomCard from "./map-marker-bottom-card";
 import TrailFeaturedCard from "./trail-featured-card";
 
 interface Props {
   onTrailPress?: (trail: Trail) => void;
+  selectedMapMarker?: MapMarker | null;
+  onClearMapMarker?: () => void;
 }
 
-export default function TrailsBottomSheet({ onTrailPress }: Props) {
+export default function TrailsBottomSheet({
+  onTrailPress,
+  selectedMapMarker,
+  onClearMapMarker,
+}: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const isDark = colorScheme === "dark";
@@ -24,6 +32,12 @@ export default function TrailsBottomSheet({ onTrailPress }: Props) {
   useEffect(() => {
     fetchFeaturedTrails();
   }, [fetchFeaturedTrails]);
+
+  useEffect(() => {
+    if (selectedMapMarker) {
+      setBottomSheetIndex(2);
+    }
+  }, [selectedMapMarker, setBottomSheetIndex]);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => [90, 180, "72%"], []);
@@ -65,12 +79,35 @@ export default function TrailsBottomSheet({ onTrailPress }: Props) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {selectedMapMarker ? (
+          <MapMarkerBottomCard
+            marker={selectedMapMarker}
+            onClose={() => {
+              onClearMapMarker?.();
+              setBottomSheetIndex(null);
+            }}
+          />
+        ) : null}
+
+        {selectedMapMarker ? (
+          <View
+            style={[
+              styles.sectionDivider,
+              { backgroundColor: isDark ? "#2a2a2a" : "#E8ecf0" },
+            ]}
+          />
+        ) : null}
+
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <ThemedText style={styles.title}>Senderos para ti</ThemedText>
+            <ThemedText style={styles.title}>
+              {selectedMapMarker ? "También cerca tuyo" : "Senderos para ti"}
+            </ThemedText>
             <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-              {featuredTrails.length} senderos destacados
+              {selectedMapMarker
+                ? `${featuredTrails.length} recomendados en la zona`
+                : `${featuredTrails.length} senderos destacados`}
             </ThemedText>
           </View>
           <TouchableOpacity
@@ -134,6 +171,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
+  },
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth * 2,
+    marginHorizontal: 20,
+    marginBottom: 10,
   },
   content: {
     paddingBottom: 40,
