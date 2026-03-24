@@ -88,3 +88,94 @@ export async function fetchTrails(params: FetchTrailsParams = {}): Promise<Trail
   const query = qs.toString() ? `?${qs.toString()}` : '';
   return apiRequest<TrailsResponse>(`/trails${query}`);
 }
+
+// ── Favoritos (senderos) ──────────────────────────────────────────────────────
+
+export async function fetchFavoriteTrailIds(token: string): Promise<string[]> {
+  const data = await apiRequest<{ trail_ids: string[] }>('/me/favorite-trails/ids', {
+    token,
+  });
+  return data.trail_ids ?? [];
+}
+
+export async function fetchFavoriteTrails(token: string): Promise<TrailsResponse> {
+  return apiRequest<TrailsResponse>('/me/favorite-trails', { token });
+}
+
+export async function addTrailFavorite(token: string, trailId: string): Promise<void> {
+  await apiRequest(`/me/favorite-trails/${trailId}`, { method: 'POST', token });
+}
+
+export async function removeTrailFavorite(token: string, trailId: string): Promise<void> {
+  await apiRequest(`/me/favorite-trails/${trailId}`, { method: 'DELETE', token });
+}
+
+export interface ProfileStatsResponse {
+  completed_trails_count: number;
+  reviews_count: number;
+  favorites_count: number;
+}
+
+export async function fetchProfileStats(token: string): Promise<ProfileStatsResponse> {
+  return apiRequest<ProfileStatsResponse>('/me/profile-stats', { token });
+}
+
+// ── Mapa ──────────────────────────────────────────────────────────────────────
+
+export interface MapMarkerTrail {
+  kind: 'trail';
+  id: string;
+  slug: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  route_type?: 'circular' | 'lineal' | 'ida_vuelta' | null;
+  region?: string | null;
+  distance_km: number | null;
+  duration_minutes: number | null;
+  elevation_gain?: number | null;
+  description?: string | null;
+  thumbnail_url: string | null;
+}
+
+export interface MapMarkerPlace {
+  kind: 'place';
+  id: string;
+  slug: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  category: string | null;
+  region: string | null;
+  description: string | null;
+  thumbnail_url: string | null;
+}
+
+export type MapMarker = MapMarkerTrail | MapMarkerPlace;
+
+export async function fetchMapMarkers(): Promise<MapMarker[]> {
+  const data = await apiRequest<{ markers: MapMarker[] }>('/map/markers');
+  return data.markers ?? [];
+}
+
+export interface BackendPlace {
+  id: string;
+  slug: string;
+  name: string | null;
+  category: string | null;
+  region: string | null;
+  country: string | null;
+  description: string | null;
+  is_premium: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  image_urls: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchPlace(placeId: string): Promise<BackendPlace> {
+  const data = await apiRequest<{ place: BackendPlace }>(`/places/${placeId}`);
+  return data.place;
+}

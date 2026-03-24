@@ -2,11 +2,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { redirectToLogin } from '@/lib/needAuth';
+import { fetchProfileStats, type ProfileStatsResponse } from '@/services/api';
 import { useAuthStore } from '@/store/auth-store';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,15 +29,36 @@ export default function ProfileScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
-  const { user, logout } = useAuthStore();
+  const { user, token, logout, isInitialized } = useAuthStore();
   const [personalInfoOpen, setPersonalInfoOpen] = useState(false);
+  const [profileStats, setProfileStats] = useState<ProfileStatsResponse | null>(null);
 
-  // Si no está logueado, redirigir al login
-  useEffect(() => {
-    if (!user) {
-      router.replace('/login');
+  const loadProfileStats = useCallback(async () => {
+    if (!token) return;
+    try {
+      const s = await fetchProfileStats(token);
+      setProfileStats(s);
+    } catch {
+      setProfileStats({
+        completed_trails_count: 0,
+        reviews_count: 0,
+        favorites_count: 0,
+      });
     }
-  }, [user]);
+  }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfileStats();
+    }, [loadProfileStats]),
+  );
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    if (!user) {
+      redirectToLogin('/(tabs)/profile');
+    }
+  }, [user, isInitialized]);
 
   const isVerified = useMemo(() => Boolean(user?.email_verified), [user?.email_verified]);
 
@@ -44,6 +68,14 @@ export default function ProfileScreen() {
   const divider   = isDark ? '#2a2a2a' : '#f0f0f0';
   const textSub   = colors.icon;
 
+  const goToFavorites = () => {
+    router.push('/(tabs)/favorites');
+  };
+
+  const senderosN = profileStats?.completed_trails_count ?? 0;
+  const resenasN = profileStats?.reviews_count ?? 0;
+  const favoritosN = profileStats?.favorites_count ?? 0;
+
   const handleLogout = () => {
     Alert.alert('Cerrar sesión', '¿Estás seguro que querés salir?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -52,7 +84,7 @@ export default function ProfileScreen() {
         style: 'destructive',
         onPress: async () => {
           await logout();
-          router.replace('/login');
+          redirectToLogin('/(tabs)/profile');
         },
       },
     ]);
@@ -172,19 +204,24 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.stats}>
               <View style={styles.statItem}>
-                <ThemedText style={styles.statNum}>0</ThemedText>
+                <ThemedText style={styles.statNum}>{senderosN}</ThemedText>
                 <ThemedText style={[styles.statLabel, { color: textSub }]}>Senderos</ThemedText>
               </View>
               <View style={[styles.statDivider, { backgroundColor: divider }]} />
               <View style={styles.statItem}>
-                <ThemedText style={styles.statNum}>0</ThemedText>
+                <ThemedText style={styles.statNum}>{resenasN}</ThemedText>
                 <ThemedText style={[styles.statLabel, { color: textSub }]}>Reseñas</ThemedText>
               </View>
               <View style={[styles.statDivider, { backgroundColor: divider }]} />
-              <View style={styles.statItem}>
-                <ThemedText style={styles.statNum}>0</ThemedText>
+              <TouchableOpacity
+                style={styles.statItem}
+                activeOpacity={0.65}
+                onPress={goToFavorites}
+                accessibilityRole="button"
+                accessibilityLabel="Ver favoritos">
+                <ThemedText style={styles.statNum}>{favoritosN}</ThemedText>
                 <ThemedText style={[styles.statLabel, { color: textSub }]}>Favoritos</ThemedText>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -198,7 +235,12 @@ export default function ProfileScreen() {
             <ThemedText style={styles.gridLabel}>Completados</ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.gridCard, { backgroundColor: cardBg, justifyContent: 'space-between' }]} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={[styles.gridCard, { backgroundColor: cardBg, justifyContent: 'space-between' }]}
+            activeOpacity={0.85}
+            onPress={goToFavorites}
+            accessibilityRole="button"
+            accessibilityLabel="Favoritos">
             <View style={styles.favImgs}>
               <Image
                 source={{ uri: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=200' }}

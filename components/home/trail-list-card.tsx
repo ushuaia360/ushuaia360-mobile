@@ -2,7 +2,11 @@ import { Trail } from '@/constants/mock-trails';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
+import { redirectToLogin } from '@/lib/needAuth';
+import { useAuthStore } from '@/store/auth-store';
+import { useFavoritesStore } from '@/store/favorites-store';
 import { Ionicons } from '@expo/vector-icons';
+import { usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import TrailImage from './trail-image';
@@ -54,7 +58,11 @@ function TrailListCard({ trail, onPress, onMapPress }: Props) {
   const isDark = colorScheme === 'dark';
   const diffColor = DIFFICULTY_COLOR[trail.difficulty];
 
-  const [liked, setLiked] = useState(false);
+  const token = useAuthStore((s) => s.token);
+  const pathname = usePathname();
+  const liked = useFavoritesStore((s) => s.isFavorite(trail.id));
+  const toggleTrailFavorite = useFavoritesStore((s) => s.toggleTrail);
+
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const images = (trail.images?.length ? trail.images : [trail.image].filter(Boolean)) as string[];
@@ -67,11 +75,16 @@ function TrailListCard({ trail, onPress, onMapPress }: Props) {
   const w = (deg: number, ms: number) =>
     withTiming(deg, { duration: ms, easing: Easing.inOut(Easing.sin) });
 
-  const onHeartPress = () => {
-    setLiked((prev) => !prev);
+  const onHeartPress = async () => {
+    if (!token) {
+      redirectToLogin(pathname || '/(tabs)');
+      return;
+    }
+    const next = !liked;
     heartRotate.value = withSequence(
       w(-18, 120), w(14, 100), w(-10, 90), w(6, 80), w(-3, 70), w(0, 60),
     );
+    await toggleTrailFavorite(trail.id, token, next);
   };
 
   return (

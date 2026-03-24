@@ -1,11 +1,21 @@
+import MapMarkersOverlay from '@/components/home/map-markers-overlay';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { CARD_PADDING_TOP } from '@/constants/search-layout';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import {
+  MAP_BASE_TILE_X,
+  MAP_BASE_TILE_Y,
+  MAP_BASE_ZOOM,
+  MAP_TILE_SIZE,
+  latToTileY,
+  lonToTileX,
+} from '@/lib/map-projection';
+import { fetchMapMarkers, type MapMarker } from '@/services/api';
 import { useHomeStore } from '@/store/home-store';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   PanResponder,
@@ -19,11 +29,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SearchBar from './search-bar';
 import TrailsBottomSheet from './trails-bottom-sheet';
 
-const BASE_ZOOM = 12;
-const TILE_SIZE = 256;
-// Ushuaia city center: lat=-54.8019, lon=-68.3030 (Web Mercator / OSM formula at zoom 12)
-const BASE_TILE_X = 1270.8636;
-const BASE_TILE_Y = 2796.524;
+const BASE_ZOOM = MAP_BASE_ZOOM;
+const TILE_SIZE = MAP_TILE_SIZE;
+const BASE_TILE_X = MAP_BASE_TILE_X;
+const BASE_TILE_Y = MAP_BASE_TILE_Y;
 const BUFFER = 4;
 const MIN_ZOOM = 11;
 const MAX_ZOOM = 18;
@@ -41,18 +50,6 @@ interface MapState {
   zoom: number;
   panX: number;
   panY: number;
-}
-
-function lonToTileX(lon: number, zoom: number): number {
-  return ((lon + 180) / 360) * Math.pow(2, zoom);
-}
-
-function latToTileY(lat: number, zoom: number): number {
-  const latRad = (lat * Math.PI) / 180;
-  return (
-    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) *
-    Math.pow(2, zoom)
-  );
 }
 
 function clampPan(state: MapState): MapState {
@@ -127,6 +124,15 @@ export default function MapHome() {
 
   const [committed, setCommitted] = useState<MapState>({ zoom: BASE_ZOOM, panX: 0, panY: 0 });
   const { searchOpen, setSearchOpen, setMapPanning } = useHomeStore();
+
+  const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
+  const [selectedMapMarker, setSelectedMapMarker] = useState<MapMarker | null>(null);
+
+  useEffect(() => {
+    fetchMapMarkers()
+      .then(setMapMarkers)
+      .catch(() => setMapMarkers([]));
+  }, []);
 
   const animPanX = useRef(new Animated.Value(0)).current;
   const animPanY = useRef(new Animated.Value(0)).current;
@@ -299,30 +305,41 @@ export default function MapHome() {
       return newState;
     });
 
+  const mapTransformStyle = {
+    transform: [
+      { translateX: animPanX },
+      { translateY: animPanY },
+      { scale: animScale },
+    ],
+  };
+
+  const selectedMarkerKey = selectedMapMarker
+    ? `${selectedMapMarker.kind}-${selectedMapMarker.id}`
+    : null;
+
   return (
     <View style={styles.container}>
-      {/* Tile layer */}
-      <Animated.View
-        style={[
-          StyleSheet.absoluteFillObject,
-          {
-            transform: [
-              { translateX: animPanX },
-              { translateY: animPanY },
-              { scale: animScale },
-            ],
-          },
-        ]}
-        {...panResponder.panHandlers}>
-        {tiles.map((t) => (
-          <Image
-            key={t.key}
-            source={t.url}
-            style={[styles.tile, { left: t.posX, top: t.posY }]}
-            cachePolicy="memory-disk"
-            transition={0}
-          />
-        ))}
+      {/* Tiles + waypoints (mismo transform para pan/pinch) */}
+      <Animated.View style={[StyleSheet.absoluteFillObject, mapTransformStyle]}>
+        <View style={StyleSheet.absoluteFillObject} {...panResponder.panHandlers}>
+          {tiles.map((t) => (
+            <Image
+              key={t.key}
+              source={t.url}
+              style={[styles.tile, { left: t.posX, top: t.posY }]}
+              cachePolicy="memory-disk"
+              transition={0}
+            />
+          ))}
+        </View>
+        <MapMarkersOverlay
+          markers={mapMarkers}
+          mapState={committed}
+          width={width}
+          height={height}
+          selectedKey={selectedMarkerKey}
+          onMarkerPress={setSelectedMapMarker}
+        />
       </Animated.View>
 
       {/* Search bar */}
@@ -352,6 +369,8 @@ export default function MapHome() {
         </TouchableOpacity>
 
         <TrailsBottomSheet
+          selectedMapMarker={selectedMapMarker}
+          onClearMapMarker={() => setSelectedMapMarker(null)}
           onTrailPress={(trail) =>
             router.push({ pathname: '/trails/[id]', params: { id: trail.id } } as any)
           }
