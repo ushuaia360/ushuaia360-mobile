@@ -194,6 +194,5 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 16, paddingTop: 18, gap: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700' },
   description: { fontSize: 15, lineHeight: 21 },
-  
-});
 
+});
