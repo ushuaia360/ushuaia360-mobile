@@ -1,0 +1,5 @@
+{"type":"server-started","port":52915,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:52915","screen_dir":"/Users/budi/Desktop/Proyectos/ushuaia360/ushuaia360-mobile/.superpowers/brainstorm/36761-1774385311"}
+{"type":"screen-added","file":"/Users/budi/Desktop/Proyectos/ushuaia360/ushuaia360-mobile/.superpowers/brainstorm/36761-1774385311/favorites-design.html"}
+{"type":"screen-added","file":"/Users/budi/Desktop/Proyectos/ushuaia360/ushuaia360-mobile/.superpowers/brainstorm/36761-1774385311/trail-detail-layout.html"}
+{"source":"user-event","type":"click","text":"A\n    \n      Scroll único\n      Todo en una sola pantalla scrolleable: métricas, mapa, descripción. Simple y directo.","choice":"a","id":null,"timestamp":1774385866895}
+{"type":"server-stopped","reason":"idle timeout"}

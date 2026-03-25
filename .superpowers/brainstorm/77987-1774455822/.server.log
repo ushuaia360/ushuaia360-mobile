@@ -1,0 +1,5 @@
+{"type":"server-started","port":54447,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:54447","screen_dir":"/Users/budi/Desktop/Proyectos/ushuaia360/ushuaia360-mobile/.superpowers/brainstorm/77987-1774455822"}
+{"type":"screen-added","file":"/Users/budi/Desktop/Proyectos/ushuaia360/ushuaia360-mobile/.superpowers/brainstorm/77987-1774455822/trail-detail-review.html"}
+{"type":"screen-added","file":"/Users/budi/Desktop/Proyectos/ushuaia360/ushuaia360-mobile/.superpowers/brainstorm/77987-1774455822/cards-review.html"}
+{"type":"screen-added","file":"/Users/budi/Desktop/Proyectos/ushuaia360/ushuaia360-mobile/.superpowers/brainstorm/77987-1774455822/cards-alt.html"}
+{"type":"server-stopped","reason":"idle timeout"}

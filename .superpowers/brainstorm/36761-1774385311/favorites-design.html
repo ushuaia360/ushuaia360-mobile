@@ -1,0 +1,224 @@
+<h2>¿Qué parte del diseño querés mejorar?</h2>
+<p class="subtitle">Seleccioná una o más áreas (la pantalla actual tiene margen en todas)</p>
+
+<style>
+  .phone-row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 24px 0;
+  }
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .phone-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phone {
+    width: 220px;
+    height: 420px;
+    background: #f2f4f7;
+    border-radius: 32px;
+    border: 3px solid #d0d5dd;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+  }
+  .phone-header {
+    background: #fff;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid #EDF0F5;
+    flex-shrink: 0;
+  }
+  .phone-header .title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111;
+  }
+  .phone-header .subtitle-sm {
+    font-size: 12px;
+    color: #888;
+    margin-top: 3px;
+  }
+  .phone-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .trail-card {
+    background: #fff;
+    border-radius: 12px;
+    margin: 0 6px 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    overflow: hidden;
+    width: 100%;
+  }
+  .card-img {
+    width: 100%;
+    height: 90px;
+    background: linear-gradient(135deg, #b8d4e8, #3FA9F5 80%);
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 8px;
+  }
+  .card-img .badge {
+    background: #34c759;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 20px;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+  .card-img .heart {
+    width: 26px;
+    height: 26px;
+    background: #fff;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .card-info {
+    padding: 8px 10px 10px;
+  }
+  .card-info .cname {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111;
+  }
+  .card-info .cmeta {
+    font-size: 10px;
+    color: #888;
+    margin-top: 2px;
+  }
+  .card-info .cstats {
+    display: flex;
+    gap: 8px;
+    margin-top: 5px;
+    font-size: 10px;
+    color: #888;
+  }
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    flex: 1;
+  }
+  .empty-icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+  }
+  .empty-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 6px;
+  }
+  .empty-desc {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.5;
+  }
+  .empty-btn {
+    margin-top: 14px;
+    background: #3FA9F5;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+  }
+  .count-badge {
+    display: inline-block;
+    background: #EEF7FF;
+    color: #3FA9F5;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 20px;
+    margin-top: 4px;
+  }
+</style>
+
+<div class="phone-row">
+  <div class="phone-wrap">
+    <div class="phone-label">Estado actual</div>
+    <div class="phone">
+      <div class="phone-header">
+        <div class="title">Favoritos</div>
+        <div class="subtitle-sm">Tus lugares y senderos favoritos</div>
+      </div>
+      <div class="phone-body" style="justify-content:flex-start; padding: 10px 8px 0;">
+        <div class="trail-card">
+          <div class="card-img"><span class="badge">Fácil</span><div class="heart">❤️</div></div>
+          <div class="card-info"><div class="cname">Glaciar Martial</div><div class="cmeta">Ida y vuelta · Dificultad fácil</div><div class="cstats"><span>📍 4.2 km</span><span>⏱ 2h 30m</span><span>↑ 380m</span></div></div>
+        </div>
+        <div class="trail-card">
+          <div class="card-img" style="background: linear-gradient(135deg, #c8d8b0, #6aab3a 80%);"><span class="badge" style="background:#ff9500">Media</span><div class="heart">🤍</div></div>
+          <div class="card-info"><div class="cname">Laguna Esmeralda</div><div class="cmeta">Lineal · Dificultad media</div><div class="cstats"><span>📍 9.8 km</span><span>⏱ 4h</span><span>↑ 250m</span></div></div>
+        </div>
+      </div>
+      <!-- Empty state actual -->
+      <div style="padding: 12px 20px; text-align:center;">
+        <div style="font-size:12px; color:#888;">No tenés favoritos todavía. Tocá el corazón en un sendero para guardarlo.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="text-align:center; font-size:14px; color:#555; margin: 8px 0 20px;">Las tarjetas ya están bien. ¿En qué áreas querés enfocarte?</p>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="empty-state" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Empty state</h3>
+      <p>Actualmente es solo texto plano. Podría tener una ilustración/ícono, título, descripción y un CTA para explorar senderos.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="header" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Header / título</h3>
+      <p>Agregar el count de favoritos, o un tratamiento visual más interesante al encabezado.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="cards" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Algo en las tarjetas</h3>
+      <p>Swipe-to-delete, modo grilla, o algún ajuste visual a las cards dentro de favoritos.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="otro" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Otra cosa</h3>
+      <p>Contame en el chat qué tenés en mente.</p>
+    </div>
+  </div>
+</div>

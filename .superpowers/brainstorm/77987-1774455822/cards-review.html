@@ -1,0 +1,134 @@
+<h2>Info cards — propuesta de mejora</h2>
+<p class="subtitle">Actual vs propuesta. Seleccioná lo que te gusta.</p>
+
+<style>
+.split { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+.col { display: flex; flex-direction: column; gap: 10px; width: 220px; }
+.col-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; margin-bottom: 2px; }
+
+/* Cards */
+.card { background: #fff; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 16px; }
+
+/* ── ACTUAL ── */
+.a-name { font-size: 18px; font-weight: 700; color: #111; }
+.a-type { font-size: 12px; color: #888; margin-top: 3px; }
+
+.a-metrics { display: flex; flex-direction: row; padding: 8px 4px; }
+.a-metric { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.a-icon { font-size: 14px; color: #3FA9F5; }
+.a-val { font-size: 11px; font-weight: 700; color: #111; }
+.a-lbl { font-size: 8px; color: #aaa; }
+.a-sep { width: 1px; background: #EDF0F5; margin: 4px 0; }
+
+.a-desc-title { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 6px; }
+.a-line { height: 6px; background: #eee; border-radius: 3px; margin-bottom: 4px; }
+
+/* ── PROPUESTA ── */
+.p-name { font-size: 19px; font-weight: 700; color: #111; line-height: 1.25; }
+.p-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.p-badge { background: #e8f7ed; color: #34c759; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.p-dot { width: 3px; height: 3px; border-radius: 50%; background: #ccc; }
+.p-type { font-size: 12px; color: #888; }
+
+.p-metrics { display: flex; flex-direction: row; padding: 12px 8px; gap: 0; }
+.p-metric { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.p-icon { font-size: 18px; color: #3FA9F5; }
+.p-val { font-size: 14px; font-weight: 700; color: #111; }
+.p-lbl { font-size: 9px; color: #aaa; letter-spacing: 0.2px; }
+.p-sep { width: 1px; background: #EDF0F5; margin: 6px 0; }
+
+.p-desc { padding: 16px; border-radius: 16px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.p-desc-label { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.p-line { height: 6px; background: #eee; border-radius: 3px; margin-bottom: 5px; }
+</style>
+
+<div class="split">
+  <!-- ACTUAL -->
+  <div class="col">
+    <div class="col-label">Actual</div>
+
+    <div class="card">
+      <div class="a-name">Glaciar Martial</div>
+      <div class="a-type">Ida y vuelta</div>
+    </div>
+
+    <div class="card a-metrics">
+      <div class="a-metric"><span class="a-icon">🗺</span><span class="a-val">4.2 km</span><span class="a-lbl">Distancia</span></div>
+      <div class="a-sep"></div>
+      <div class="a-metric"><span class="a-icon">⏱</span><span class="a-val">2h 30m</span><span class="a-lbl">Duración</span></div>
+      <div class="a-sep"></div>
+      <div class="a-metric"><span class="a-icon">↑</span><span class="a-val">380m</span><span class="a-lbl">Desnivel</span></div>
+      <div class="a-sep"></div>
+      <div class="a-metric"><span class="a-icon">🚩</span><span class="a-val">Fácil</span><span class="a-lbl">Dificultad</span></div>
+    </div>
+
+    <div class="card">
+      <div class="a-desc-title">Descripción</div>
+      <div class="a-line" style="width:100%"></div>
+      <div class="a-line" style="width:85%"></div>
+      <div class="a-line" style="width:93%"></div>
+      <div class="a-line" style="width:70%"></div>
+    </div>
+  </div>
+
+  <!-- PROPUESTA -->
+  <div class="col">
+    <div class="col-label">Propuesta</div>
+
+    <!-- Name card mejorado -->
+    <div class="card">
+      <div class="p-name">Glaciar Martial</div>
+      <div class="p-meta">
+        <span class="p-badge">Fácil</span>
+        <span class="p-dot"></span>
+        <span class="p-type">Ida y vuelta</span>
+        <span class="p-dot"></span>
+        <span class="p-type">Ushuaia</span>
+      </div>
+    </div>
+
+    <!-- Metrics más aireado -->
+    <div class="card p-metrics">
+      <div class="p-metric"><span class="p-icon">🗺</span><span class="p-val">4.2 km</span><span class="p-lbl">Distancia</span></div>
+      <div class="p-sep"></div>
+      <div class="p-metric"><span class="p-icon">⏱</span><span class="p-val">2h 30m</span><span class="p-lbl">Duración</span></div>
+      <div class="p-sep"></div>
+      <div class="p-metric"><span class="p-icon">↑</span><span class="p-val">380m</span><span class="p-lbl">Desnivel</span></div>
+      <div class="p-sep"></div>
+      <div class="p-metric"><span class="p-icon" style="color:#34c759">🚩</span><span class="p-val" style="color:#34c759">Fácil</span><span class="p-lbl">Dificultad</span></div>
+    </div>
+
+    <!-- Desc sin título bold, label uppercase sutil -->
+    <div class="p-desc">
+      <div class="p-desc-label">Descripción</div>
+      <div class="p-line" style="width:100%"></div>
+      <div class="p-line" style="width:85%"></div>
+      <div class="p-line" style="width:93%"></div>
+      <div class="p-line" style="width:70%"></div>
+    </div>
+  </div>
+</div>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="name-meta" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Badge de dificultad + tipo + región en la name card</h3>
+      <p>Dificultad como pill de color, tipo de ruta y región en una línea de metadata.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="metrics-size" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Métricas más grandes y aireadas</h3>
+      <p>Icons más grandes (22px), valores 14px, más padding vertical. Dificultad en su color.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="desc-label" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Descripción con label uppercase sutil</h3>
+      <p>Reemplaza el título bold por un label pequeño en uppercase/gris — menos pesado visualmente.</p>
+    </div>
+  </div>
+</div>

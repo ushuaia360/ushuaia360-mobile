@@ -1,0 +1,329 @@
+<h2>Trail Detail — review actual</h2>
+<p class="subtitle">Estado del diseño hoy. Identificá qué querés ajustar.</p>
+
+<style>
+.phone-row {
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 20px 0 12px;
+}
+.phone-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.phone-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.phone {
+  width: 220px;
+  height: 480px;
+  background: #F2F4F7;
+  border-radius: 32px;
+  border: 2.5px solid #d0d5dd;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.10);
+  font-size: 11px;
+  position: relative;
+}
+/* Nav header */
+.nav-bar {
+  background: #fff;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  flex-shrink: 0;
+  border-bottom: none;
+}
+.nav-back { color: #3FA9F5; font-size: 13px; font-weight: 400; }
+.nav-title { font-size: 13px; font-weight: 600; color: #111; }
+.nav-heart { font-size: 16px; }
+
+/* Scroll area */
+.scroll {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px 12px;
+  background: #F2F4F7;
+}
+
+/* Gallery */
+.gallery {
+  border-radius: 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  background: #e0e4ea;
+}
+.gallery-img {
+  width: 100%;
+  height: 118px;
+  background: linear-gradient(160deg, #7ec8f5 0%, #2a88d4 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+}
+.dots {
+  display: flex;
+  gap: 4px;
+}
+.dot { width: 12px; height: 5px; border-radius: 3px; background: #fff; }
+.dot.sm { width: 5px; background: rgba(255,255,255,0.45); }
+
+/* Cards */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  flex-shrink: 0;
+}
+.trail-name { font-size: 17px; font-weight: 700; color: #111; line-height: 1.2; }
+.trail-type { font-size: 11px; color: #888; margin-top: 3px; }
+
+/* Metrics */
+.metrics-row {
+  display: flex;
+  flex-direction: row;
+  padding: 8px 4px;
+  align-items: stretch;
+}
+.metric {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+.metric-icon { font-size: 14px; color: #3FA9F5; }
+.metric-icon.diff { color: #34c759; }
+.metric-val { font-size: 11px; font-weight: 700; color: #111; }
+.metric-lbl { font-size: 8px; color: #999; }
+.sep { width: 1px; background: #EDF0F5; margin: 4px 0; }
+
+/* Desc */
+.desc-title { font-size: 12px; font-weight: 700; color: #111; margin-bottom: 6px; }
+.desc-lines { display: flex; flex-direction: column; gap: 4px; }
+.line { height: 6px; background: #eee; border-radius: 3px; }
+
+/* Annotations */
+.annotation {
+  position: absolute;
+  right: -130px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 4px 7px;
+  font-size: 10px;
+  color: #664d03;
+  width: 120px;
+  line-height: 1.4;
+}
+.arrow {
+  position: absolute;
+  right: -10px;
+  font-size: 10px;
+  color: #ffc107;
+}
+</style>
+
+<div class="phone-row">
+  <!-- Estado actual -->
+  <div class="phone-wrap">
+    <div class="phone-label">Diseño actual</div>
+    <div style="position:relative;">
+      <div class="phone">
+        <!-- Nav -->
+        <div class="nav-bar">
+          <span class="nav-back">Volver</span>
+          <span class="nav-title">Glaciar Martial</span>
+          <span class="nav-heart">🤍</span>
+        </div>
+
+        <div class="scroll">
+          <!-- Gallery -->
+          <div class="gallery">
+            <div class="gallery-img">
+              <div class="dots">
+                <div class="dot"></div>
+                <div class="dot sm"></div>
+                <div class="dot sm"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Name card -->
+          <div class="card" style="padding: 12px 14px;">
+            <div class="trail-name">Glaciar Martial</div>
+            <div class="trail-type">Ida y vuelta</div>
+          </div>
+
+          <!-- Metrics -->
+          <div class="card metrics-row" style="padding: 8px;">
+            <div class="metric">
+              <span class="metric-icon">🗺</span>
+              <span class="metric-val">4.2 km</span>
+              <span class="metric-lbl">Distancia</span>
+            </div>
+            <div class="sep"></div>
+            <div class="metric">
+              <span class="metric-icon">⏱</span>
+              <span class="metric-val">2h 30m</span>
+              <span class="metric-lbl">Duración</span>
+            </div>
+            <div class="sep"></div>
+            <div class="metric">
+              <span class="metric-icon">↑</span>
+              <span class="metric-val">380m</span>
+              <span class="metric-lbl">Desnivel</span>
+            </div>
+            <div class="sep"></div>
+            <div class="metric">
+              <span class="metric-icon diff">🚩</span>
+              <span class="metric-val">Fácil</span>
+              <span class="metric-lbl">Dificultad</span>
+            </div>
+          </div>
+
+          <!-- Desc -->
+          <div class="card">
+            <div class="desc-title">Descripción</div>
+            <div class="desc-lines">
+              <div class="line" style="width:100%"></div>
+              <div class="line" style="width:88%"></div>
+              <div class="line" style="width:94%"></div>
+              <div class="line" style="width:72%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Propuesta mejorada -->
+  <div class="phone-wrap">
+    <div class="phone-label">Propuesta</div>
+    <div class="phone" style="background:#F2F4F7;">
+      <!-- Nav sin título (nombre ya está abajo) -->
+      <div class="nav-bar">
+        <span class="nav-back">Volver</span>
+        <span class="nav-title" style="opacity:0">·</span>
+        <span class="nav-heart">🤍</span>
+      </div>
+
+      <div class="scroll" style="gap:10px; padding-top:12px;">
+        <!-- Gallery más alto -->
+        <div class="gallery" style="flex-shrink:0;">
+          <div class="gallery-img" style="height:136px; background: linear-gradient(160deg,#7ec8f5,#1a7fc4);">
+            <div class="dots">
+              <div class="dot"></div>
+              <div class="dot sm"></div>
+              <div class="dot sm"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Name card con región -->
+        <div class="card" style="padding: 14px 16px;">
+          <div class="trail-name" style="font-size:18px;">Glaciar Martial</div>
+          <div class="trail-type" style="margin-top:4px; display:flex; gap:5px; align-items:center;">
+            <span style="color:#3FA9F5; font-weight:600;">Fácil</span>
+            <span style="color:#ccc;">·</span>
+            <span style="color:#888;">Ida y vuelta</span>
+            <span style="color:#ccc;">·</span>
+            <span style="color:#888;">Ushuaia</span>
+          </div>
+        </div>
+
+        <!-- Metrics más aireados -->
+        <div class="card metrics-row" style="padding: 10px 6px;">
+          <div class="metric" style="gap:5px;">
+            <span style="font-size:16px; color:#3FA9F5;">🗺</span>
+            <span class="metric-val" style="font-size:13px;">4.2 km</span>
+            <span class="metric-lbl">Distancia</span>
+          </div>
+          <div class="sep"></div>
+          <div class="metric" style="gap:5px;">
+            <span style="font-size:16px; color:#3FA9F5;">⏱</span>
+            <span class="metric-val" style="font-size:13px;">2h 30m</span>
+            <span class="metric-lbl">Duración</span>
+          </div>
+          <div class="sep"></div>
+          <div class="metric" style="gap:5px;">
+            <span style="font-size:16px; color:#3FA9F5;">↑</span>
+            <span class="metric-val" style="font-size:13px;">380m</span>
+            <span class="metric-lbl">Desnivel</span>
+          </div>
+          <div class="sep"></div>
+          <div class="metric" style="gap:5px;">
+            <span style="font-size:16px; color:#34c759;">🚩</span>
+            <span class="metric-val" style="font-size:13px; color:#34c759;">Fácil</span>
+            <span class="metric-lbl">Dificultad</span>
+          </div>
+        </div>
+
+        <!-- Desc igual -->
+        <div class="card">
+          <div class="desc-title">Descripción</div>
+          <div class="desc-lines">
+            <div class="line" style="width:100%"></div>
+            <div class="line" style="width:88%"></div>
+            <div class="line" style="width:94%"></div>
+            <div class="line" style="width:72%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="text-align:center; font-size:13px; color:#666; margin: 4px 0 16px;">
+  Diferencias clave en la propuesta: sin título en la nav bar · dificultad + tipo + región en una línea · métricas con más aire · metricValue en color para dificultad
+</p>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="no-title" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Sacar el título de la nav bar</h3>
+      <p>El nombre ya aparece en el card de abajo. Tenerlo dos veces es redundante.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="name-card" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Dificultad + tipo + región en una línea</h3>
+      <p>En el card de nombre, mostrar dificultad (en color), tipo de ruta y región en una sola línea de metadata.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="diff-color" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Métrica dificultad en color</h3>
+      <p>El valor "Fácil / Media / Difícil" en la card de métricas con su color correspondiente (verde/naranja/rojo).</p>
+    </div>
+  </div>
+  <div class="option" data-choice="otro" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Está bien así</h3>
+      <p>No cambiar nada más de lo que hay.</p>
+    </div>
+  </div>
+</div>

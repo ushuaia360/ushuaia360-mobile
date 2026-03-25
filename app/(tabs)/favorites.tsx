@@ -60,7 +60,7 @@ export default function FavoritesScreen() {
 
   if (!isAuthed) {
     return (
-      <ThemedView style={styles.container}>
+      <ThemedView style={[styles.container, { backgroundColor: isDark ? '#000' : '#fff' }]}>
         <View style={[styles.header, { paddingTop: top + 16, backgroundColor: isDark ? '#1c1c1e' : '#fff', borderBottomColor: isDark ? '#2a2a2a' : '#EDF0F5' }]}>
           <ThemedText type="title">Favoritos</ThemedText>
         </View>
@@ -72,7 +72,7 @@ export default function FavoritesScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: isDark ? '#000' : '#fff' }]}>
       <View
         style={[
           styles.header,
@@ -83,9 +83,6 @@ export default function FavoritesScreen() {
           },
         ]}>
         <ThemedText type="title">Favoritos</ThemedText>
-        <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-          Tus lugares y senderos favoritos
-        </ThemedText>
       </View>
 
       {loading ? (
@@ -130,16 +127,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingBottom: 16,
+    paddingBottom: 12,
     paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  subtitle: {
-    marginTop: 8,
-    opacity: 0.7,
-  },
   list: {
-    paddingTop: 12,
+    paddingTop: 10,
     paddingBottom: 24,
   },
   center: {
