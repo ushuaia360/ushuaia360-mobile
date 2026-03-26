@@ -89,6 +89,59 @@ export async function fetchTrails(params: FetchTrailsParams = {}): Promise<Trail
   return apiRequest<TrailsResponse>(`/trails${query}`);
 }
 
+/** Segmento de ruta: path como [lat, lng] por el backend */
+export interface TrailRouteSegment {
+  id: string;
+  route_id: string;
+  segment_order: number;
+  distance_km: number | null;
+  path: [number, number][];
+}
+
+export interface TrailPointMedia {
+  id: string;
+  trail_point_id?: string;
+  media_type: string;
+  url: string;
+  thumbnail_url: string | null;
+  order_index: number | null;
+  created_at?: string;
+}
+
+export interface TrailPointDetail {
+  id: string;
+  trail_id: string;
+  name: string | null;
+  description: string | null;
+  type: string | null;
+  km_marker: number | null;
+  order_index: number | null;
+  location: { latitude: number; longitude: number; elevation?: number } | null;
+  media: TrailPointMedia[];
+}
+
+export interface TrailActiveRoute {
+  id: string;
+  trail_id: string;
+  version: number;
+  is_active: boolean;
+  total_distance_km: number | null;
+  elevation_gain: number | null;
+  elevation_loss: number | null;
+}
+
+/** Respuesta de GET /trails/:id (incluye ruta y puntos) */
+export interface TrailDetail extends BackendTrail {
+  route: TrailActiveRoute | null;
+  route_segments: TrailRouteSegment[];
+  points: TrailPointDetail[];
+}
+
+export async function fetchTrailById(trailId: string): Promise<TrailDetail> {
+  const data = await apiRequest<{ trail: TrailDetail }>(`/trails/${trailId}`);
+  return data.trail;
+}
+
 // ── Favoritos (senderos) ──────────────────────────────────────────────────────
 
 export async function fetchFavoriteTrailIds(token: string): Promise<string[]> {

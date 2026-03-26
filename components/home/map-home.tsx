@@ -1,5 +1,7 @@
 import MapMarkersOverlay from '@/components/home/map-markers-overlay';
+import MapWaypointPin from '@/components/home/map-waypoint-pin';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { USHUAIA_REGION } from '@/constants/mock-trails';
 import { CARD_PADDING_TOP } from '@/constants/search-layout';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -12,6 +14,7 @@ import {
   lonToTileX,
 } from '@/lib/map-projection';
 import { fetchMapMarkers, type MapMarker } from '@/services/api';
+import MapView, { Marker, type Region } from 'react-native-maps';
 import { useHomeStore } from '@/store/home-store';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -127,6 +130,14 @@ export default function MapHome() {
 
   const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
   const [selectedMapMarker, setSelectedMapMarker] = useState<MapMarker | null>(null);
+  const iosMapRef = useRef<MapView>(null);
+  const iosRegionRef = useRef<Region>(USHUAIA_REGION);
+
+  const orderedMapMarkers = useMemo(() => {
+    const places = mapMarkers.filter((m): m is Extract<MapMarker, { kind: 'place' }> => m.kind === 'place');
+    const trails = mapMarkers.filter((m): m is Extract<MapMarker, { kind: 'trail' }> => m.kind === 'trail');
+    return [...places, ...trails];
+  }, [mapMarkers]);
 
   useEffect(() => {
     fetchMapMarkers()
@@ -289,21 +300,47 @@ export default function MapHome() {
     [committed, width, height, baseUrl],
   );
 
-  const zoomIn = () =>
+  const zoomIn = () => {
+    if (Platform.OS === 'ios') {
+      const r = iosRegionRef.current;
+      iosMapRef.current?.animateToRegion(
+        {
+          ...r,
+          latitudeDelta: Math.max(r.latitudeDelta * 0.5, 0.002),
+          longitudeDelta: Math.max(r.longitudeDelta * 0.5, 0.002),
+        },
+        200,
+      );
+      return;
+    }
     setCommitted((p) => {
       if (p.zoom >= MAX_ZOOM) return p;
       const newState = clampPan({ zoom: p.zoom + 1, panX: p.panX * 2, panY: p.panY * 2 });
       committedRef.current = newState;
       return newState;
     });
+  };
 
-  const zoomOut = () =>
+  const zoomOut = () => {
+    if (Platform.OS === 'ios') {
+      const r = iosRegionRef.current;
+      iosMapRef.current?.animateToRegion(
+        {
+          ...r,
+          latitudeDelta: Math.min(r.latitudeDelta * 2, 1.2),
+          longitudeDelta: Math.min(r.longitudeDelta * 2, 1.2),
+        },
+        200,
+      );
+      return;
+    }
     setCommitted((p) => {
       if (p.zoom <= MIN_ZOOM) return p;
       const newState = clampPan({ zoom: p.zoom - 1, panX: p.panX / 2, panY: p.panY / 2 });
       committedRef.current = newState;
       return newState;
     });
+  };
 
   const mapTransformStyle = {
     transform: [
@@ -319,28 +356,55 @@ export default function MapHome() {
 
   return (
     <View style={styles.container}>
-      {/* Tiles + waypoints (mismo transform para pan/pinch) */}
-      <Animated.View style={[StyleSheet.absoluteFillObject, mapTransformStyle]}>
-        <View style={StyleSheet.absoluteFillObject} {...panResponder.panHandlers}>
-          {tiles.map((t) => (
-            <Image
-              key={t.key}
-              source={t.url}
-              style={[styles.tile, { left: t.posX, top: t.posY }]}
-              cachePolicy="memory-disk"
-              transition={0}
-            />
+      {Platform.OS === 'ios' ? (
+        <MapView
+          ref={iosMapRef}
+          style={StyleSheet.absoluteFillObject}
+          initialRegion={USHUAIA_REGION}
+          mapType="standard"
+          userInterfaceStyle={isDark ? 'dark' : 'light'}
+          onRegionChangeComplete={(r) => {
+            iosRegionRef.current = r;
+          }}
+          showsCompass={false}
+          rotateEnabled={false}>
+          {orderedMapMarkers.map((m) => (
+            <Marker
+              key={`${m.kind}-${m.id}`}
+              coordinate={{ latitude: m.latitude, longitude: m.longitude }}
+              anchor={{ x: 0.5, y: 1 }}
+              tracksViewChanges={false}>
+              <MapWaypointPin
+                variant={m.kind === 'trail' ? 'trail' : 'place'}
+                selected={selectedMarkerKey === `${m.kind}-${m.id}`}
+                onPress={() => setSelectedMapMarker(m)}
+              />
+            </Marker>
           ))}
-        </View>
-        <MapMarkersOverlay
-          markers={mapMarkers}
-          mapState={committed}
-          width={width}
-          height={height}
-          selectedKey={selectedMarkerKey}
-          onMarkerPress={setSelectedMapMarker}
-        />
-      </Animated.View>
+        </MapView>
+      ) : (
+        <Animated.View style={[StyleSheet.absoluteFillObject, mapTransformStyle]}>
+          <View style={StyleSheet.absoluteFillObject} {...panResponder.panHandlers}>
+            {tiles.map((t) => (
+              <Image
+                key={t.key}
+                source={t.url}
+                style={[styles.tile, { left: t.posX, top: t.posY }]}
+                cachePolicy="memory-disk"
+                transition={0}
+              />
+            ))}
+          </View>
+          <MapMarkersOverlay
+            markers={mapMarkers}
+            mapState={committed}
+            width={width}
+            height={height}
+            selectedKey={selectedMarkerKey}
+            onMarkerPress={setSelectedMapMarker}
+          />
+        </Animated.View>
+      )}
 
       {/* Search bar */}
       <View style={[styles.searchOverlay, { paddingTop: top + CARD_PADDING_TOP }]}>
@@ -364,7 +428,12 @@ export default function MapHome() {
 
         <TouchableOpacity
           style={[styles.locationButton, { bottom: bottom + (Platform.OS === 'android' ? 188 : 160), borderColor: colors.tint }]}
-          activeOpacity={0.8}>
+          activeOpacity={0.8}
+          onPress={() => {
+            if (Platform.OS === 'ios') {
+              iosMapRef.current?.animateToRegion(USHUAIA_REGION, 350);
+            }
+          }}>
           <IconSymbol name="location" size={20} color={colors.tint} />
         </TouchableOpacity>
 
