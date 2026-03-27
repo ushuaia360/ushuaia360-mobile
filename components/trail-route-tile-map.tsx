@@ -210,20 +210,15 @@ export default function TrailRouteTileMap({
 
   const zoomToLatLng = useCallback((latitude: number, longitude: number) => {
     if (Platform.OS === 'ios') {
-      const r = iosRegionRef.current;
-      const latD = Math.max((r?.latitudeDelta ?? 0.14) * 0.38, 0.0015);
-      const lngD = Math.max((r?.longitudeDelta ?? 0.14) * 0.38, 0.0015);
       iosMapRef.current?.animateToRegion(
-        { latitude, longitude, latitudeDelta: latD, longitudeDelta: lngD },
+        { latitude, longitude, latitudeDelta: 0.004, longitudeDelta: 0.004 },
         320,
       );
       return;
     }
-    setUserTileState((prev) => {
-      const cur = prev ?? baseMapStateRef.current;
-      const nextZ = Math.min(17, cur.zoom + 2);
-      return clampPanToTdf(centerMapOnLatLon(latitude, longitude, nextZ));
-    });
+    setUserTileState(
+      clampPanToTdf(centerMapOnLatLon(latitude, longitude, 16)),
+    );
   }, []);
 
   const focusToken = focusTarget?.token;
