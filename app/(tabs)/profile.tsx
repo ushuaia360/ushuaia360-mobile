@@ -23,6 +23,39 @@ const SETTINGS = [
   { icon: 'log-out-outline',       label: 'Cerrar sesión', danger: true },
 ];
 
+type ProfileSkelProps = { cardBg: string; skelBg: string; divider: string };
+
+/** Tarjeta superior: avatar + nombre + email + tres estadísticas, todo placeholder. */
+function ProfileDataSectionSkeleton({ cardBg, skelBg, divider }: ProfileSkelProps) {
+  return (
+    <View
+      accessibilityLabel="Cargando datos del perfil"
+      style={[styles.card, { backgroundColor: cardBg }]}>
+      <View style={styles.profileDataSkelRow}>
+        <View style={styles.profileDataSkelLeft}>
+          <View style={[styles.avatar, { backgroundColor: skelBg }]} />
+          <View style={[styles.skelBlock, { marginTop: 14, width: 148, height: 22, backgroundColor: skelBg }]} />
+          <View style={[styles.skelBlock, { marginTop: 12, width: 188, height: 15, backgroundColor: skelBg }]} />
+        </View>
+        <View style={[styles.profileDataSkelStats, { borderLeftColor: divider }]}>
+          {[0, 1, 2].map((i) => (
+            <View
+              key={i}
+              style={
+                i > 0
+                  ? [styles.profileDataSkelStatBlock, { borderTopColor: divider }]
+                  : undefined
+              }>
+              <View style={[styles.skelBlock, { width: 36, height: 22, backgroundColor: skelBg }]} />
+              <View style={[styles.skelBlock, { marginTop: 8, width: 76, height: 13, backgroundColor: skelBg }]} />
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -30,6 +63,7 @@ export default function ProfileScreen() {
   const isDark = colorScheme === 'dark';
 
   const { user, token, logout, isInitialized } = useAuthStore();
+  const skelBg = isDark ? '#2c2c2e' : '#e8e8ed';
   const [personalInfoOpen, setPersonalInfoOpen] = useState(false);
   const [profileStats, setProfileStats] = useState<ProfileStatsResponse | null>(null);
 
@@ -62,11 +96,59 @@ export default function ProfileScreen() {
 
   const isVerified = useMemo(() => Boolean(user?.email_verified), [user?.email_verified]);
 
-  if (!user) return null;
+  const statsPending = Boolean(user && profileStats === null);
 
-  const cardBg    = isDark ? '#1c1c1e' : '#fff';
-  const divider   = isDark ? '#2a2a2a' : '#f0f0f0';
-  const textSub   = colors.icon;
+  const cardBg = isDark ? '#1c1c1e' : '#fff';
+  const divider = isDark ? '#2a2a2a' : '#f0f0f0';
+  const textSub = colors.icon;
+
+  if (!isInitialized) {
+    return (
+      <ThemedView style={styles.container}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          contentContainerStyle={[styles.scroll, { paddingTop: top + 48 }]}>
+          <ProfileDataSectionSkeleton cardBg={cardBg} skelBg={skelBg} divider={divider} />
+          <View style={styles.grid}>
+            <View style={[styles.gridCard, { backgroundColor: cardBg }]}>
+              <View style={[styles.completedIconWrap, { backgroundColor: skelBg, marginTop: 20 }]} />
+              <View style={[styles.skelBlock, { width: '70%', height: 18, marginTop: 12, backgroundColor: skelBg }]} />
+            </View>
+            <View style={[styles.gridCard, { backgroundColor: cardBg }]}>
+              <View style={[styles.favImgs, { marginTop: 20 }]}>
+                <View style={[styles.favImg, { backgroundColor: skelBg }]} />
+                <View style={[styles.favImg, styles.favImgOverlap, { backgroundColor: skelBg }]} />
+              </View>
+              <View style={[styles.skelBlock, { width: '70%', height: 18, marginTop: 12, backgroundColor: skelBg }]} />
+            </View>
+          </View>
+          <View style={[styles.ctaCard, { backgroundColor: cardBg }]}>
+            <View style={[styles.ctaIcon, { backgroundColor: skelBg }]} />
+            <View style={styles.ctaText}>
+              <View style={[styles.skelBlock, { width: '55%', height: 17, backgroundColor: skelBg }]} />
+              <View style={[styles.skelBlock, { width: '88%', height: 14, marginTop: 8, backgroundColor: skelBg }]} />
+            </View>
+            <View style={[styles.skelBlock, { width: 14, height: 14, borderRadius: 4, backgroundColor: skelBg }]} />
+          </View>
+          <View style={[styles.settingsCard, { backgroundColor: cardBg }]}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <View key={i}>
+                <View style={styles.settingRow}>
+                  <View style={[styles.settingIconWrap, { backgroundColor: skelBg }]} />
+                  <View style={[styles.skelBlock, { flex: 1, height: 16, backgroundColor: skelBg }]} />
+                  <View style={[styles.skelBlock, { width: 12, height: 12, borderRadius: 3, backgroundColor: skelBg }]} />
+                </View>
+                {i < 4 && <View style={[styles.rowDivider, { backgroundColor: divider }]} />}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </ThemedView>
+    );
+  }
+
+  if (!user) return null;
 
   const goToFavorites = () => {
     router.push('/(tabs)/favorites');
@@ -184,47 +266,51 @@ export default function ProfileScreen() {
         bounces={false}
         contentContainerStyle={[styles.scroll, { paddingTop: top + 48 }]}>
 
-        {/* ── Profile card ── */}
-        <View style={[styles.card, { backgroundColor: cardBg }]}>
-          <View style={styles.profileRow}>
-            <View style={styles.avatarWrap}>
-              <Image
-                source={{ uri: user?.avatar_url ?? DEFAULT_AVATAR }}
-                style={styles.avatar}
-                contentFit="cover"
-                transition={200}
-                cachePolicy="memory-disk"
-              />
-              <ThemedText style={[styles.userName, { marginTop: 10 }]}>
-                {user?.full_name ?? 'Usuario'}
-              </ThemedText>
-              <ThemedText style={[styles.userLocation, { color: textSub }]}>
-                {user?.email ?? ''}
-              </ThemedText>
-            </View>
-            <View style={styles.stats}>
-              <View style={styles.statItem}>
-                <ThemedText style={styles.statNum}>{senderosN}</ThemedText>
-                <ThemedText style={[styles.statLabel, { color: textSub }]}>Senderos</ThemedText>
+        {/* ── Profile card (toda la sección de datos en skeleton hasta tener stats) ── */}
+        {statsPending ? (
+          <ProfileDataSectionSkeleton cardBg={cardBg} skelBg={skelBg} divider={divider} />
+        ) : (
+          <View style={[styles.card, { backgroundColor: cardBg }]}>
+            <View style={styles.profileRow}>
+              <View style={styles.avatarWrap}>
+                <Image
+                  source={{ uri: user?.avatar_url ?? DEFAULT_AVATAR }}
+                  style={styles.avatar}
+                  contentFit="cover"
+                  transition={200}
+                  cachePolicy="memory-disk"
+                />
+                <ThemedText style={[styles.userName, { marginTop: 10 }]}>
+                  {user?.full_name ?? 'Usuario'}
+                </ThemedText>
+                <ThemedText style={[styles.userLocation, { color: textSub }]}>
+                  {user?.email ?? ''}
+                </ThemedText>
               </View>
-              <View style={[styles.statDivider, { backgroundColor: divider }]} />
-              <View style={styles.statItem}>
-                <ThemedText style={styles.statNum}>{resenasN}</ThemedText>
-                <ThemedText style={[styles.statLabel, { color: textSub }]}>Reseñas</ThemedText>
+              <View style={styles.stats}>
+                <View style={styles.statItem}>
+                  <ThemedText style={styles.statNum}>{senderosN}</ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: textSub }]}>Senderos</ThemedText>
+                </View>
+                <View style={[styles.statDivider, { backgroundColor: divider }]} />
+                <View style={styles.statItem}>
+                  <ThemedText style={styles.statNum}>{resenasN}</ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: textSub }]}>Reseñas</ThemedText>
+                </View>
+                <View style={[styles.statDivider, { backgroundColor: divider }]} />
+                <TouchableOpacity
+                  style={styles.statItem}
+                  activeOpacity={0.65}
+                  onPress={goToFavorites}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ver favoritos">
+                  <ThemedText style={styles.statNum}>{favoritosN}</ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: textSub }]}>Favoritos</ThemedText>
+                </TouchableOpacity>
               </View>
-              <View style={[styles.statDivider, { backgroundColor: divider }]} />
-              <TouchableOpacity
-                style={styles.statItem}
-                activeOpacity={0.65}
-                onPress={goToFavorites}
-                accessibilityRole="button"
-                accessibilityLabel="Ver favoritos">
-                <ThemedText style={styles.statNum}>{favoritosN}</ThemedText>
-                <ThemedText style={[styles.statLabel, { color: textSub }]}>Favoritos</ThemedText>
-              </TouchableOpacity>
             </View>
           </View>
-        </View>
+        )}
 
         {/* ── Grid cards ── */}
         <View style={styles.grid}>
@@ -360,6 +446,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stats: { flex: 1, gap: 8, paddingLeft: 16 },
+  profileDataSkelRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginBottom: 16,
+    marginTop: 4,
+    minHeight: 168,
+  },
+  profileDataSkelLeft: {
+    flex: 1,
+    alignItems: 'center',
+    paddingRight: 8,
+    justifyContent: 'center',
+  },
+  profileDataSkelStats: {
+    flex: 1,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    paddingLeft: 16,
+    justifyContent: 'center',
+    gap: 0,
+  },
+  profileDataSkelStatBlock: {
+    paddingTop: 14,
+    marginTop: 2,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   statItem: { gap: 1 },
   statNum: { fontSize: 20, fontWeight: '600' },
   statLabel: { fontSize: 13 },
@@ -518,6 +629,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.05)',
   },
   valueBadgeText: { fontSize: 15, fontWeight: '800' },
+
+  skelBlock: {
+    borderRadius: 6,
+    alignSelf: 'center',
+  },
 
   // Auth
   authRow: { flexDirection: 'row', gap: 12 },
