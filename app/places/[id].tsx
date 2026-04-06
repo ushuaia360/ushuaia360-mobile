@@ -1,15 +1,18 @@
 import TrailImage from '@/components/home/trail-image';
+import TrailGalleryLightbox from '@/components/trail-gallery-lightbox';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { imageUrlsToGallerySlides, placeMediaToGallerySlides } from '@/lib/gallery-slides';
 import { fetchPlace, type BackendPlace } from '@/services/api';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Pressable,
   StyleSheet,
   View,
 } from 'react-native';
@@ -28,6 +31,9 @@ export default function PlaceDetailScreen() {
   const [place, setPlace] = useState<BackendPlace | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [heroIndex, setHeroIndex] = useState(0);
 
   const load = useCallback(async () => {
     if (!placeId) return;
@@ -48,8 +54,12 @@ export default function PlaceDetailScreen() {
     load();
   }, [load]);
 
-  const images =
-    place?.image_urls?.length ? place.image_urls : [];
+  const gallerySlides = useMemo(() => {
+    if (!place) return [];
+    const typed = place.media?.length ? placeMediaToGallerySlides(place.media) : [];
+    if (typed.length > 0) return typed;
+    return imageUrlsToGallerySlides(place.image_urls ?? []);
+  }, [place]);
 
   return (
     <ThemedView style={styles.container}>
@@ -82,21 +92,61 @@ export default function PlaceDetailScreen() {
           keyExtractor={(k) => k}
           renderItem={() => (
             <View>
-              {images.length > 0 ? (
-                <FlatList
-                  data={images}
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(u, i) => `${i}-${u}`}
-                  renderItem={({ item }) => (
-                    <TrailImage
-                      uri={item}
-                      style={{ width: SCREEN_WIDTH, height: HERO_H }}
-                      contentFit="cover"
-                    />
-                  )}
-                />
+              {gallerySlides.length > 0 ? (
+                <View>
+                  <FlatList
+                    data={gallerySlides}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    keyExtractor={(_, i) => String(i)}
+                    onMomentumScrollEnd={(e) => {
+                      const x = e.nativeEvent.contentOffset.x;
+                      setHeroIndex(Math.round(x / SCREEN_WIDTH));
+                    }}
+                    renderItem={({ item, index }) => (
+                      <Pressable
+                        onPress={() => {
+                          setLightboxIndex(index);
+                          setLightboxOpen(true);
+                        }}
+                        style={styles.heroPress}>
+                        <View style={styles.heroSlide}>
+                          <TrailImage
+                            uri={item.uri}
+                            style={{ width: SCREEN_WIDTH, height: HERO_H }}
+                            contentFit="cover"
+                          />
+                          {item.mode === 'panorama' ? (
+                            <View
+                              style={[
+                                styles.panoBadge,
+                                {
+                                  backgroundColor: item.panoramaHalf
+                                    ? 'rgba(80,80,120,0.85)'
+                                    : 'rgba(0,0,0,0.55)',
+                                },
+                              ]}>
+                              <ThemedText style={styles.panoBadgeText}>
+                                {item.panoramaHalf ? '180°' : '360°'}
+                              </ThemedText>
+                            </View>
+                          ) : null}
+                        </View>
+                      </Pressable>
+                    )}
+                  />
+                  {gallerySlides.length > 1 ? (
+                    <View style={styles.dots}>
+                      {gallerySlides.map((_, i) => (
+                        <View
+                          key={i}
+                          style={[styles.dot, i === heroIndex ? styles.dotActive : styles.dotInactive]}
+                        />
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
               ) : (
                 <View style={[styles.heroPlaceholder, { backgroundColor: isDark ? '#1c1c1e' : '#F2F4F7' }]}>
                   <ThemedText style={{ color: colors.icon }}>Sin fotos</ThemedText>
@@ -116,6 +166,15 @@ export default function PlaceDetailScreen() {
           )}
         />
       )}
+
+      {gallerySlides.length > 0 ? (
+        <TrailGalleryLightbox
+          visible={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          items={gallerySlides}
+          initialIndex={lightboxIndex}
+        />
+      ) : null}
     </ThemedView>
   );
 }
@@ -129,6 +188,40 @@ const styles = StyleSheet.create({
     height: HERO_H,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  heroPress: { width: SCREEN_WIDTH },
+  heroSlide: { width: SCREEN_WIDTH, height: HERO_H, position: 'relative' },
+  panoBadge: {
+    position: 'absolute',
+    left: 16,
+    bottom: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  panoBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  dotInactive: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   body: { padding: 16, gap: 10 },
   name: { fontSize: 24, fontWeight: '700' },

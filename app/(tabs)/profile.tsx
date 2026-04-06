@@ -25,31 +25,43 @@ const SETTINGS = [
 
 type ProfileSkelProps = { cardBg: string; skelBg: string; divider: string };
 
-/** Tarjeta superior: avatar + nombre + email + tres estadísticas, todo placeholder. */
+/** Tarjeta superior: mismos contenedores que el perfil cargado (sin borde vertical extra). */
 function ProfileDataSectionSkeleton({ cardBg, skelBg, divider }: ProfileSkelProps) {
   return (
     <View
       accessibilityLabel="Cargando datos del perfil"
       style={[styles.card, { backgroundColor: cardBg }]}>
-      <View style={styles.profileDataSkelRow}>
-        <View style={styles.profileDataSkelLeft}>
+      <View style={styles.profileRow}>
+        <View style={styles.avatarWrap}>
           <View style={[styles.avatar, { backgroundColor: skelBg }]} />
-          <View style={[styles.skelBlock, { marginTop: 14, width: 148, height: 22, backgroundColor: skelBg }]} />
-          <View style={[styles.skelBlock, { marginTop: 12, width: 188, height: 15, backgroundColor: skelBg }]} />
+          <View style={[styles.skelBlock, { marginTop: 14, width: 112, height: 22, backgroundColor: skelBg }]} />
+          <View style={[styles.skelBlock, { marginTop: 12, width: 156, height: 15, backgroundColor: skelBg }]} />
         </View>
-        <View style={[styles.profileDataSkelStats, { borderLeftColor: divider }]}>
-          {[0, 1, 2].map((i) => (
-            <View
-              key={i}
-              style={
-                i > 0
-                  ? [styles.profileDataSkelStatBlock, { borderTopColor: divider }]
-                  : undefined
-              }>
-              <View style={[styles.skelBlock, { width: 36, height: 22, backgroundColor: skelBg }]} />
-              <View style={[styles.skelBlock, { marginTop: 8, width: 76, height: 13, backgroundColor: skelBg }]} />
-            </View>
-          ))}
+        <View style={[styles.stats, styles.statsSkel]}>
+          {[0, 1, 2].flatMap((i) => {
+            const block = (
+              <View key={`sk-stat-${i}`} style={styles.statItem}>
+                <View
+                  style={[styles.skelBlock, styles.skelBlockStats, { width: 36, height: 22, backgroundColor: skelBg }]}
+                />
+                <View
+                  style={[
+                    styles.skelBlock,
+                    styles.skelBlockStats,
+                    { marginTop: 8, width: 76, height: 13, backgroundColor: skelBg },
+                  ]}
+                />
+              </View>
+            );
+            if (i === 0) return [block];
+            return [
+              <View
+                key={`sk-div-${i}`}
+                style={[styles.statDivider, styles.statDividerSkel, { backgroundColor: divider }]}
+              />,
+              block,
+            ];
+          })}
         </View>
       </View>
     </View>
@@ -425,6 +437,7 @@ const styles = StyleSheet.create({
   },
   avatarWrap: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -445,31 +458,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stats: { flex: 1, gap: 8, paddingLeft: 16 },
-  profileDataSkelRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginBottom: 16,
-    marginTop: 4,
-    minHeight: 168,
-  },
-  profileDataSkelLeft: {
-    flex: 1,
+  stats: { flex: 1, minWidth: 0, gap: 8, paddingLeft: 16 },
+  /** Stats angostas en skeleton: centrar en la mitad derecha y gutter simétrico (stats ya trae paddingLeft). */
+  statsSkel: {
     alignItems: 'center',
-    paddingRight: 8,
-    justifyContent: 'center',
+    paddingRight: 16,
   },
-  profileDataSkelStats: {
-    flex: 1,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    paddingLeft: 16,
-    justifyContent: 'center',
-    gap: 0,
-  },
-  profileDataSkelStatBlock: {
-    paddingTop: 14,
-    marginTop: 2,
-    borderTopWidth: StyleSheet.hairlineWidth,
+  statDividerSkel: {
+    alignSelf: 'stretch',
   },
   statItem: { gap: 1 },
   statNum: { fontSize: 20, fontWeight: '600' },
@@ -633,6 +629,10 @@ const styles = StyleSheet.create({
   skelBlock: {
     borderRadius: 6,
     alignSelf: 'center',
+  },
+  /** Misma alineación que `statItem` (números / labels a la izquierda). */
+  skelBlockStats: {
+    alignSelf: 'flex-start',
   },
 
   // Auth

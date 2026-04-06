@@ -132,6 +132,8 @@ export interface TrailActiveRoute {
 
 /** Respuesta de GET /trails/:id (incluye ruta y puntos) */
 export interface TrailDetail extends BackendTrail {
+  /** Fotos del sendero (sin punto asociado); incluye `media_type` p. ej. photo_360 */
+  media?: TrailPointMedia[];
   route: TrailActiveRoute | null;
   route_segments: TrailRouteSegment[];
   points: TrailPointDetail[];
@@ -212,6 +214,15 @@ export async function fetchMapMarkers(): Promise<MapMarker[]> {
   return data.markers ?? [];
 }
 
+/** Medios de un lugar (misma forma que puntos de sendero, sin trail_point_id). */
+export interface PlacePointMedia {
+  id: string;
+  media_type: string;
+  url: string;
+  thumbnail_url: string | null;
+  order_index: number | null;
+}
+
 export interface BackendPlace {
   id: string;
   slug: string;
@@ -224,6 +235,8 @@ export interface BackendPlace {
   latitude: number | null;
   longitude: number | null;
   image_urls: string[];
+  /** Galería tipada (cuando el backend la envía); si falta, usar `image_urls`. */
+  media?: PlacePointMedia[];
   created_at: string;
   updated_at: string;
 }

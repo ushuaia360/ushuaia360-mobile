@@ -1,21 +1,31 @@
+import PanoramaWebView from '@/components/panorama-webview';
+import type { GallerySlide } from '@/lib/gallery-slides';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
   FlatList,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
   StyleSheet,
+  Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+/** Aire bajo el botón cerrar */
+const CHROME_TOP_EXTRA = 52;
+/** Altura reservada abajo: solo safe area si hay una foto; barra flechas + indicadores si hay varias */
+const CHROME_BOTTOM_SINGLE = 28;
+const CHROME_BOTTOM_ARROWS = 68;
+
+/** El visor ocupa esta fracción de la altura útil (entre paddings), el resto queda margen arriba/abajo */
+const VIEWER_HEIGHT_RATIO = 0.68;
 
 function Dot({ active }: { active: boolean }) {
   const w = useSharedValue(active ? 20 : 6);
@@ -34,44 +44,72 @@ function Dot({ active }: { active: boolean }) {
 interface TrailGalleryLightboxProps {
   visible: boolean;
   onClose: () => void;
-  uris: string[];
+  items: GallerySlide[];
   initialIndex: number;
 }
 
 export default function TrailGalleryLightbox({
   visible,
   onClose,
-  uris,
+  items,
   initialIndex,
 }: TrailGalleryLightboxProps) {
   const { top, bottom } = useSafeAreaInsets();
-  const listRef = useRef<FlatList<string>>(null);
+  const { width: winW, height: winH } = useWindowDimensions();
+  const listRef = useRef<FlatList<GallerySlide>>(null);
   const [page, setPage] = useState(initialIndex);
+
+  const multi = items.length > 1;
+  const pagePaddingTop = top + CHROME_TOP_EXTRA;
+  const pagePaddingBottom = bottom + (multi ? CHROME_BOTTOM_ARROWS : CHROME_BOTTOM_SINGLE);
+
+  const innerH = Math.max(0, winH - pagePaddingTop - pagePaddingBottom);
+  const viewerH = Math.max(160, Math.round(innerH * VIEWER_HEIGHT_RATIO));
 
   const scrollToIndex = useCallback(
     (index: number, animated: boolean) => {
-      if (!uris.length || index < 0 || index >= uris.length) return;
+      if (!items.length || index < 0 || index >= items.length) return;
       listRef.current?.scrollToIndex({ index, animated });
     },
-    [uris.length],
+    [items.length],
   );
+
+  const goPrev = useCallback(() => {
+    const i = page - 1;
+    if (i < 0) return;
+    setPage(i);
+    scrollToIndex(i, true);
+  }, [page, scrollToIndex]);
+
+  const goNext = useCallback(() => {
+    const i = page + 1;
+    if (i >= items.length) return;
+    setPage(i);
+    scrollToIndex(i, true);
+  }, [page, items.length, scrollToIndex]);
 
   useEffect(() => {
     if (!visible) return;
-    setPage(Math.min(Math.max(0, initialIndex), Math.max(0, uris.length - 1)));
+    const i = Math.min(Math.max(0, initialIndex), Math.max(0, items.length - 1));
+    setPage(i);
     const id = requestAnimationFrame(() => {
-      scrollToIndex(Math.min(Math.max(0, initialIndex), Math.max(0, uris.length - 1)), false);
+      scrollToIndex(i, false);
     });
     return () => cancelAnimationFrame(id);
-  }, [visible, initialIndex, uris.length, scrollToIndex]);
+  }, [visible, initialIndex, items.length, scrollToIndex]);
 
-  const onMomentumEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const x = e.nativeEvent.contentOffset.x;
-    const i = Math.round(x / SCREEN_W);
-    setPage(i);
-  }, []);
+  const onMomentumEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const x = e.nativeEvent.contentOffset.x;
+      const i = Math.round(x / winW);
+      setPage(i);
+    },
+    [winW],
+  );
 
-  if (!uris.length) return null;
+  const currentIsPanorama = items[page]?.mode === 'panorama';
+
+  if (!items.length) return null;
 
   return (
     <Modal
@@ -83,14 +121,16 @@ export default function TrailGalleryLightbox({
       <View style={styles.root}>
         <FlatList
           ref={listRef}
-          data={uris}
+          style={styles.list}
+          data={items}
           keyExtractor={(_, i) => String(i)}
           horizontal
           pagingEnabled
+          scrollEnabled={!currentIsPanorama}
           showsHorizontalScrollIndicator={false}
           getItemLayout={(_, index) => ({
-            length: SCREEN_W,
-            offset: SCREEN_W * index,
+            length: winW,
+            offset: winW * index,
             index,
           })}
           onMomentumScrollEnd={onMomentumEnd}
@@ -103,8 +143,34 @@ export default function TrailGalleryLightbox({
             }, 120);
           }}
           renderItem={({ item }) => (
-            <View style={styles.page}>
-              <Image source={{ uri: item }} style={styles.image} contentFit="contain" transition={0} />
+            <View
+              style={[
+                styles.page,
+                {
+                  width: winW,
+                  height: winH,
+                  paddingTop: pagePaddingTop,
+                  paddingBottom: pagePaddingBottom,
+                },
+              ]}>
+              <View style={styles.viewerCenter}>
+                <View style={[styles.viewerBox, { height: viewerH }]}>
+                  {item.mode === 'panorama' ? (
+                    <PanoramaWebView
+                      uri={item.uri}
+                      panoramaHalf={item.panoramaHalf}
+                      style={styles.panoramaFill}
+                    />
+                  ) : (
+                    <Image
+                      source={{ uri: item.uri }}
+                      style={styles.imageFill}
+                      contentFit="contain"
+                      transition={0}
+                    />
+                  )}
+                </View>
+              </View>
             </View>
           )}
         />
@@ -119,15 +185,66 @@ export default function TrailGalleryLightbox({
           </TouchableOpacity>
         </View>
 
-        {uris.length > 1 && (
-          <View style={[styles.dots, { paddingBottom: Math.max(bottom, 16) }]}>
-            {uris.map((_, i) => (
-              <Dot key={i} active={i === page} />
-            ))}
+        {multi ? (
+          <View
+            style={[styles.bottomBar, { paddingBottom: Math.max(bottom, 12) }]}
+            pointerEvents="box-none">
+            <TouchableOpacity
+              style={[styles.arrowBtn, page === 0 && styles.arrowBtnDisabled]}
+              onPress={goPrev}
+              disabled={page === 0}
+              accessibilityRole="button"
+              accessibilityLabel="Imagen anterior">
+              <Ionicons
+                name="chevron-back"
+                size={28}
+                color={page === 0 ? 'rgba(255,255,255,0.25)' : '#fff'}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.bottomCenter} pointerEvents="box-none">
+              <PhotoCounter current={page + 1} total={items.length} />
+              <View style={styles.dotsRow}>
+                {items.map((_, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => {
+                      setPage(i);
+                      scrollToIndex(i, true);
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                    <Dot active={i === page} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.arrowBtn, page >= items.length - 1 && styles.arrowBtnDisabled]}
+              onPress={goNext}
+              disabled={page >= items.length - 1}
+              accessibilityRole="button"
+              accessibilityLabel="Imagen siguiente">
+              <Ionicons
+                name="chevron-forward"
+                size={28}
+                color={page >= items.length - 1 ? 'rgba(255,255,255,0.25)' : '#fff'}
+              />
+            </TouchableOpacity>
           </View>
-        )}
+        ) : null}
       </View>
     </Modal>
+  );
+}
+
+function PhotoCounter({ current, total }: { current: number; total: number }) {
+  return (
+    <View style={styles.counterWrap}>
+      <Text style={styles.counterText}>
+        {current} / {total}
+      </Text>
+    </View>
   );
 }
 
@@ -135,16 +252,37 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#000',
+    overflow: 'hidden',
+  },
+  list: {
+    flex: 1,
   },
   page: {
-    width: SCREEN_W,
-    height: SCREEN_H,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+  },
+  viewerCenter: {
+    flex: 1,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: 0,
   },
-  image: {
-    width: SCREEN_W,
-    height: SCREEN_H,
+  viewerBox: {
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: 4,
+  },
+  imageFill: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  panoramaFill: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    minHeight: 0,
   },
   chrome: {
     position: 'absolute',
@@ -163,14 +301,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dots: {
+  bottomBar: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingTop: 4,
+  },
+  arrowBtn: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  arrowBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  bottomCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    maxWidth: 220,
+    alignSelf: 'center',
+  },
+  counterWrap: {
+    paddingVertical: 2,
+  },
+  counterText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
   },
 });

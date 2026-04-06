@@ -1,9 +1,15 @@
+import PanoramaWebView from '@/components/panorama-webview';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import TrailGalleryLightbox from '@/components/trail-gallery-lightbox';
 import TrailRouteTileMap, { TRAIL_ROUTE_LINE_COLOR } from '@/components/trail-route-tile-map';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import {
+  filterDisplayableMedia,
+  imageUrlsToGallerySlides,
+  trailPointMediaToGallerySlides,
+} from '@/lib/gallery-slides';
 import { redirectToLogin } from '@/lib/needAuth';
 import { poiTypeIcon } from '@/lib/poi-icons';
 import { buildLineFromTrailPoints, normalizeTrailPointLocation } from '@/lib/trail-geo-normalize';
@@ -163,20 +169,46 @@ interface TrailPoiListCardProps {
 
 function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailPoiListCardProps) {
   const title = p.name?.trim() || 'Punto de interés';
-  const typeLabel = p.type ? POI_TYPE_LABEL[p.type] ?? p.type : null;
-  const mediaItems = (p.media ?? []).filter((m) => m.thumbnail_url || m.url);
+  const mediaItems = filterDisplayableMedia(p.media);
   const [hero, ...restMedia] = mediaItems;
+  const poiGallerySlides = useMemo(() => trailPointMediaToGallerySlides(p.media), [p.media]);
+  const [poiGalleryOpen, setPoiGalleryOpen] = useState(false);
+  const [poiGalleryIndex, setPoiGalleryIndex] = useState(0);
+
+  const openPoiGallery = (index: number) => {
+    if (!poiGallerySlides.length) return;
+    setPoiGalleryIndex(index);
+    setPoiGalleryOpen(true);
+  };
 
   return (
     <View style={[styles.poiListCard, { backgroundColor: isDark ? '#1c1c1e' : '#fff' }]}>
       {/* Imagen con inner margin y bordes redondeados */}
       <View style={styles.poiListCardImageWrap}>
         {hero ? (
-          <ExpoImage
-            source={{ uri: (hero.thumbnail_url || hero.url) as string }}
-            style={styles.poiListCardHero}
-            contentFit="cover"
-          />
+          <Pressable
+            onPress={() => openPoiGallery(0)}
+            disabled={!poiGallerySlides.length}
+            style={({ pressed }) => [{ opacity: pressed && poiGallerySlides.length ? 0.92 : 1 }]}>
+            <View>
+              <ExpoImage
+                source={{ uri: (hero.thumbnail_url || hero.url) as string }}
+                style={styles.poiListCardHero}
+                contentFit="cover"
+              />
+              {(hero.media_type === 'photo_360' || hero.media_type === 'photo_180') && (
+                <View
+                  style={[
+                    styles.poiPanoBadge,
+                    { backgroundColor: hero.media_type === 'photo_180' ? 'rgba(80,80,120,0.75)' : 'rgba(0,0,0,0.55)' },
+                  ]}>
+                  <ThemedText style={styles.poiPanoBadgeText}>
+                    {hero.media_type === 'photo_180' ? '180°' : '360°'}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+          </Pressable>
         ) : (
           <View style={[styles.poiListCardHeroPlaceholder, { backgroundColor: isDark ? '#2c2c2e' : '#f0f0f5' }]}>
             <Ionicons name={poiTypeIcon(p.type)} size={36} color={tint} />
@@ -235,28 +267,51 @@ function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailP
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.poiListMediaScroll}>
-            {restMedia.map((m) => (
-              <ExpoImage
-                key={m.id}
-                source={{ uri: (m.thumbnail_url || m.url) as string }}
-                style={styles.poiListMediaThumb}
-                contentFit="cover"
-              />
+            {restMedia.map((m, idx) => (
+              <Pressable key={m.id} onPress={() => openPoiGallery(idx + 1)}>
+                <View style={styles.poiListMediaThumbWrap}>
+                  <ExpoImage
+                    source={{ uri: (m.thumbnail_url || m.url) as string }}
+                    style={styles.poiListMediaThumb}
+                    contentFit="cover"
+                  />
+                  {(m.media_type === 'photo_360' || m.media_type === 'photo_180') && (
+                    <View style={styles.poiPanoThumbBadge}>
+                      <ThemedText style={styles.poiPanoThumbBadgeText}>
+                        {m.media_type === 'photo_180' ? '180°' : '360°'}
+                      </ThemedText>
+                    </View>
+                  )}
+                </View>
+              </Pressable>
             ))}
           </ScrollView>
         ) : null}
 
       </View>
+
+      <TrailGalleryLightbox
+        visible={poiGalleryOpen}
+        onClose={() => setPoiGalleryOpen(false)}
+        items={poiGallerySlides}
+        initialIndex={poiGalleryIndex}
+      />
     </View>
   );
 }
 
-function poiCoverUrl(p: TrailPointDetail): string | null {
-  const m =
-    p.media?.find((x) => x.media_type === 'image' || x.media_type?.startsWith('photo')) ??
-    p.media?.[0];
+type PoiHeroBlock =
+  | { kind: 'image'; uri: string }
+  | { kind: 'panorama'; uri: string; half?: boolean };
+
+function poiHeroFromPoint(p: TrailPointDetail): PoiHeroBlock | null {
+  const list = filterDisplayableMedia(p.media);
+  const m = list[0];
   if (!m) return null;
-  return m.thumbnail_url || m.url || null;
+  const uri = (m.thumbnail_url || m.url) as string;
+  if (m.media_type === 'photo_360') return { kind: 'panorama', uri };
+  if (m.media_type === 'photo_180') return { kind: 'panorama', uri, half: true };
+  return { kind: 'image', uri };
 }
 
 type PoiOverlayState =
@@ -458,12 +513,21 @@ export default function TrailDetailScreen() {
     return () => sub.remove();
   }, [mapFullscreen, closeMapFullscreen]);
 
-  const images = useMemo(() => {
-    if (trailDetail?.image_urls?.length) return trailDetail.image_urls;
-    if (trail?.images?.length) return trail.images;
-    if (trail?.image) return [trail.image];
-    return [];
-  }, [trailDetail, trail]);
+  const gallerySlides = useMemo(() => {
+    const fromTyped = trailDetail?.media?.length
+      ? trailPointMediaToGallerySlides(trailDetail.media)
+      : [];
+    if (fromTyped.length > 0) return fromTyped;
+    const urls =
+      trailDetail?.image_urls?.length
+        ? trailDetail.image_urls
+        : trail?.images?.length
+          ? trail.images
+          : trail?.image
+            ? [trail.image]
+            : [];
+    return imageUrlsToGallerySlides(urls);
+  }, [trailDetail?.media, trailDetail?.image_urls, trail?.images, trail?.image]);
 
   const descriptionText =
     (trailDetail?.description ?? trail?.description)?.trim() ?? '';
@@ -601,7 +665,7 @@ export default function TrailDetailScreen() {
               <View style={[styles.galleryWrap, { marginTop: galleryMarginTop }]}>
                 <View style={[styles.gallery, { height: heroHeight, backgroundColor: isDark ? '#1c1c1e' : '#e0e4ea' }]}>
                   <FlatList
-                    data={images}
+                    data={gallerySlides}
                     keyExtractor={(_, i) => String(i)}
                     horizontal
                     pagingEnabled
@@ -614,23 +678,40 @@ export default function TrailDetailScreen() {
                     renderItem={({ item, index }) => (
                       <Pressable
                         accessibilityRole="imagebutton"
-                        accessibilityLabel={`Foto ${index + 1} de ${images.length}. Abrir galería`}
+                        accessibilityLabel={`Foto ${index + 1} de ${gallerySlides.length}. Abrir galería`}
                         onPress={() => {
                           setLightboxStartIndex(index);
                           setLightboxOpen(true);
                         }}>
-                        <Image
-                          source={{ uri: item }}
-                          style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}
-                          resizeMode="cover"
-                        />
+                        <View style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}>
+                          <Image
+                            source={{ uri: item.uri }}
+                            style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}
+                            resizeMode="cover"
+                          />
+                          {item.mode === 'panorama' ? (
+                            <View
+                              style={[
+                                styles.galleryPanoBadge,
+                                {
+                                  backgroundColor: item.panoramaHalf
+                                    ? 'rgba(80,80,120,0.85)'
+                                    : 'rgba(0,0,0,0.55)',
+                                },
+                              ]}>
+                              <ThemedText style={styles.galleryPanoBadgeText}>
+                                {item.panoramaHalf ? '180°' : '360°'}
+                              </ThemedText>
+                            </View>
+                          ) : null}
+                        </View>
                       </Pressable>
                     )}
                   />
 
-                  {images.length > 1 && (
+                  {gallerySlides.length > 1 && (
                     <View style={styles.dots}>
-                      {images.map((_, i) => (
+                      {gallerySlides.map((_, i) => (
                         <AnimatedDot key={i} active={i === activeImage} />
                       ))}
                     </View>
@@ -1049,26 +1130,41 @@ export default function TrailDetailScreen() {
                     </>
                   ) : selectedPoi ? (
                     <>
-                      {poiCoverUrl(selectedPoi) ? (
-                        <ExpoImage
-                          source={{ uri: poiCoverUrl(selectedPoi) as string }}
-                          style={styles.poiSheetImage}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <View
-                          style={[
-                            styles.poiSheetImage,
-                            styles.poiSheetImagePlaceholder,
-                            { backgroundColor: isDark ? '#3a3a3c' : '#e5e5ea' },
-                          ]}>
-                          <Ionicons
-                            name={poiTypeIcon(selectedPoi.type)}
-                            size={48}
-                            color={colors.tint}
+                      {(() => {
+                        const hero = poiHeroFromPoint(selectedPoi);
+                        if (!hero) {
+                          return (
+                            <View
+                              style={[
+                                styles.poiSheetImage,
+                                styles.poiSheetImagePlaceholder,
+                                { backgroundColor: isDark ? '#3a3a3c' : '#e5e5ea' },
+                              ]}>
+                              <Ionicons
+                                name={poiTypeIcon(selectedPoi.type)}
+                                size={48}
+                                color={colors.tint}
+                              />
+                            </View>
+                          );
+                        }
+                        if (hero.kind === 'panorama') {
+                          return (
+                            <PanoramaWebView
+                              uri={hero.uri}
+                              panoramaHalf={hero.half}
+                              style={styles.poiSheetImage}
+                            />
+                          );
+                        }
+                        return (
+                          <ExpoImage
+                            source={{ uri: hero.uri }}
+                            style={styles.poiSheetImage}
+                            contentFit="cover"
                           />
-                        </View>
-                      )}
+                        );
+                      })()}
                       <Pressable
                         onPress={() => setPoiOverlay({ kind: 'itinerary' })}
                         style={({ pressed }) => [{ opacity: pressed ? 0.65 : 1 }]}>
@@ -1147,11 +1243,11 @@ export default function TrailDetailScreen() {
         </View>
 
         {/* Top bar animada */}
-        {trail && images.length > 0 && (
+        {trail && gallerySlides.length > 0 && (
           <TrailGalleryLightbox
             visible={lightboxOpen}
             onClose={() => setLightboxOpen(false)}
-            uris={images}
+            items={gallerySlides}
             initialIndex={lightboxStartIndex}
           />
         )}
@@ -1319,6 +1415,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dot: { width: 7, height: 7, borderRadius: 4 },
+  galleryPanoBadge: {
+    position: 'absolute',
+    left: 12,
+    bottom: 36,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  galleryPanoBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
 
   floatRow: {
     position: 'absolute',
@@ -1495,10 +1604,42 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   poiListCardImageWrap: {
+    position: 'relative',
     marginHorizontal: 1,
     marginTop: 6,
     borderRadius: 10,
     overflow: 'hidden',
+  },
+  poiPanoBadge: {
+    position: 'absolute',
+    left: 10,
+    bottom: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  poiPanoBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  poiListMediaThumbWrap: {
+    position: 'relative',
+    marginRight: 8,
+  },
+  poiPanoThumbBadge: {
+    position: 'absolute',
+    right: 6,
+    bottom: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  poiPanoThumbBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   poiListCardHero: {
     width: '100%',
@@ -1547,7 +1688,6 @@ const styles = StyleSheet.create({
     width: 112,
     height: 112,
     borderRadius: 10,
-    marginRight: 8,
     backgroundColor: '#e5e5ea',
   },
   poiListSkeletonCard: {
@@ -1711,6 +1851,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
