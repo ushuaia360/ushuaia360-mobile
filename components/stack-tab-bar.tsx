@@ -23,7 +23,7 @@ interface TabItem {
 /** Altura total que ocupa la tab bar de stack en pantalla (incl. margin inferior). */
 export function stackTabBarReserveHeight(bottomInset: number): number {
   const height = Platform.OS === 'ios' ? 88 : 56 + Math.max(bottomInset, 8);
-  const marginBottom = Platform.OS === 'ios' ? 10 : 8;
+  const marginBottom = 4;
   return height + marginBottom;
 }
 
@@ -80,7 +80,7 @@ export default function StackTabBar() {
           borderTopColor: colorScheme === 'dark' ? '#2a2a2a' : '#e5e5e5',
           paddingBottom: Platform.OS === 'ios' ? 28 : Math.max(bottomInset, 8),
           height: Platform.OS === 'ios' ? 88 : 56 + Math.max(bottomInset, 8),
-          marginBottom: Platform.OS === 'ios' ? 10 : 8,
+          marginBottom: 4,
         },
         animatedStyle,
       ]}

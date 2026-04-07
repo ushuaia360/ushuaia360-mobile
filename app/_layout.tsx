@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import SearchPanel from '@/components/home/search-panel';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
 
@@ -21,11 +22,16 @@ export default function RootLayout() {
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const loadFavoriteIds = useFavoritesStore((s) => s.loadIds);
   const clearFavorites = useFavoritesStore((s) => s.clear);
+  const hydrateActiveTrailSession = useActiveTrailSessionStore((s) => s.hydrate);
 
   // Restaurar sesión guardada en AsyncStorage (sin redirigir)
   useEffect(() => {
     initialize();
   }, []);
+
+  useEffect(() => {
+    void hydrateActiveTrailSession();
+  }, [hydrateActiveTrailSession]);
 
   useEffect(() => {
     if (!isInitialized) return;

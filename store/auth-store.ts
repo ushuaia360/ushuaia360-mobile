@@ -1,3 +1,4 @@
+import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from '@/services/api';
@@ -56,11 +57,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         const data = await apiRequest<{ user: User }>('/auth/me-app', { token });
         set({ token, user: data.user, isInitialized: true });
       } else {
+        await useActiveTrailSessionStore.getState().clearSession();
         set({ isInitialized: true });
       }
     } catch {
       // Token inválido o vencido → limpiar
       await AsyncStorage.removeItem(TOKEN_KEY);
+      await useActiveTrailSessionStore.getState().clearSession();
       set({ token: null, user: null, isInitialized: true });
     }
   },
@@ -102,6 +105,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   logout: async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
+    await useActiveTrailSessionStore.getState().clearSession();
     set({ token: null, user: null });
   },
 }));

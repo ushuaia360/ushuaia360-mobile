@@ -3,19 +3,32 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-/** Ancla: centro inferior del punto en el mapa */
-export const MAP_PIN_WIDTH = 52;
-export const MAP_PIN_HEIGHT = 56;
+/** Tamaño base: ancla centro-inferior en el mapa */
+export const MAP_PIN_WIDTH = 58;
+export const MAP_PIN_HEIGHT = 64;
+
+export function getWaypointPinBox(sizeScale: number) {
+  const s = Math.max(0.48, Math.min(1.55, sizeScale));
+  return { width: MAP_PIN_WIDTH * s, height: MAP_PIN_HEIGHT * s, scale: s };
+}
 
 interface Props {
   selected: boolean;
   variant: 'trail' | 'place';
   onPress: () => void;
+  /** 1 = tamaño diseño; &lt;1 al alejar el mapa */
+  sizeScale?: number;
 }
 
-export default function MapWaypointPin({ selected, variant, onPress }: Props) {
+export default function MapWaypointPin({
+  selected,
+  variant,
+  onPress,
+  sizeScale = 1,
+}: Props) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const s = Math.max(0.48, Math.min(1.55, sizeScale));
 
   const bubbleBg = isDark ? '#2c2c2e' : '#ffffff';
   const bubbleBorder = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.06)';
@@ -25,38 +38,55 @@ export default function MapWaypointPin({ selected, variant, onPress }: Props) {
       : isDark
         ? '#ff9f0a'
         : '#e85d04';
-  const scale = selected ? 1.08 : 1;
+  const pressScale = selected ? 1.08 : 1;
   const shadowOpacity = selected ? 0.24 : 0.15;
   const elevation = selected ? 11 : 7;
+
+  const BUB = 46 * s;
+  const caretL = 8 * s;
+  const caretT = 9 * s;
+  const ground = 10 * s;
+  const groundR = 5 * s;
+  const iconSz = Math.round(22 * s);
 
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.88}
       hitSlop={8}
-      style={[styles.wrap, { transform: [{ scale }] }]}
+      style={[
+        styles.wrap,
+        {
+          width: MAP_PIN_WIDTH * s,
+          height: MAP_PIN_HEIGHT * s,
+          transform: [{ scale: pressScale }],
+        },
+      ]}
       accessibilityRole="button"
       accessibilityLabel={variant === 'trail' ? 'Sendero en el mapa' : 'Lugar turístico en el mapa'}>
       <View
         style={[
           styles.bubble,
           {
+            width: BUB,
+            height: BUB,
+            borderRadius: BUB / 2,
             backgroundColor: bubbleBg,
             borderColor: bubbleBorder,
             shadowOpacity,
             elevation,
           },
         ]}>
-        <Ionicons
-          name={variant === 'trail' ? 'footsteps' : 'camera'}
-          size={22}
-          color={iconColor}
-        />
+        <Ionicons name={variant === 'trail' ? 'footsteps' : 'camera'} size={iconSz} color={iconColor} />
       </View>
       <View
         style={[
           styles.caret,
           {
+            marginTop: -2 * s,
+            borderLeftWidth: caretL,
+            borderRightWidth: caretL,
+            borderTopWidth: caretT,
             borderTopColor: bubbleBg,
           },
         ]}
@@ -65,6 +95,10 @@ export default function MapWaypointPin({ selected, variant, onPress }: Props) {
         style={[
           styles.ground,
           {
+            width: ground,
+            height: ground,
+            borderRadius: groundR,
+            marginTop: -4 * s,
             backgroundColor: iconColor,
             borderColor: bubbleBg,
           },
@@ -74,18 +108,11 @@ export default function MapWaypointPin({ selected, variant, onPress }: Props) {
   );
 }
 
-const BUBBLE = 46;
-
 const styles = StyleSheet.create({
   wrap: {
-    width: MAP_PIN_WIDTH,
-    height: MAP_PIN_HEIGHT,
     alignItems: 'center',
   },
   bubble: {
-    width: BUBBLE,
-    height: BUBBLE,
-    borderRadius: BUBBLE / 2,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -94,20 +121,12 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   caret: {
-    marginTop: -2,
     width: 0,
     height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 9,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
   },
   ground: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: -4,
     borderWidth: 2,
   },
 });

@@ -2,6 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Trail } from '@/constants/mock-trails';
+import { SB_INPUT_HEIGHT } from '@/constants/search-layout';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHomeStore } from '@/store/home-store';
@@ -10,6 +11,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
 import { ActivityIndicator, Animated, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ResumeActiveTrailBar from './resume-active-trail-bar';
 import SearchBar from './search-bar';
 import TrailListCard from './trail-list-card';
 
@@ -130,6 +132,8 @@ export default function ListHome() {
           </ThemedText>
         )}
       </View>
+
+      <ResumeActiveTrailBar offsetTop={top + 16 + SB_INPUT_HEIGHT + 42} />
 
       {/* Skeleton o lista */}
       {loading ? (

@@ -1,8 +1,10 @@
 import MapMarkersOverlay from '@/components/home/map-markers-overlay';
 import MapWaypointPin from '@/components/home/map-waypoint-pin';
+import { mapUserLocationDotStyles } from '@/components/home/map-user-location-styles';
+import ResumeActiveTrailBar from '@/components/home/resume-active-trail-bar';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { USHUAIA_REGION } from '@/constants/mock-trails';
-import { CARD_PADDING_TOP } from '@/constants/search-layout';
+import { CARD_PADDING_TOP, SB_INPUT_HEIGHT } from '@/constants/search-layout';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -10,11 +12,14 @@ import {
   MAP_BASE_TILE_Y,
   MAP_BASE_ZOOM,
   MAP_TILE_SIZE,
+  centerMapOnLatLon,
   latToTileY,
   lonToTileX,
 } from '@/lib/map-projection';
+import { useWatchUserLocation } from '@/hooks/use-watch-user-location';
+import { homePinScaleFromRegionSpan, pinScaleFromTileZoom } from '@/lib/map-pin-scale';
 import { fetchMapMarkers, type MapMarker } from '@/services/api';
-import MapView, { Marker, type Region } from 'react-native-maps';
+import MapView, { Marker, type Details, type Region } from 'react-native-maps';
 import { useHomeStore } from '@/store/home-store';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -130,8 +135,22 @@ export default function MapHome() {
 
   const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
   const [selectedMapMarker, setSelectedMapMarker] = useState<MapMarker | null>(null);
+  const [iosPinScale, setIosPinScale] = useState(() =>
+    homePinScaleFromRegionSpan(Math.max(USHUAIA_REGION.latitudeDelta, USHUAIA_REGION.longitudeDelta)),
+  );
   const iosMapRef = useRef<MapView>(null);
   const iosRegionRef = useRef<Region>(USHUAIA_REGION);
+  /**
+   * Apple Maps no rellena `isGesture` bien; usamos casi todo cambio de región como gesto
+   * salvo una ventana tras `animateToRegion` y un margen inicial al montar.
+   */
+  const iosIgnoreRegionPanningUntil = useRef(Date.now() + 750);
+
+  const bumpIosProgrammaticMapMove = () => {
+    iosIgnoreRegionPanningUntil.current = Date.now() + 520;
+  };
+
+  const liveLocation = useWatchUserLocation(Platform.OS !== 'web');
 
   const orderedMapMarkers = useMemo(() => {
     const places = mapMarkers.filter((m): m is Extract<MapMarker, { kind: 'place' }> => m.kind === 'place');
@@ -302,6 +321,7 @@ export default function MapHome() {
 
   const zoomIn = () => {
     if (Platform.OS === 'ios') {
+      bumpIosProgrammaticMapMove();
       const r = iosRegionRef.current;
       iosMapRef.current?.animateToRegion(
         {
@@ -323,6 +343,7 @@ export default function MapHome() {
 
   const zoomOut = () => {
     if (Platform.OS === 'ios') {
+      bumpIosProgrammaticMapMove();
       const r = iosRegionRef.current;
       iosMapRef.current?.animateToRegion(
         {
@@ -354,6 +375,8 @@ export default function MapHome() {
     ? `${selectedMapMarker.kind}-${selectedMapMarker.id}`
     : null;
 
+  const androidPinScale = pinScaleFromTileZoom(committed.zoom);
+
   return (
     <View style={styles.container}>
       {Platform.OS === 'ios' ? (
@@ -363,11 +386,29 @@ export default function MapHome() {
           initialRegion={USHUAIA_REGION}
           mapType="standard"
           userInterfaceStyle={isDark ? 'dark' : 'light'}
+          showsUserLocation={false}
+          onRegionChange={(_r: Region, details: Details) => {
+            if (Date.now() < iosIgnoreRegionPanningUntil.current) return;
+            if (details.isGesture !== false) setMapPanning(true);
+          }}
           onRegionChangeComplete={(r) => {
             iosRegionRef.current = r;
+            setIosPinScale(homePinScaleFromRegionSpan(Math.max(r.latitudeDelta, r.longitudeDelta)));
+            setMapPanning(false);
           }}
           showsCompass={false}
           rotateEnabled={false}>
+          {liveLocation ? (
+            <Marker
+              coordinate={liveLocation}
+              anchor={{ x: 0.5, y: 0.5 }}
+              zIndex={100_000}
+              tracksViewChanges={false}>
+              <View style={mapUserLocationDotStyles.userDot} pointerEvents="none">
+                <View style={mapUserLocationDotStyles.userDotInner} />
+              </View>
+            </Marker>
+          ) : null}
           {orderedMapMarkers.map((m) => (
             <Marker
               key={`${m.kind}-${m.id}`}
@@ -377,6 +418,7 @@ export default function MapHome() {
               <MapWaypointPin
                 variant={m.kind === 'trail' ? 'trail' : 'place'}
                 selected={selectedMarkerKey === `${m.kind}-${m.id}`}
+                sizeScale={iosPinScale}
                 onPress={() => setSelectedMapMarker(m)}
               />
             </Marker>
@@ -402,6 +444,9 @@ export default function MapHome() {
             height={height}
             selectedKey={selectedMarkerKey}
             onMarkerPress={setSelectedMapMarker}
+            userLocation={liveLocation}
+            hideWaypoints={false}
+            pinScale={androidPinScale}
           />
         </Animated.View>
       )}
@@ -414,8 +459,11 @@ export default function MapHome() {
         />
       </View>
 
-      {/* Zoom buttons, location, bottom sheet */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+      {/* Debajo del BottomSheet «Senderos para ti» (misma idea que con el buscador en modal). */}
+      <ResumeActiveTrailBar offsetTop={top + CARD_PADDING_TOP + SB_INPUT_HEIGHT + 24} />
+
+      {/* Zoom, ubicación y sheet — capa superior para que el panel tape la barra Resumir. */}
+      <View style={[styles.mapChromeLayer, StyleSheet.absoluteFillObject]} pointerEvents="box-none">
         <View style={[styles.zoomButtons, { bottom: bottom + (Platform.OS === 'android' ? 268 : 240) }]} pointerEvents="box-none">
           <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn} activeOpacity={0.8}>
             <IconSymbol name="add" size={18} color="rgba(0,0,0,0.5)" />
@@ -431,8 +479,35 @@ export default function MapHome() {
           activeOpacity={0.8}
           onPress={() => {
             if (Platform.OS === 'ios') {
-              iosMapRef.current?.animateToRegion(USHUAIA_REGION, 350);
+              bumpIosProgrammaticMapMove();
+              if (liveLocation) {
+                const r = iosRegionRef.current;
+                const span = Math.max(
+                  0.006,
+                  Math.min(Math.max(r.latitudeDelta, r.longitudeDelta) * 0.85, 0.045),
+                );
+                iosMapRef.current?.animateToRegion(
+                  {
+                    latitude: liveLocation.latitude,
+                    longitude: liveLocation.longitude,
+                    latitudeDelta: span,
+                    longitudeDelta: span,
+                  },
+                  350,
+                );
+              } else {
+                iosMapRef.current?.animateToRegion(USHUAIA_REGION, 350);
+              }
+              return;
             }
+            pendingAnimReset.current = true;
+            setCommitted((p) => {
+              const lat = liveLocation?.latitude ?? USHUAIA_REGION.latitude;
+              const lon = liveLocation?.longitude ?? USHUAIA_REGION.longitude;
+              const next = clampPan(centerMapOnLatLon(lat, lon, p.zoom));
+              committedRef.current = next;
+              return next;
+            });
           }}>
           <IconSymbol name="location" size={20} color={colors.tint} />
         </TouchableOpacity>
@@ -453,6 +528,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#e8e4dc',
+  },
+  mapChromeLayer: {
+    zIndex: 100,
+    elevation: 100,
   },
   tile: {
     position: 'absolute',

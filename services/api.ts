@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '@/constants/api';
+import { logRecorridoTimer } from '@/lib/recorrido-timer-debug';
 
 interface RequestOptions {
   method?: string;
@@ -6,14 +7,46 @@ interface RequestOptions {
   token?: string | null;
 }
 
+/** Error HTTP del API con código de estado (p. ej. 404 Not found). */
+export class ApiHttpError extends Error {
+  readonly status: number;
+  readonly body: unknown;
+
+  constructor(status: number, message: string, body?: unknown) {
+    super(message);
+    this.name = 'ApiHttpError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
+function parseJsonOrEmpty(text: string): Record<string, unknown> {
+  try {
+    const v = JSON.parse(text) as unknown;
+    return v != null && typeof v === 'object' && !Array.isArray(v)
+      ? (v as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Milis UTC aproximados del servidor según cabecera HTTP `Date` (si viene y es válida). */
+export function parseHttpDateHeaderMs(res: Response): number | null {
+  const raw = res.headers.get('date');
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  return Number.isFinite(ms) ? ms : null;
+}
+
 /**
- * Wrapper de fetch para el backend.
- * Lanza un Error con el mensaje del backend si la respuesta no es 2xx.
+ * Igual que `apiRequest`, pero expone la hora del servidor para sincronizar cronómetros
+ * cuando el reloj del dispositivo va desfasado respecto a `started_at`.
  */
-export async function apiRequest<T>(
+export async function apiRequestWithServerTime<T>(
   path: string,
   { method = 'GET', body, token }: RequestOptions = {},
-): Promise<T> {
+): Promise<{ data: T; serverNowMs: number | null }> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -28,13 +61,62 @@ export async function apiRequest<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await res.json();
+  const serverNowMs = parseHttpDateHeaderMs(res);
+
+  const raw = await res.text();
+  const data = raw ? parseJsonOrEmpty(raw) : {};
 
   if (!res.ok) {
-    throw new Error(data.error ?? 'Error en la solicitud');
+    const msg =
+      (typeof data.error === 'string' && data.error) ||
+      (typeof data.message === 'string' && data.message) ||
+      res.statusText ||
+      'Error en la solicitud';
+    throw new ApiHttpError(res.status, msg, data);
   }
 
-  return data as T;
+  return { data: data as T, serverNowMs };
+}
+
+/**
+ * Wrapper de fetch para el backend.
+ * Lanza `ApiHttpError` si la respuesta no es 2xx.
+ */
+export async function apiRequest<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  const { data } = await apiRequestWithServerTime<T>(path, options);
+  return data;
+}
+
+/**
+ * Petición mínima para leer la cabecera `Date` y estimar offset servidor–dispositivo.
+ */
+export async function fetchApproximateServerTimeMs(token?: string | null): Promise<number | null> {
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  try {
+    const res = await fetch(`${API_BASE_URL}/trails?limit=1`, { headers });
+    const fromHeader = parseHttpDateHeaderMs(res);
+    const raw = await res.text();
+    let fromBody: number | null = null;
+    try {
+      const j = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+      if (j && typeof j.server_now_ms === 'number' && Number.isFinite(j.server_now_ms)) {
+        fromBody = j.server_now_ms;
+      }
+    } catch {
+      /* ignore */
+    }
+    const chosen = fromBody ?? fromHeader;
+    if (__DEV__) {
+      logRecorridoTimer('fetchApproximateServerTimeMs', { fromBody, fromHeader, chosen });
+    }
+    return chosen;
+  } catch {
+    return null;
+  }
 }
 
 // ── Trails ────────────────────────────────────────────────────────────────────
@@ -173,6 +255,195 @@ export interface ProfileStatsResponse {
 
 export async function fetchProfileStats(token: string): Promise<ProfileStatsResponse> {
   return apiRequest<ProfileStatsResponse>('/me/profile-stats', { token });
+}
+
+// ── Historial de senderos (recorridos del usuario) ─────────────────────────────
+
+export interface UserTrailHistoryEntry {
+  id: string;
+  trail_id: string;
+  /** ISO o Unix (segundos/ms); el cliente normaliza en `session-started-at`. */
+  started_at?: string | number | null;
+  /** Algunas respuestas JSON pueden usar camelCase. */
+  startedAt?: string | number | null;
+  completed_at: string | null;
+  status?: 'in_progress' | 'completed';
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return v != null && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * El backend a veces devuelve `{ entry: { id, trail_id } }` con `started_at` en la raíz,
+ * o `data`, o camelCase / PascalCase. Unifica en `UserTrailHistoryEntry`.
+ */
+function pickStartedAt(...layers: (Record<string, unknown> | null | undefined)[]): unknown {
+  for (const o of layers) {
+    if (!o) continue;
+    const v =
+      o.started_at ??
+      o.startedAt ??
+      o.StartedAt ??
+      o.start_time ??
+      o.startTime ??
+      o.begin_at ??
+      o.beginAt;
+    if (v != null && v !== '') return v;
+  }
+  return null;
+}
+
+export function parseUserTrailHistoryEntryPayload(body: unknown): UserTrailHistoryEntry {
+  if (!isRecord(body)) {
+    return { id: '', trail_id: '', started_at: null, completed_at: null };
+  }
+  const root = body;
+
+  const data = isRecord(root.data) ? root.data : null;
+  const result = isRecord(root.result) ? root.result : null;
+  const payload = isRecord(root.payload) ? root.payload : null;
+
+  let row: Record<string, unknown> = root;
+  if (isRecord(root.entry)) {
+    row = root.entry;
+  } else if (data) {
+    row = isRecord(data.entry) ? data.entry : data;
+  } else if (result) {
+    row = isRecord(result.entry) ? result.entry : result;
+  } else if (payload) {
+    row = isRecord(payload.entry) ? payload.entry : payload;
+  }
+
+  const started = pickStartedAt(
+    row,
+    root.entry && isRecord(root.entry) ? root.entry : null,
+    data,
+    data && isRecord(data.entry) ? data.entry : null,
+    result,
+    result && isRecord(result.entry) ? result.entry : null,
+    payload,
+    root,
+  );
+
+  if (__DEV__) {
+    logRecorridoTimer('parseUserTrailHistoryEntryPayload', {
+      rootKeys: Object.keys(root),
+      rowKeys: Object.keys(row),
+      pickedStarted: started,
+      id: String(row.id ?? root.id ?? ''),
+    });
+  }
+
+  return {
+    id: String(row.id ?? root.id ?? ''),
+    trail_id: String(
+      row.trail_id ?? row.trailId ?? root.trail_id ?? root.trailId ?? data?.trail_id ?? '',
+    ),
+    started_at: started as string | number | null,
+    startedAt: started as string | number | null,
+    completed_at: (row.completed_at ?? row.completedAt ?? null) as string | null,
+    status: row.status as UserTrailHistoryEntry['status'],
+  };
+}
+
+/** Valor de `started_at` del backend (snake o camel); fuente del cronómetro de recorrido. */
+export function trailHistoryEntryStartedAt(entry: UserTrailHistoryEntry): unknown {
+  const e = entry as unknown as Record<string, unknown>;
+  return e.started_at ?? e.startedAt ?? e.StartedAt ?? null;
+}
+
+/** Registra el inicio del recorrido (`user_trail_history` en backend). */
+export async function startUserTrailHistory(
+  token: string,
+  trailId: string,
+): Promise<UserTrailHistoryEntry> {
+  const data = await apiRequest<Record<string, unknown>>('/me/trail-history/start', {
+    method: 'POST',
+    token,
+    body: { trail_id: trailId },
+  });
+  return parseUserTrailHistoryEntryPayload(data);
+}
+
+export type BeginTrailHistoryRecorridoResult = {
+  entry: UserTrailHistoryEntry;
+  /** Mejor estimación UTC ms: cuerpo `server_now_ms` / `db_now_ms`, si no cabecera `Date`. */
+  serverNowMs: number | null;
+  /** `NOW()` de PostgreSQL en el mismo RETURNING que `started_at` (diagnóstico). */
+  dbNowMs: number | null;
+};
+
+function readTrailHistoryClockFields(data: Record<string, unknown>): {
+  serverNowMs: number | null;
+  dbNowMs: number | null;
+} {
+  const bodyMs =
+    typeof data.server_now_ms === 'number' && Number.isFinite(data.server_now_ms)
+      ? data.server_now_ms
+      : null;
+  const dbMs =
+    typeof data.db_now_ms === 'number' && Number.isFinite(data.db_now_ms) ? data.db_now_ms : null;
+  return { serverNowMs: bodyMs, dbNowMs: dbMs };
+}
+
+/**
+ * Al abrir la pantalla del recorrido: fija `started_at` en el servidor al instante actual
+ * y devuelve la entrada actualizada (fuente del cronómetro).
+ */
+export async function beginTrailHistoryRecorrido(
+  token: string,
+  historyEntryId: string,
+): Promise<BeginTrailHistoryRecorridoResult> {
+  const { data, serverNowMs: headerMs } = await apiRequestWithServerTime<Record<string, unknown>>(
+    `/me/trail-history/${historyEntryId}/begin-recorrido`,
+    { method: 'POST', token },
+  );
+  const { serverNowMs: bodyServerMs, dbNowMs } = readTrailHistoryClockFields(data);
+  const serverNowMs = bodyServerMs ?? dbNowMs ?? headerMs ?? null;
+  if (__DEV__ && bodyServerMs != null && dbNowMs != null && Math.abs(bodyServerMs - dbNowMs) > 5000) {
+    logRecorridoTimer('begin-recorrido: server_now_ms vs db_now_ms', {
+      bodyServerMs,
+      dbNowMs,
+      headerMs,
+    });
+  }
+  return {
+    entry: parseUserTrailHistoryEntryPayload(data),
+    serverNowMs,
+    dbNowMs,
+  };
+}
+
+/** Marca el recorrido como completado y lo deja en el historial. */
+export async function completeUserTrailHistory(
+  token: string,
+  historyEntryId: string,
+): Promise<UserTrailHistoryEntry> {
+  const data = await apiRequest<Record<string, unknown>>(
+    `/me/trail-history/${historyEntryId}/complete`,
+    {
+      method: 'POST',
+      token,
+    },
+  );
+  return parseUserTrailHistoryEntryPayload(data);
+}
+
+export async function fetchUserTrailHistory(
+  token: string,
+  params: { limit?: number; offset?: number } = {},
+): Promise<{ entries: UserTrailHistoryEntry[]; total?: number }> {
+  const qs = new URLSearchParams();
+  if (params.limit != null) qs.set('limit', String(params.limit));
+  if (params.offset != null) qs.set('offset', String(params.offset));
+  const q = qs.toString() ? `?${qs.toString()}` : '';
+  const data = await apiRequest<{ entries?: unknown[]; total?: number }>(`/me/trail-history${q}`, {
+    token,
+  });
+  const rawList = data.entries ?? [];
+  const entries = rawList.map((item) => parseUserTrailHistoryEntryPayload(item));
+  return { entries, total: data.total };
 }
 
 // ── Mapa ──────────────────────────────────────────────────────────────────────

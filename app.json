@@ -10,9 +10,16 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nuddo.ushuaia360"
+      "bundleIdentifier": "com.nuddo.ushuaia360",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Ushuaia360 usa tu ubicación para mostrarte en el mapa mientras hacés un sendero."
+      }
     },
     "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

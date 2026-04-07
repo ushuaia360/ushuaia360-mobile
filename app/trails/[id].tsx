@@ -14,7 +14,17 @@ import { redirectToLogin } from '@/lib/needAuth';
 import { poiTypeIcon } from '@/lib/poi-icons';
 import { buildLineFromTrailPoints, normalizeTrailPointLocation } from '@/lib/trail-geo-normalize';
 import { buildTrailLineCoordinates } from '@/lib/trail-route-path';
-import { fetchTrailById, type TrailDetail, type TrailPointDetail } from '@/services/api';
+import { normalizeSessionStartedAtToISO } from '@/lib/session-started-at';
+import { ensureTrailMapLocationPermission, alertLocationDenied } from '@/lib/trail-location-permission';
+import {
+  ApiHttpError,
+  fetchTrailById,
+  startUserTrailHistory,
+  trailHistoryEntryStartedAt,
+  type TrailDetail,
+  type TrailPointDetail,
+} from '@/services/api';
+import { useActiveTrailSessionStore, type ActiveTrailSessionSnapshot } from '@/store/active-trail-session-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
 import { mapBackendTrail, useTrailsStore } from '@/store/trails-store';
@@ -25,6 +35,7 @@ import { Stack, router, useLocalSearchParams, usePathname } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   BackHandler,
   Dimensions,
   FlatList,
@@ -470,6 +481,114 @@ export default function TrailDetailScreen() {
       })
       .filter((x): x is { id: string; latitude: number; longitude: number; type: string | null } => x != null);
   }, [trailDetail?.points]);
+
+  const storedActiveSession = useActiveTrailSessionStore((s) => s.session);
+  /** Sin login no aplica «recorrido en curso» (el store se limpia en logout). */
+  const activeSession = token ? storedActiveSession : null;
+  const setActiveSession = useActiveTrailSessionStore((s) => s.setSession);
+  const clearActiveSession = useActiveTrailSessionStore((s) => s.clearSession);
+  const setActiveMinimized = useActiveTrailSessionStore((s) => s.setMinimized);
+
+  const buildSessionSnapshot = useCallback(
+    (historyEntryId: string, startedAt: unknown): ActiveTrailSessionSnapshot => {
+      const thumb =
+        trailDetail?.thumbnail_url ?? trailDetail?.image_urls?.[0] ?? trail?.image ?? null;
+      return {
+        historyEntryId,
+        trailId: trailId!,
+        trailName: (trailDetail?.name ?? trail?.name ?? 'Sendero').trim() || 'Sendero',
+        thumbnailUrl: thumb,
+        startedAtISO: normalizeSessionStartedAtToISO(startedAt),
+        lineCoordinates,
+        interestPoints: mapInterestPoints,
+        mainPoint: trailDetail?.map_point ?? null,
+        fallbackCenter: routeReference,
+        minimized: false,
+        beganRecorridoSynced: false,
+      };
+    },
+    [trailDetail, trail, trailId, lineCoordinates, mapInterestPoints, routeReference],
+  );
+
+  const resumeActiveTrail = useCallback(async () => {
+    await setActiveMinimized(false);
+    router.push('/(tabs)/trail-recorrido' as any);
+  }, [setActiveMinimized]);
+
+  const startNewTrailFlow = useCallback(async () => {
+    if (!trailId || !trailDetail || !token) return;
+    const locOk = await ensureTrailMapLocationPermission();
+    if (!locOk) {
+      alertLocationDenied();
+      return;
+    }
+    try {
+      const entry = await startUserTrailHistory(token, trailId);
+      const snap = buildSessionSnapshot(entry.id, trailHistoryEntryStartedAt(entry));
+      await setActiveSession(snap);
+      router.push('/(tabs)/trail-recorrido' as any);
+    } catch (e) {
+      const notFound =
+        (e instanceof ApiHttpError && e.status === 404) ||
+        (e instanceof Error && /not\s*found/i.test(e.message));
+      if (notFound) {
+        const snap = buildSessionSnapshot(
+          `local-${Date.now()}-${trailId.slice(0, 8)}`,
+          new Date().toISOString(),
+        );
+        await setActiveSession(snap);
+        router.push('/(tabs)/trail-recorrido' as any);
+        return;
+      }
+      const msg =
+        e instanceof Error ? e.message : 'No pudimos iniciar el recorrido. Intentá de nuevo.';
+      Alert.alert('Error', msg);
+    }
+  }, [trailId, trailDetail, token, buildSessionSnapshot, setActiveSession]);
+
+  const onPrimaryTrailAction = useCallback(() => {
+    if (!trailId) return;
+    if (!token) {
+      redirectToLogin(pathname || '/(tabs)');
+      return;
+    }
+    const sameTrail = activeSession?.trailId === trailId;
+    if (sameTrail) {
+      void resumeActiveTrail();
+      return;
+    }
+    if (activeSession) {
+      Alert.alert(
+        'Recorrido en curso',
+        `Tenés «${activeSession.trailName}» sin terminar. Si empezás este, ese recorrido se descarta (no se guarda como completado).`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Descartar y empezar este',
+            style: 'destructive',
+            onPress: () => {
+              void clearActiveSession().then(() => startNewTrailFlow());
+            },
+          },
+        ],
+      );
+      return;
+    }
+    void startNewTrailFlow();
+  }, [
+    trailId,
+    token,
+    pathname,
+    activeSession,
+    resumeActiveTrail,
+    clearActiveSession,
+    startNewTrailFlow,
+  ]);
+
+  const primaryTrailActionLabel =
+    activeSession?.trailId === trailId ? 'Resumir recorrido' : 'Iniciar recorrido';
+  const primaryTrailActionDisabled =
+    !(activeSession?.trailId === trailId) && !trailDetail;
 
   const sortedTrailPoints = useMemo(() => {
     const pts = [...(trailDetail?.points ?? [])];
@@ -1216,14 +1335,25 @@ export default function TrailDetailScreen() {
             pointerEvents="box-none">
             <View style={[styles.trailFloatBar, { paddingTop: 22, paddingBottom: bottom + 2 }]}>
               <TouchableOpacity
-                style={[styles.trailFloatBtnPrimary, { backgroundColor: colors.tint }]}
-                onPress={() => {}}
+                style={[
+                  styles.trailFloatBtnPrimary,
+                  {
+                    backgroundColor: colors.tint,
+                    opacity: primaryTrailActionDisabled ? 0.45 : 1,
+                  },
+                ]}
+                onPress={onPrimaryTrailAction}
+                disabled={primaryTrailActionDisabled}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel="Iniciar recorrido">
-                <Ionicons name="play" size={20} color="#fff" />
+                accessibilityLabel={primaryTrailActionLabel}>
+                <Ionicons
+                  name={activeSession?.trailId === trailId ? 'play-circle' : 'play'}
+                  size={20}
+                  color="#fff"
+                />
                 <ThemedText style={styles.trailFloatBtnPrimaryLabel} numberOfLines={1}>
-                  Iniciar recorrido
+                  {primaryTrailActionLabel}
                 </ThemedText>
               </TouchableOpacity>
               <TouchableOpacity

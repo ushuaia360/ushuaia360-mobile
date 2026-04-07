@@ -15,6 +15,7 @@ import { useTrailsStore } from "@/store/trails-store";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Modal,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -273,7 +274,14 @@ export default function SearchPanel() {
   const cardBg = isDark ? "#1c1c1e" : "#fff";
 
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+    >
+      <View style={styles.overlayRoot} pointerEvents="box-none">
 
       {/* Backdrop */}
       <TouchableWithoutFeedback onPress={handleClose}>
@@ -397,11 +405,16 @@ export default function SearchPanel() {
         </TouchableOpacity>
       </Animated.View>
 
-    </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  /** `Modal` ya está por encima del stack / MapView; `flex:1` llena el modal. */
+  overlayRoot: {
+    flex: 1,
+  },
   backdrop: {},
   card: {
     position: "absolute",
