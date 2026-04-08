@@ -1,8 +1,8 @@
 import {
   centerMapOnLatLon,
   latLonToMapPixel,
-  mapPixelToLatLon,
   MAP_TILE_SIZE,
+  mapPixelToLatLon,
   type MapPanState,
 } from '@/lib/map-projection';
 import { poiTypeIcon } from '@/lib/poi-icons';
@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import MapView, { Marker, Polyline as MapPolyline, type Region } from 'react-native-maps';
+import MapView, { Polyline as MapPolyline, Marker, type Region } from 'react-native-maps';
 import Svg, { Polyline } from 'react-native-svg';
 
 const LOG_PREFIX = '[TrailRouteTileMap]';
