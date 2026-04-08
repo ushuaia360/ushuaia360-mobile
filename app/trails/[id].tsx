@@ -49,7 +49,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { Extrapolation, Keyframe, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -122,6 +122,16 @@ const POI_TYPE_LABEL: Record<string, string> = {
   vista: 'Vista',
   informacion: 'Información',
 };
+
+const mapFullscreenEntering = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.94 }] },
+  100: { opacity: 1, transform: [{ scale: 1 }] },
+}).duration(260);
+
+const mapFullscreenExiting = new Keyframe({
+  0: { opacity: 1, transform: [{ scale: 1 }] },
+  100: { opacity: 0, transform: [{ scale: 0.94 }] },
+}).duration(200);
 
 const EXPANDABLE_DESC_CHAR_THRESHOLD = 200;
 const EXPANDABLE_DESC_COLLAPSED_LINES = 5;
@@ -978,8 +988,8 @@ export default function TrailDetailScreen() {
                         <TouchableOpacity
                           style={styles.mapExpandBtn}
                           onPress={() => {
-                            setMapFullscreen(true);
                             setPoiOverlay({ kind: 'itinerary' });
+                            setMapFullscreen(true);
                           }}
                           accessibilityRole="button"
                           accessibilityLabel="Ver mapa en pantalla completa">
@@ -1122,10 +1132,12 @@ export default function TrailDetailScreen() {
         />
 
         {mapFullscreen && (
-          <View
+          <Animated.View
+            entering={mapFullscreenEntering}
+            exiting={mapFullscreenExiting}
             style={[
               styles.mapFullscreenOverlay,
-              { backgroundColor: isDark ? '#1c1c1e' : '#e8e4dc', bottom },
+              { backgroundColor: isDark ? '#1c1c1e' : '#e8e4dc', bottom: 0 },
             ]}
             pointerEvents="auto">
             <View style={[styles.mapFullscreenHeader, { paddingTop: top + 8 }]}>
@@ -1158,7 +1170,7 @@ export default function TrailDetailScreen() {
             {!detailLoading && (
               <BottomSheet
                 ref={poiSheetRef}
-                index={-1}
+                index={poiOverlay.kind !== 'closed' ? 0 : -1}
                 snapPoints={poiSnapPoints}
                 enablePanDownToClose
                 bottomInset={0}
@@ -1284,34 +1296,34 @@ export default function TrailDetailScreen() {
                           />
                         );
                       })()}
-                      <Pressable
-                        onPress={() => setPoiOverlay({ kind: 'itinerary' })}
-                        style={({ pressed }) => [{ opacity: pressed ? 0.65 : 1 }]}>
-                        <ThemedText style={[styles.poiSheetBackToList, { color: colors.tint }]}>
-                          ← Ver todo el recorrido
-                        </ThemedText>
-                      </Pressable>
                       <View style={styles.poiSheetHeader}>
                         <Ionicons name={poiTypeIcon(selectedPoi.type)} size={26} color={colors.tint} />
                         <ThemedText style={[styles.poiSheetTitle, { color: colors.text }]}>
                           {selectedPoi.name?.trim() || 'Punto de interés'}
                         </ThemedText>
                       </View>
-                      {selectedPoi.type ? (
-                        <View
-                          style={[
-                            styles.poiTypePill,
-                            { borderColor: colors.tint, alignSelf: 'flex-start' },
-                          ]}>
-                          <ThemedText style={[styles.poiTypePillText, { color: colors.tint }]}>
-                            {POI_TYPE_LABEL[selectedPoi.type] ?? selectedPoi.type}
-                          </ThemedText>
+                      {(selectedPoi.type || selectedPoi.km_marker != null) ? (
+                        <View style={styles.poiSheetMeta}>
+                          {selectedPoi.type ? (
+                            <View
+                              style={[
+                                styles.poiTypePill,
+                                { backgroundColor: colors.tint + '1A', borderColor: colors.tint },
+                              ]}>
+                              <ThemedText style={[styles.poiTypePillText, { color: colors.tint }]}>
+                                {POI_TYPE_LABEL[selectedPoi.type] ?? selectedPoi.type}
+                              </ThemedText>
+                            </View>
+                          ) : null}
+                          {selectedPoi.km_marker != null ? (
+                            <View style={styles.poiSheetKmRow}>
+                              <Ionicons name="map-outline" size={13} color={colors.icon} />
+                              <ThemedText style={[styles.poiSheetKm, { color: colors.icon }]}>
+                                Km {Number(selectedPoi.km_marker).toFixed(1)}
+                              </ThemedText>
+                            </View>
+                          ) : null}
                         </View>
-                      ) : null}
-                      {selectedPoi.km_marker != null ? (
-                        <ThemedText style={[styles.poiSheetKm, { color: colors.icon }]}>
-                          Km {Number(selectedPoi.km_marker).toFixed(1)}
-                        </ThemedText>
                       ) : null}
                       {selectedPoi.description?.trim() ? (
                         <ExpandableDescription
@@ -1324,9 +1336,20 @@ export default function TrailDetailScreen() {
                     </>
                   ) : null}
                 </BottomSheetScrollView>
+                {poiOverlay.kind === 'poi' ? (
+                  <View style={styles.poiSheetBottomBar}>
+                    <Pressable
+                      onPress={() => setPoiOverlay({ kind: 'itinerary' })}
+                      style={({ pressed }) => [styles.poiSheetBackBtn, { borderColor: colors.tint, opacity: pressed ? 0.85 : 1 }]}>
+                      <ThemedText style={[styles.poiSheetBackBtnLabel, { color: colors.tint }]}>
+                        Volver al recorrido
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                ) : null}
               </BottomSheet>
             )}
-          </View>
+          </Animated.View>
         )}
 
         {!mapFullscreen && !detailLoading && (
@@ -1861,20 +1884,51 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
-  poiSheetKm: {
+  poiSheetBottomBar: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 76,
+  },
+  poiSheetBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#fff',
+    borderRadius: 100,
+    borderWidth: 1.5,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  poiSheetBackBtnLabel: {
     fontSize: 15,
     fontWeight: '600',
-    marginTop: 6,
+  },
+  poiSheetMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  poiSheetKmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  poiSheetKm: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   poiSheetDesc: {
     fontSize: 16,
     lineHeight: 24,
-    marginTop: 12,
-  },
-  poiSheetBackToList: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 12,
+    marginTop: 4,
   },
   poiItineraryTitle: {
     fontSize: 20,
