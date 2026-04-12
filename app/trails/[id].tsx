@@ -24,7 +24,10 @@ import {
   type TrailDetail,
   type TrailPointDetail,
 } from '@/services/api';
-import { useActiveTrailSessionStore, type ActiveTrailSessionSnapshot } from '@/store/active-trail-session-store';
+import {
+  useActiveTrailSessionStore,
+  type ActiveTrailSessionSnapshot,
+} from '@/store/active-trail-session-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
 import { mapBackendTrail, useTrailsStore } from '@/store/trails-store';
@@ -482,11 +485,14 @@ export default function TrailDetailScreen() {
       .filter((x): x is { id: string; latitude: number; longitude: number; type: string | null } => x != null);
   }, [trailDetail?.points]);
 
-  const storedActiveSession = useActiveTrailSessionStore((s) => s.session);
+  const storedSessions = useActiveTrailSessionStore((s) => s.sessions);
   /** Sin login no aplica «recorrido en curso» (el store se limpia en logout). */
-  const activeSession = token ? storedActiveSession : null;
+  const sessionForThisTrail = useMemo(
+    () => (token ? storedSessions.find((s) => s.trailId === trailId) ?? null : null),
+    [token, storedSessions, trailId],
+  );
   const setActiveSession = useActiveTrailSessionStore((s) => s.setSession);
-  const clearActiveSession = useActiveTrailSessionStore((s) => s.clearSession);
+  const setActiveHistoryEntryId = useActiveTrailSessionStore((s) => s.setActiveHistoryEntryId);
   const setActiveMinimized = useActiveTrailSessionStore((s) => s.setMinimized);
 
   const buildSessionSnapshot = useCallback(
@@ -511,9 +517,12 @@ export default function TrailDetailScreen() {
   );
 
   const resumeActiveTrail = useCallback(async () => {
+    if (sessionForThisTrail) {
+      await setActiveHistoryEntryId(sessionForThisTrail.historyEntryId);
+    }
     await setActiveMinimized(false);
     router.push('/(tabs)/trail-recorrido' as any);
-  }, [setActiveMinimized]);
+  }, [sessionForThisTrail, setActiveHistoryEntryId, setActiveMinimized]);
 
   const startNewTrailFlow = useCallback(async () => {
     if (!trailId || !trailDetail || !token) return;
@@ -552,22 +561,20 @@ export default function TrailDetailScreen() {
       redirectToLogin(pathname || '/(tabs)');
       return;
     }
-    const sameTrail = activeSession?.trailId === trailId;
-    if (sameTrail) {
+    if (sessionForThisTrail) {
       void resumeActiveTrail();
       return;
     }
-    if (activeSession) {
+    if (storedSessions.length > 0) {
       Alert.alert(
-        'Recorrido en curso',
-        `Tenés «${activeSession.trailName}» sin terminar. Si empezás este, ese recorrido se descarta (no se guarda como completado).`,
+        'Otros recorridos en curso',
+        `Tenés ${storedSessions.length} ${storedSessions.length === 1 ? 'recorrido' : 'recorridos'} sin terminar. ¿También empezás este? Los otros siguen guardados.`,
         [
           { text: 'Cancelar', style: 'cancel' },
           {
-            text: 'Descartar y empezar este',
-            style: 'destructive',
+            text: 'Sí, empezar este',
             onPress: () => {
-              void clearActiveSession().then(() => startNewTrailFlow());
+              void startNewTrailFlow();
             },
           },
         ],
@@ -579,16 +586,14 @@ export default function TrailDetailScreen() {
     trailId,
     token,
     pathname,
-    activeSession,
+    sessionForThisTrail,
+    storedSessions.length,
     resumeActiveTrail,
-    clearActiveSession,
     startNewTrailFlow,
   ]);
 
-  const primaryTrailActionLabel =
-    activeSession?.trailId === trailId ? 'Resumir recorrido' : 'Iniciar recorrido';
-  const primaryTrailActionDisabled =
-    !(activeSession?.trailId === trailId) && !trailDetail;
+  const primaryTrailActionLabel = sessionForThisTrail ? 'Resumir recorrido' : 'Iniciar recorrido';
+  const primaryTrailActionDisabled = !sessionForThisTrail && !trailDetail;
 
   const sortedTrailPoints = useMemo(() => {
     const pts = [...(trailDetail?.points ?? [])];
@@ -1348,7 +1353,7 @@ export default function TrailDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={primaryTrailActionLabel}>
                 <Ionicons
-                  name={activeSession?.trailId === trailId ? 'play-circle' : 'play'}
+                  name={sessionForThisTrail ? 'play-circle' : 'play'}
                   size={20}
                   color="#fff"
                 />

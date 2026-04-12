@@ -36,6 +36,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="completed-trails"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           href: '/(tabs)/profile',

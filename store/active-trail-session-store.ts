@@ -2,7 +2,8 @@ import { normalizeSessionStartedAtToISO } from '@/lib/session-started-at';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 
-const STORAGE_KEY = 'active_trail_session_v1';
+const STORAGE_KEY_V1 = 'active_trail_session_v1';
+const STORAGE_KEY_V2 = 'active_trail_sessions_v2';
 
 export interface ActiveTrailMapPoint {
   id: string;
@@ -29,23 +30,16 @@ export interface ActiveTrailSessionSnapshot {
   beganRecorridoSynced?: boolean;
 }
 
-interface ActiveTrailSessionState {
-  session: ActiveTrailSessionSnapshot | null;
-  hydrated: boolean;
-
-  hydrate: () => Promise<void>;
-  /** Reemplaza la sesión activa y la persiste. */
-  setSession: (session: ActiveTrailSessionSnapshot | null) => Promise<void>;
-  setMinimized: (minimized: boolean) => Promise<void>;
-  clearSession: () => Promise<void>;
-}
-
-async function persist(session: ActiveTrailSessionSnapshot | null) {
-  if (session == null) {
-    await AsyncStorage.removeItem(STORAGE_KEY);
-    return;
+export function selectActiveSession(state: {
+  sessions: ActiveTrailSessionSnapshot[];
+  activeHistoryEntryId: string | null;
+}): ActiveTrailSessionSnapshot | null {
+  if (state.sessions.length === 0) return null;
+  if (state.activeHistoryEntryId) {
+    const found = state.sessions.find((x) => x.historyEntryId === state.activeHistoryEntryId);
+    if (found) return found;
   }
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  return state.sessions[0];
 }
 
 type PersistedSessionLoose = ActiveTrailSessionSnapshot & {
@@ -70,36 +64,159 @@ function migratePersistedSession(raw: unknown): ActiveTrailSessionSnapshot | nul
   return s as ActiveTrailSessionSnapshot;
 }
 
+async function persistState(
+  sessions: ActiveTrailSessionSnapshot[],
+  activeHistoryEntryId: string | null,
+) {
+  if (sessions.length === 0) {
+    await AsyncStorage.multiRemove([STORAGE_KEY_V1, STORAGE_KEY_V2]);
+    return;
+  }
+  await AsyncStorage.setItem(
+    STORAGE_KEY_V2,
+    JSON.stringify({ sessions, activeHistoryEntryId }),
+  );
+  await AsyncStorage.removeItem(STORAGE_KEY_V1);
+}
+
+interface ActiveTrailSessionState {
+  sessions: ActiveTrailSessionSnapshot[];
+  activeHistoryEntryId: string | null;
+  hydrated: boolean;
+
+  hydrate: () => Promise<void>;
+  /**
+   * Inserta o reemplaza la sesión de ese `trailId` (un recorrido local por sendero).
+   * La sesión pasada queda activa.
+   */
+  upsertSession: (session: ActiveTrailSessionSnapshot) => Promise<void>;
+  /** `null` limpia todo; si no, equivale a `upsertSession`. */
+  setSession: (session: ActiveTrailSessionSnapshot | null) => Promise<void>;
+  setActiveHistoryEntryId: (historyEntryId: string) => Promise<void>;
+  updateActiveSession: (patch: Partial<ActiveTrailSessionSnapshot>) => Promise<void>;
+  removeSessionByHistoryId: (historyEntryId: string) => Promise<void>;
+  setMinimized: (minimized: boolean) => Promise<void>;
+  clearSession: () => Promise<void>;
+}
+
 export const useActiveTrailSessionStore = create<ActiveTrailSessionState>((set, get) => ({
-  session: null,
+  sessions: [],
+  activeHistoryEntryId: null,
   hydrated: false,
 
   hydrate: async () => {
     if (get().hydrated) return;
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      const session = raw ? migratePersistedSession(JSON.parse(raw)) : null;
-      set({ session, hydrated: true });
+      const rawV2 = await AsyncStorage.getItem(STORAGE_KEY_V2);
+      if (rawV2) {
+        const parsed = JSON.parse(rawV2) as {
+          sessions?: unknown[];
+          activeHistoryEntryId?: string | null;
+        };
+        const sessions = Array.isArray(parsed.sessions)
+          ? parsed.sessions
+              .map(migratePersistedSession)
+              .filter((x): x is ActiveTrailSessionSnapshot => x != null)
+          : [];
+        let activeHistoryEntryId =
+          typeof parsed.activeHistoryEntryId === 'string' ? parsed.activeHistoryEntryId : null;
+        if (activeHistoryEntryId && !sessions.some((x) => x.historyEntryId === activeHistoryEntryId)) {
+          activeHistoryEntryId = sessions[0]?.historyEntryId ?? null;
+        }
+        if (sessions.length > 0 && !activeHistoryEntryId) {
+          activeHistoryEntryId = sessions[0].historyEntryId;
+        }
+        set({ sessions, activeHistoryEntryId, hydrated: true });
+        return;
+      }
+
+      const rawV1 = await AsyncStorage.getItem(STORAGE_KEY_V1);
+      if (rawV1) {
+        const one = migratePersistedSession(JSON.parse(rawV1));
+        if (one) {
+          set({
+            sessions: [one],
+            activeHistoryEntryId: one.historyEntryId,
+            hydrated: true,
+          });
+          await persistState([one], one.historyEntryId);
+          await AsyncStorage.removeItem(STORAGE_KEY_V1);
+          return;
+        }
+      }
+
+      set({ sessions: [], activeHistoryEntryId: null, hydrated: true });
     } catch {
-      set({ session: null, hydrated: true });
+      set({ sessions: [], activeHistoryEntryId: null, hydrated: true });
     }
   },
 
+  upsertSession: async (session) => {
+    const others = get().sessions.filter((s) => s.trailId !== session.trailId);
+    const nextSessions = [...others, session];
+    const activeHistoryEntryId = session.historyEntryId;
+    set({ sessions: nextSessions, activeHistoryEntryId });
+    await persistState(nextSessions, activeHistoryEntryId);
+  },
+
   setSession: async (session) => {
-    set({ session });
-    await persist(session);
+    if (session == null) {
+      await get().clearSession();
+      return;
+    }
+    await get().upsertSession(session);
+  },
+
+  setActiveHistoryEntryId: async (historyEntryId: string) => {
+    const sessions = get().sessions;
+    if (!sessions.some((s) => s.historyEntryId === historyEntryId)) return;
+    set({ activeHistoryEntryId: historyEntryId });
+    await persistState(sessions, historyEntryId);
+  },
+
+  updateActiveSession: async (patch) => {
+    const active = selectActiveSession(get());
+    if (!active) return;
+    const id = active.historyEntryId;
+    const nextSessions = get().sessions.map((s) =>
+      s.historyEntryId === id ? { ...s, ...patch } : s,
+    );
+    let activeHistoryEntryId = get().activeHistoryEntryId;
+    if (
+      typeof patch.historyEntryId === 'string' &&
+      patch.historyEntryId !== id &&
+      activeHistoryEntryId === id
+    ) {
+      activeHistoryEntryId = patch.historyEntryId;
+    }
+    set({ sessions: nextSessions, activeHistoryEntryId });
+    await persistState(nextSessions, activeHistoryEntryId);
+  },
+
+  removeSessionByHistoryId: async (historyEntryId: string) => {
+    const prev = get().sessions;
+    const sessions = prev.filter((s) => s.historyEntryId !== historyEntryId);
+    let activeHistoryEntryId = get().activeHistoryEntryId;
+    if (activeHistoryEntryId === historyEntryId) {
+      activeHistoryEntryId = sessions[0]?.historyEntryId ?? null;
+    }
+    set({ sessions, activeHistoryEntryId });
+    await persistState(sessions, activeHistoryEntryId);
   },
 
   setMinimized: async (minimized) => {
-    const cur = get().session;
-    if (!cur) return;
-    const next = { ...cur, minimized };
-    set({ session: next });
-    await persist(next);
+    const active = selectActiveSession(get());
+    if (!active) return;
+    const id = active.historyEntryId;
+    const nextSessions = get().sessions.map((s) =>
+      s.historyEntryId === id ? { ...s, minimized } : s,
+    );
+    set({ sessions: nextSessions });
+    await persistState(nextSessions, get().activeHistoryEntryId);
   },
 
   clearSession: async () => {
-    set({ session: null });
-    await persist(null);
+    set({ sessions: [], activeHistoryEntryId: null });
+    await AsyncStorage.multiRemove([STORAGE_KEY_V1, STORAGE_KEY_V2]);
   },
 }));

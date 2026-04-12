@@ -166,6 +166,10 @@ export default function ProfileScreen() {
     router.push('/(tabs)/favorites');
   };
 
+  const goToCompletedTrails = () => {
+    router.push('/(tabs)/completed-trails');
+  };
+
   const senderosN = profileStats?.completed_trails_count ?? 0;
   const resenasN = profileStats?.reviews_count ?? 0;
   const favoritosN = profileStats?.favorites_count ?? 0;
@@ -300,10 +304,15 @@ export default function ProfileScreen() {
                 </ThemedText>
               </View>
               <View style={styles.stats}>
-                <View style={styles.statItem}>
+                <TouchableOpacity
+                  style={styles.statItem}
+                  activeOpacity={0.65}
+                  onPress={goToCompletedTrails}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ver senderos completados">
                   <ThemedText style={styles.statNum}>{senderosN}</ThemedText>
                   <ThemedText style={[styles.statLabel, { color: textSub }]}>Senderos</ThemedText>
-                </View>
+                </TouchableOpacity>
                 <View style={[styles.statDivider, { backgroundColor: divider }]} />
                 <View style={styles.statItem}>
                   <ThemedText style={styles.statNum}>{resenasN}</ThemedText>
@@ -326,7 +335,12 @@ export default function ProfileScreen() {
 
         {/* ── Grid cards ── */}
         <View style={styles.grid}>
-          <TouchableOpacity style={[styles.gridCard, { backgroundColor: cardBg, justifyContent: 'space-between' }]} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={[styles.gridCard, { backgroundColor: cardBg, justifyContent: 'space-between' }]}
+            activeOpacity={0.85}
+            onPress={goToCompletedTrails}
+            accessibilityRole="button"
+            accessibilityLabel="Senderos completados">
             <View style={[styles.completedIconWrap, { backgroundColor: '#fff', borderWidth: 2, borderColor: colors.tint, marginTop: 20 }]}>
               <Ionicons name="trail-sign-outline" size={32} color={colors.tint} />
             </View>

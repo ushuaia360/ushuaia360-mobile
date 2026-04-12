@@ -17,7 +17,10 @@ import {
   trailHistoryEntryStartedAt,
 } from '@/services/api';
 import { useAuthStore } from '@/store/auth-store';
-import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
+import {
+  selectActiveSession,
+  useActiveTrailSessionStore,
+} from '@/store/active-trail-session-store';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Tabs, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -33,10 +36,10 @@ export default function TrailRecorridoScreen() {
   const mapRef = useRef<TrailActiveNavigationMapRef>(null);
 
   const hydrated = useActiveTrailSessionStore((s) => s.hydrated);
-  const session = useActiveTrailSessionStore((s) => s.session);
+  const session = useActiveTrailSessionStore((s) => selectActiveSession(s));
   const setMinimized = useActiveTrailSessionStore((s) => s.setMinimized);
-  const clearSession = useActiveTrailSessionStore((s) => s.clearSession);
-  const setSession = useActiveTrailSessionStore((s) => s.setSession);
+  const removeSessionByHistoryId = useActiveTrailSessionStore((s) => s.removeSessionByHistoryId);
+  const updateActiveSession = useActiveTrailSessionStore((s) => s.updateActiveSession);
 
   /** Una sola petición POST /start por par trail+id local (evita spam si el servidor devolvía 404). */
   const localHistorySyncAttemptedRef = useRef<string | null>(null);
@@ -53,7 +56,7 @@ export default function TrailRecorridoScreen() {
 
     void (async () => {
       try {
-        const snap = useActiveTrailSessionStore.getState().session;
+        const snap = selectActiveSession(useActiveTrailSessionStore.getState());
         if (!snap?.historyEntryId.startsWith('local-')) return;
         const entry = await startUserTrailHistory(token, snap.trailId);
         logRecorridoTimer('local→server /start OK', {
@@ -61,8 +64,7 @@ export default function TrailRecorridoScreen() {
           startedRaw: trailHistoryEntryStartedAt(entry),
           trailId: snap.trailId,
         });
-        await setSession({
-          ...snap,
+        await updateActiveSession({
           historyEntryId: entry.id,
           startedAtISO: normalizeSessionStartedAtToISO(
             trailHistoryEntryStartedAt(entry) ?? snap.startedAtISO,
@@ -73,7 +75,7 @@ export default function TrailRecorridoScreen() {
         logRecorridoTimer('local→server /start error', e instanceof Error ? e.message : e);
       }
     })();
-  }, [hydrated, session, token, setSession]);
+  }, [hydrated, session, token, updateActiveSession]);
 
   /**
    * Una sola vez por entrada de servidor: alinea `started_at` (DB) en la sesión.
@@ -98,7 +100,7 @@ export default function TrailRecorridoScreen() {
           logRecorridoTimer('begin-recorrido → cancelled (unmount)');
           return;
         }
-        const snap = useActiveTrailSessionStore.getState().session;
+        const snap = selectActiveSession(useActiveTrailSessionStore.getState());
         if (!snap || snap.historyEntryId !== historyId) {
           logRecorridoTimer('begin-recorrido → stale session after response', {
             expected: historyId,
@@ -116,8 +118,7 @@ export default function TrailRecorridoScreen() {
           hasStartedAt,
           entryId: entry.id,
         });
-        await setSession({
-          ...snap,
+        await updateActiveSession({
           beganRecorridoSynced: true,
           ...(hasStartedAt
             ? { startedAtISO: normalizeSessionStartedAtToISO(startedRaw) }
@@ -126,9 +127,9 @@ export default function TrailRecorridoScreen() {
       } catch (e) {
         logRecorridoTimer('begin-recorrido → error', e instanceof Error ? e.message : e);
         if (!cancelled) {
-          const snap = useActiveTrailSessionStore.getState().session;
+          const snap = selectActiveSession(useActiveTrailSessionStore.getState());
           if (snap?.historyEntryId === historyId) {
-            await setSession({ ...snap, beganRecorridoSynced: true });
+            await updateActiveSession({ beganRecorridoSynced: true });
           }
         }
       }
@@ -136,7 +137,7 @@ export default function TrailRecorridoScreen() {
     return () => {
       cancelled = true;
     };
-  }, [hydrated, session?.historyEntryId, session?.beganRecorridoSynced, token, setSession]);
+  }, [hydrated, session?.historyEntryId, session?.beganRecorridoSynced, token, updateActiveSession]);
 
   const [isPaused, setIsPaused] = useState(false);
   const [celebrationVisible, setCelebrationVisible] = useState(false);
@@ -201,7 +202,7 @@ export default function TrailRecorridoScreen() {
 
     setCompleting(true);
     try {
-      const snap = useActiveTrailSessionStore.getState().session ?? session;
+      const snap = selectActiveSession(useActiveTrailSessionStore.getState()) ?? session;
       let historyEntryId = snap.historyEntryId;
       if (historyEntryId.startsWith('local-')) {
         const entry = await startUserTrailHistory(token, snap.trailId);
@@ -220,7 +221,11 @@ export default function TrailRecorridoScreen() {
 
   const closeCelebration = () => {
     setCelebrationVisible(false);
-    void clearSession().then(() => router.replace('/(tabs)' as any));
+    const hid = session?.historyEntryId;
+    void (async () => {
+      if (hid) await removeSessionByHistoryId(hid);
+      router.replace('/(tabs)' as any);
+    })();
   };
 
   if (!hydrated) {

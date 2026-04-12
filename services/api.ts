@@ -239,6 +239,10 @@ export async function fetchFavoriteTrails(token: string): Promise<TrailsResponse
   return apiRequest<TrailsResponse>('/me/favorite-trails', { token });
 }
 
+export async function fetchCompletedTrails(token: string): Promise<TrailsResponse> {
+  return apiRequest<TrailsResponse>('/me/completed-trails', { token });
+}
+
 export async function addTrailFavorite(token: string, trailId: string): Promise<void> {
   await apiRequest(`/me/favorite-trails/${trailId}`, { method: 'POST', token });
 }

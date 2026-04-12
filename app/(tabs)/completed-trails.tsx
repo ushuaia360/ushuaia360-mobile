@@ -5,7 +5,7 @@ import { Trail } from '@/constants/mock-trails';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNeedsAuthScreen } from '@/lib/needAuth';
-import { fetchFavoriteTrails } from '@/services/api';
+import { fetchCompletedTrails } from '@/services/api';
 import { useAuthStore } from '@/store/auth-store';
 import { mapBackendTrail } from '@/store/trails-store';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +26,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 32;
 const SKEL_IMAGE_WIDTH = CARD_WIDTH - 20;
 
-function FavoritesListSkeleton({ isDark, skelBg }: { isDark: boolean; skelBg: string }) {
+function CompletedListSkeleton({ isDark, skelBg }: { isDark: boolean; skelBg: string }) {
   const cardBg = isDark ? '#1c1c1e' : '#fff';
   return (
     <View style={styles.skelList}>
@@ -46,7 +46,7 @@ function FavoritesListSkeleton({ isDark, skelBg }: { isDark: boolean; skelBg: st
   );
 }
 
-export default function FavoritesScreen() {
+export default function CompletedTrailsScreen() {
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -54,25 +54,28 @@ export default function FavoritesScreen() {
   const skelBg = isDark ? '#2c2c2e' : '#e8e8ed';
 
   const token = useAuthStore((s) => s.token);
-  const isAuthed = useNeedsAuthScreen('/(tabs)/favorites');
+  const isAuthed = useNeedsAuthScreen('/(tabs)/completed-trails');
   const [trails, setTrails] = useState<Trail[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadFavorites = useCallback(async (isRefresh: boolean) => {
-    if (!token) return;
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const data = await fetchFavoriteTrails(token);
-      setTrails(data.trails.map(mapBackendTrail));
-    } catch {
-      if (!isRefresh) setTrails([]);
-    } finally {
-      if (isRefresh) setRefreshing(false);
-      else setLoading(false);
-    }
-  }, [token]);
+  const loadCompleted = useCallback(
+    async (isRefresh: boolean) => {
+      if (!token) return;
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      try {
+        const data = await fetchCompletedTrails(token);
+        setTrails(data.trails.map(mapBackendTrail));
+      } catch {
+        if (!isRefresh) setTrails([]);
+      } finally {
+        if (isRefresh) setRefreshing(false);
+        else setLoading(false);
+      }
+    },
+    [token],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -81,13 +84,13 @@ export default function FavoritesScreen() {
         setLoading(false);
         return;
       }
-      loadFavorites(false);
-    }, [token, loadFavorites]),
+      loadCompleted(false);
+    }, [token, loadCompleted]),
   );
 
   const headerSubtitle = useMemo(() => {
     if (loading && trails.length === 0) return null;
-    if (trails.length === 0) return 'Senderos que guardaste';
+    if (trails.length === 0) return 'Senderos que terminaste';
     return trails.length === 1 ? '1 sendero' : `${trails.length} senderos`;
   }, [loading, trails.length]);
 
@@ -122,7 +125,7 @@ export default function FavoritesScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitles}>
-          <ThemedText style={styles.headerTitle}>Favoritos</ThemedText>
+          <ThemedText style={styles.headerTitle}>Completados</ThemedText>
           {headerSubtitle != null ? (
             <ThemedText style={[styles.headerSubtitle, { color: colors.icon }]} numberOfLines={1}>
               {headerSubtitle}
@@ -130,7 +133,7 @@ export default function FavoritesScreen() {
           ) : null}
         </View>
         <View style={[styles.headerIconWrap, { backgroundColor: colors.tint + '18' }]}>
-          <Ionicons name="heart-outline" size={22} color={colors.tint} />
+          <Ionicons name="trail-sign-outline" size={22} color={colors.tint} />
         </View>
       </View>
     </View>
@@ -140,7 +143,7 @@ export default function FavoritesScreen() {
     return (
       <ThemedView style={[styles.container, { backgroundColor: isDark ? '#000' : '#fff' }]}>
         {header}
-        <FavoritesListSkeleton isDark={isDark} skelBg={skelBg} />
+        <CompletedListSkeleton isDark={isDark} skelBg={skelBg} />
       </ThemedView>
     );
   }
@@ -150,11 +153,11 @@ export default function FavoritesScreen() {
       {header}
 
       {loading ? (
-        <FavoritesListSkeleton isDark={isDark} skelBg={skelBg} />
+        <CompletedListSkeleton isDark={isDark} skelBg={skelBg} />
       ) : trails.length === 0 ? (
         <View style={styles.center}>
           <ThemedText style={{ color: colors.icon }}>
-            No tenés favoritos todavía. Tocá el corazón en un sendero para guardarlo.
+            Todavía no completaste ningún sendero. Terminá un recorrido para verlo acá.
           </ThemedText>
         </View>
       ) : (
@@ -165,7 +168,7 @@ export default function FavoritesScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => loadFavorites(true)}
+              onRefresh={() => loadCompleted(true)}
               tintColor={colors.tint}
             />
           }
