@@ -12,17 +12,20 @@ import {
 } from '@/lib/gallery-slides';
 import { redirectToLogin } from '@/lib/needAuth';
 import { poiTypeIcon } from '@/lib/poi-icons';
-import { buildLineFromTrailPoints, normalizeTrailPointLocation } from '@/lib/trail-geo-normalize';
-import { buildTrailLineCoordinates } from '@/lib/trail-route-path';
 import { normalizeSessionStartedAtToISO } from '@/lib/session-started-at';
-import { ensureTrailMapLocationPermission, alertLocationDenied } from '@/lib/trail-location-permission';
+import { buildLineFromTrailPoints, normalizeTrailPointLocation } from '@/lib/trail-geo-normalize';
+import { alertLocationDenied, ensureTrailMapLocationPermission } from '@/lib/trail-location-permission';
+import { buildTrailLineCoordinates } from '@/lib/trail-route-path';
 import {
   ApiHttpError,
+  createTrailReview,
   fetchTrailById,
+  fetchTrailReviews,
   startUserTrailHistory,
   trailHistoryEntryStartedAt,
   type TrailDetail,
   type TrailPointDetail,
+  type TrailReview
 } from '@/services/api';
 import {
   useActiveTrailSessionStore,
@@ -49,10 +52,11 @@ import {
   ScrollView,
   Share,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { Extrapolation, Keyframe, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -65,8 +69,6 @@ const GALLERY_SLIDE_WIDTH = SCREEN_WIDTH - GALLERY_HORIZONTAL_MARGIN * 2;
 const GALLERY_HERO_HEIGHT_RATIO = 0.88;
 /** Espacio reservado para la fila de botones sobre la tab bar */
 const TRAIL_FLOAT_ACTIONS_ROW_PAD = 88;
-
-const REVIEWS: { id: string; user: string; avatar: string; rating: number; date: Date; text: string }[] = [];
 
 function relativeDate(date: Date): string {
   const DAY = 86400000;
@@ -84,7 +86,7 @@ function AnimatedDot({ active }: { active: boolean }) {
   const width = useSharedValue(active ? 18 : 6);
   useEffect(() => {
     width.value = withSpring(active ? 18 : 6, { damping: 20, stiffness: 300, mass: 0.6 });
-  }, [active]);
+  }, [active, width]);
   const style = useAnimatedStyle(() => ({
     height: 6,
     width: width.value,
@@ -94,16 +96,21 @@ function AnimatedDot({ active }: { active: boolean }) {
   return <Animated.View style={style} />;
 }
 
-function starDist(rating: number): number[] {
-  // returns [pct5, pct4, pct3, pct2, pct1]
-  const r = rating / 5;
-  const p5 = Math.round(r * r * 90 + 5);
-  const p4 = Math.round((1 - r) * 25 + r * 6);
-  const p3 = Math.round((1 - r) * 15 + 2);
-  const p2 = Math.round((1 - r) * 8 + 1);
-  const p1 = Math.max(0, 100 - p5 - p4 - p3 - p2);
-  return [p5, p4, p3, p2, p1];
-}
+type RatingCounts = {
+  one_star: number;
+  two_star: number;
+  three_star: number;
+  four_star: number;
+  five_star: number;
+};
+
+const EMPTY_RATING_COUNTS: RatingCounts = {
+  one_star: 0,
+  two_star: 0,
+  three_star: 0,
+  four_star: 0,
+  five_star: 0,
+};
 
 const DIFFICULTY_COLOR: Record<string, string> = {
   Fácil: '#34c759',
@@ -125,6 +132,16 @@ const POI_TYPE_LABEL: Record<string, string> = {
   vista: 'Vista',
   informacion: 'Información',
 };
+
+const mapFullscreenEntering = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.94 }] },
+  100: { opacity: 1, transform: [{ scale: 1 }] },
+}).duration(260);
+
+const mapFullscreenExiting = new Keyframe({
+  0: { opacity: 1, transform: [{ scale: 1 }] },
+  100: { opacity: 0, transform: [{ scale: 0.94 }] },
+}).duration(200);
 
 const EXPANDABLE_DESC_CHAR_THRESHOLD = 200;
 const EXPANDABLE_DESC_COLLAPSED_LINES = 5;
@@ -375,6 +392,17 @@ export default function TrailDetailScreen() {
     longitude: number;
     token: number;
   } | null>(null);
+  const [reviews, setReviews] = useState<TrailReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const [reviewsOffset, setReviewsOffset] = useState(0);
+  const [reviewsTotal, setReviewsTotal] = useState(0);
+  const [reviewsAverageRating, setReviewsAverageRating] = useState(0);
+  const [reviewsRatingCounts, setReviewsRatingCounts] = useState<RatingCounts>(EMPTY_RATING_COUNTS);
+  const [reviewsSubmitting, setReviewsSubmitting] = useState(false);
+  const [reviewsSubmitError, setReviewsSubmitError] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
   const poiSheetRef = useRef<BottomSheet>(null);
   const poiSnapPoints = useMemo(() => ['40%', '78%'], []);
 
@@ -426,6 +454,49 @@ export default function TrailDetailScreen() {
     setPoiOverlay({ kind: 'closed' });
     setMapFocus(null);
   }, [trailId]);
+
+  const refreshReviews = useCallback(async () => {
+    if (!trailId) return;
+    setReviewsLoading(true);
+    setReviewsError(null);
+    try {
+      const data = await fetchTrailReviews(trailId, 20, 0);
+      setReviews(data.reviews);
+      setReviewsTotal(data.total);
+      setReviewsOffset(0);
+      setReviewsAverageRating(Number.isFinite(data.average_rating) ? data.average_rating : 0);
+      setReviewsRatingCounts({
+        one_star: data.rating_counts?.one_star ?? 0,
+        two_star: data.rating_counts?.two_star ?? 0,
+        three_star: data.rating_counts?.three_star ?? 0,
+        four_star: data.rating_counts?.four_star ?? 0,
+        five_star: data.rating_counts?.five_star ?? 0,
+      });
+    } catch (err) {
+      setReviewsError(err instanceof Error ? err.message : 'Error al cargar las reseñas');
+      setReviews([]);
+      setReviewsAverageRating(0);
+      setReviewsRatingCounts(EMPTY_RATING_COUNTS);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [trailId]);
+
+  const ratingPercentages = useMemo(() => {
+    const total = Math.max(1, reviewsTotal);
+    return [
+      (reviewsRatingCounts.five_star / total) * 100,
+      (reviewsRatingCounts.four_star / total) * 100,
+      (reviewsRatingCounts.three_star / total) * 100,
+      (reviewsRatingCounts.two_star / total) * 100,
+      (reviewsRatingCounts.one_star / total) * 100,
+    ];
+  }, [reviewsRatingCounts, reviewsTotal]);
+
+  useEffect(() => {
+    if (!trailId) return;
+    void refreshReviews();
+  }, [trailId, refreshReviews]);
 
   const selectedPoi = useMemo(() => {
     if (poiOverlay.kind !== 'poi' || !trailDetail?.points) return null;
@@ -626,6 +697,57 @@ export default function TrailDetailScreen() {
     setPoiOverlay({ kind: 'closed' });
   }, []);
 
+  const handleSubmitReview = useCallback(async () => {
+    if (!trailId) return;
+    if (!token) {
+      redirectToLogin(pathname || '/(tabs)');
+      return;
+    }
+    const comment = reviewComment.trim();
+    if (reviewRating < 1 || reviewRating > 5) {
+      setReviewsSubmitError('Seleccioná una calificación entre 1 y 5.');
+      return;
+    }
+    if (!comment) {
+      setReviewsSubmitError('Escribí un comentario para enviar la reseña.');
+      return;
+    }
+
+    setReviewsSubmitting(true);
+    setReviewsSubmitError(null);
+    try {
+      await createTrailReview(trailId, token, {
+        rating: reviewRating,
+        comment,
+      });
+      await refreshReviews();
+      setReviewComment('');
+      setReviewRating(5);
+    } catch (err) {
+      setReviewsSubmitError(err instanceof Error ? err.message : 'Error al enviar la reseña');
+    } finally {
+      setReviewsSubmitting(false);
+    }
+  }, [pathname, reviewComment, reviewRating, token, trailId, refreshReviews]);
+
+  const loadMoreReviews = useCallback(async () => {
+    if (!trailId) return;
+    if (reviewsLoading) return;
+    if (reviews.length >= reviewsTotal) return;
+    const nextOffset = reviewsOffset + 20;
+    setReviewsLoading(true);
+    try {
+      const data = await fetchTrailReviews(trailId, 20, nextOffset);
+      setReviews((prev) => [...prev, ...data.reviews]);
+      setReviewsOffset(nextOffset);
+      setReviewsTotal(data.total);
+    } catch (err) {
+      setReviewsError(err instanceof Error ? err.message : 'Error al cargar más reseñas');
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [reviews.length, reviewsLoading, reviewsOffset, reviewsTotal, trailId]);
+
   const detailListBottomPad = bottom + TRAIL_FLOAT_ACTIONS_ROW_PAD;
 
   useEffect(() => {
@@ -773,653 +895,753 @@ export default function TrailDetailScreen() {
         </View>
       ) : (
         <>
-        <View style={styles.scrollShell}>
-        <Animated.FlatList
-          style={styles.flexScroll}
-          data={[trail.id]}
-          keyExtractor={(k) => k}
-          showsVerticalScrollIndicator={false}
-          onScroll={scrollHandler}
-          scrollEventThrottle={16}
-          pointerEvents={mapFullscreen ? 'none' : 'auto'}
-          contentContainerStyle={{ paddingBottom: detailListBottomPad }}
-          renderItem={() => (
-            <View>
-              {/* Gallery + botones flotantes */}
-              <View style={[styles.galleryWrap, { marginTop: galleryMarginTop }]}>
-                <View style={[styles.gallery, { height: heroHeight, backgroundColor: isDark ? '#1c1c1e' : '#e0e4ea' }]}>
-                  <FlatList
-                    data={gallerySlides}
-                    keyExtractor={(_, i) => String(i)}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
-                      const index = Math.round(e.nativeEvent.contentOffset.x / GALLERY_SLIDE_WIDTH);
-                      if (index !== activeImage) setActiveImage(index);
-                    }}
-                    scrollEventThrottle={16}
-                    renderItem={({ item, index }) => (
-                      <Pressable
-                        accessibilityRole="imagebutton"
-                        accessibilityLabel={`Foto ${index + 1} de ${gallerySlides.length}. Abrir galería`}
-                        onPress={() => {
-                          setLightboxStartIndex(index);
-                          setLightboxOpen(true);
-                        }}>
-                        <View style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}>
-                          <Image
-                            source={{ uri: item.uri }}
-                            style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}
-                            resizeMode="cover"
-                          />
-                          {item.mode === 'panorama' ? (
-                            <View
-                              style={[
-                                styles.galleryPanoBadge,
-                                {
-                                  backgroundColor: item.panoramaHalf
-                                    ? 'rgba(80,80,120,0.85)'
-                                    : 'rgba(0,0,0,0.55)',
-                                },
-                              ]}>
-                              <ThemedText style={styles.galleryPanoBadgeText}>
-                                {item.panoramaHalf ? '180°' : '360°'}
-                              </ThemedText>
+          <View style={styles.scrollShell}>
+            <Animated.FlatList
+              style={styles.flexScroll}
+              data={[trail.id]}
+              keyExtractor={(k) => k}
+              showsVerticalScrollIndicator={false}
+              onScroll={scrollHandler}
+              scrollEventThrottle={16}
+              pointerEvents={mapFullscreen ? 'none' : 'auto'}
+              contentContainerStyle={{ paddingBottom: detailListBottomPad }}
+              renderItem={() => (
+                <View>
+                  {/* Gallery + botones flotantes */}
+                  <View style={[styles.galleryWrap, { marginTop: galleryMarginTop }]}>
+                    <View style={[styles.gallery, { height: heroHeight, backgroundColor: isDark ? '#1c1c1e' : '#e0e4ea' }]}>
+                      <FlatList
+                        data={gallerySlides}
+                        keyExtractor={(_, i) => String(i)}
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+                          const index = Math.round(e.nativeEvent.contentOffset.x / GALLERY_SLIDE_WIDTH);
+                          if (index !== activeImage) setActiveImage(index);
+                        }}
+                        scrollEventThrottle={16}
+                        renderItem={({ item, index }) => (
+                          <Pressable
+                            accessibilityRole="imagebutton"
+                            accessibilityLabel={`Foto ${index + 1} de ${gallerySlides.length}. Abrir galería`}
+                            onPress={() => {
+                              setLightboxStartIndex(index);
+                              setLightboxOpen(true);
+                            }}>
+                            <View style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}>
+                              <Image
+                                source={{ uri: item.uri }}
+                                style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}
+                                resizeMode="cover"
+                              />
+                              {item.mode === 'panorama' ? (
+                                <View
+                                  style={[
+                                    styles.galleryPanoBadge,
+                                    {
+                                      backgroundColor: item.panoramaHalf
+                                        ? 'rgba(80,80,120,0.85)'
+                                        : 'rgba(0,0,0,0.55)',
+                                    },
+                                  ]}>
+                                  <ThemedText style={styles.galleryPanoBadgeText}>
+                                    {item.panoramaHalf ? '180°' : '360°'}
+                                  </ThemedText>
+                                </View>
+                              ) : null}
                             </View>
-                          ) : null}
+                          </Pressable>
+                        )}
+                      />
+
+                      {gallerySlides.length > 1 && (
+                        <View style={styles.dots}>
+                          {gallerySlides.map((_, i) => (
+                            <AnimatedDot key={i} active={i === activeImage} />
+                          ))}
                         </View>
-                      </Pressable>
-                    )}
-                  />
-
-                  {gallerySlides.length > 1 && (
-                    <View style={styles.dots}>
-                      {gallerySlides.map((_, i) => (
-                        <AnimatedDot key={i} active={i === activeImage} />
-                      ))}
+                      )}
                     </View>
-                  )}
-                </View>
 
-                {/* Botones flotantes sobre la foto */}
-                <View style={[styles.floatRow, { top: 12 }]} pointerEvents="box-none">
-                  <TouchableOpacity
-                    style={[styles.floatBtn, { backgroundColor: '#fff' }]}
-                    onPress={() => router.back()}
-                    hitSlop={12}>
-                    <Ionicons name="chevron-back" size={22} color="#000" />
-                  </TouchableOpacity>
-                  <View style={styles.floatRightGroup}>
-                    <TouchableOpacity
-                      style={[styles.floatBtn, { backgroundColor: '#fff' }]}
-                      onPress={() => Share.share({ message: `Mirá este sendero: ${trail.name}` })}
-                      hitSlop={12}>
-                      <Ionicons name="share-outline" size={20} color="#000" />
-                    </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.floatBtn, { backgroundColor: '#fff' }, trailFavorited && styles.floatBtnLiked]}
-                    onPress={async () => {
-                      if (!token) {
-                        redirectToLogin(pathname || '/(tabs)');
-                        return;
-                      }
-                      await toggleTrailFavorite(trailId!, token, !trailFavorited);
-                    }}
-                    hitSlop={12}>
-                    <Ionicons
-                      name={trailFavorited ? 'heart' : 'heart-outline'}
-                      size={20}
-                      color={trailFavorited ? '#ff3b30' : '#000'}
-                    />
-                  </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-
-              {/* Card unificada: nombre + métricas */}
-              <View style={[styles.card, { backgroundColor: isDark ? '#1c1c1e' : '#fff', padding: 0, overflow: 'hidden' }]}>
-                {/* Nombre + meta */}
-                <View style={styles.nameSection}>
-                  <ThemedText style={styles.name}>{trail.name}</ThemedText>
-                  <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={14} color="#000" />
-                    <ThemedText style={[styles.ratingText, { color: '#000', fontWeight: '500' }]}>
-                      {trail.rating.toFixed(1)}
-                    </ThemedText>
-                    <ThemedText style={[styles.ratingText, { color: colors.icon }]}>
-                      ({trail.reviewCount})
-                    </ThemedText>
-                  </View>
-                </View>
-
-                {/* Divisor */}
-                <View style={[styles.cardDivider, { backgroundColor: isDark ? '#2a2a2a' : '#F2F4F7' }]} />
-
-                {/* Métricas */}
-                <View style={styles.metricsRow}>
-                  <Metric icon="map-outline" label="Distancia" value={trail.distance} iconColor={colors.tint} />
-                  <View style={[styles.metricSep, { backgroundColor: isDark ? '#2a2a2a' : '#EDF0F5' }]} />
-                  <Metric icon="time-outline" label="Duración" value={trail.duration} iconColor={colors.tint} />
-                  <View style={[styles.metricSep, { backgroundColor: isDark ? '#2a2a2a' : '#EDF0F5' }]} />
-                  <Metric icon="trending-up-outline" label="Desnivel" value={trail.elevationGain} iconColor={colors.tint} />
-                  <View style={[styles.metricSep, { backgroundColor: isDark ? '#2a2a2a' : '#EDF0F5' }]} />
-                  <Metric
-                    icon="flag-outline"
-                    label="Dificultad"
-                    value={trail.difficulty}
-                    iconColor={DIFFICULTY_COLOR[trail.difficulty] ?? colors.icon}
-                  />
-                </View>
-
-                {detailLoading ? (
-                  <>
-                    <View style={{ paddingHorizontal: 16, paddingBottom: 20, gap: 8 }}>
-                      <View style={{ height: 14, borderRadius: 4, backgroundColor: skelBlock }} />
-                      <View style={{ height: 14, width: '92%', borderRadius: 4, backgroundColor: skelBlock }} />
-                      <View style={{ height: 14, width: '78%', borderRadius: 4, backgroundColor: skelBlock }} />
-                    </View>
-                    <View style={styles.mapSection}>
-                      <View style={styles.mapWrap}>
-                        <View style={[styles.mapLayoutBox, { backgroundColor: skelBlock }]} />
-                      </View>
-                    </View>
-                    <ThemedText
-                      style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
-                      Puntos de interés
-                    </ThemedText>
-                    <View style={styles.poiListSection}>
-                      {[0, 1].map((i) => (
-                        <View key={i} style={styles.poiListSkeletonCard}>
-                          <View style={[styles.poiListCardHero, { backgroundColor: skelBlock }]} />
-                          <View style={styles.poiListSkeletonBody}>
-                            <View
-                              style={[
-                                styles.poiListSkeletonLine,
-                                { width: '72%', backgroundColor: skelBlockInner },
-                              ]}
-                            />
-                            <View
-                              style={[styles.poiListSkeletonLine, { width: '36%', backgroundColor: skelBlock }]}
-                            />
-                            <View
-                              style={[styles.poiListSkeletonLine, { width: '100%', backgroundColor: skelBlock }]}
-                            />
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    {descriptionText ? (
-                      <View style={styles.trailDescBlock}>
-                        <ExpandableDescription
-                          text={descriptionText}
-                          textStyle={[styles.descInline, { color: colors.icon }]}
-                          tint={colors.tint}
-                        />
-                      </View>
-                    ) : null}
-
-                    <View style={styles.mapSection}>
-                      <View style={styles.mapWrap}>
-                        <View style={styles.mapLayoutBox} />
-                        <View style={styles.mapOverlay}>
-                          <TrailRouteTileMap
-                            routeCoordinates={lineCoordinates}
-                            interestPoints={mapInterestPoints}
-                            mainPoint={null}
-                            fallbackCenter={trail.coordinate}
-                            isDark={isDark}
-                            tint={colors.tint}
-                            routeColor={TRAIL_ROUTE_LINE_COLOR}
-                            interactive
-                            focusTarget={mapFocus}
-                            onPoiPress={handleMapPoiPress}
-                            onMapPressAt={handleMapPressAt}
-                          />
-                        </View>
+                    {/* Botones flotantes sobre la foto */}
+                    <View style={[styles.floatRow, { top: 12 }]} pointerEvents="box-none">
+                      <TouchableOpacity
+                        style={[styles.floatBtn, { backgroundColor: '#fff' }]}
+                        onPress={() => router.back()}
+                        hitSlop={12}>
+                        <Ionicons name="chevron-back" size={22} color="#000" />
+                      </TouchableOpacity>
+                      <View style={styles.floatRightGroup}>
                         <TouchableOpacity
-                          style={styles.mapExpandBtn}
-                          onPress={() => {
-                            setMapFullscreen(true);
-                            setPoiOverlay({ kind: 'itinerary' });
+                          style={[styles.floatBtn, { backgroundColor: '#fff' }]}
+                          onPress={() => Share.share({ message: `Mirá este sendero: ${trail.name}` })}
+                          hitSlop={12}>
+                          <Ionicons name="share-outline" size={20} color="#000" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.floatBtn, { backgroundColor: '#fff' }, trailFavorited && styles.floatBtnLiked]}
+                          onPress={async () => {
+                            if (!token) {
+                              redirectToLogin(pathname || '/(tabs)');
+                              return;
+                            }
+                            await toggleTrailFavorite(trailId!, token, !trailFavorited);
                           }}
-                          accessibilityRole="button"
-                          accessibilityLabel="Ver mapa en pantalla completa">
-                          <Ionicons name="scan-outline" size={22} color="#000" />
+                          hitSlop={12}>
+                          <Ionicons
+                            name={trailFavorited ? 'heart' : 'heart-outline'}
+                            size={20}
+                            color={trailFavorited ? '#ff3b30' : '#000'}
+                          />
                         </TouchableOpacity>
                       </View>
                     </View>
-
-                    <ThemedText
-                      style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
-                      Puntos de interés
-                    </ThemedText>
-                    <View style={styles.poiListSection}>
-                      {sortedTrailPoints.length === 0 ? (
-                        <ThemedText style={[styles.poiListEmpty, { color: colors.icon }]}>
-                          Este sendero aún no tiene puntos de interés cargados.
-                        </ThemedText>
-                      ) : (
-                        sortedTrailPoints.map((p) => (
-                          <TrailPoiListCard
-                            key={p.id}
-                            point={p}
-                            colors={colors}
-                            isDark={isDark}
-                            tint={colors.tint}
-                            onMapPress={handleMapPoiPress}
-                          />
-                        ))
-                      )}
-                    </View>
-                  </>
-                )}
-
-                {/* Rating breakdown */}
-                {REVIEWS.length > 0 && <View style={styles.ratingBreakdown}>
-                  <View style={styles.rbLeft}>
-                    <ThemedText style={[styles.rbScore, { color: colors.tint }]}>
-                      {trail.rating.toFixed(1)}
-                    </ThemedText>
-                    <View style={styles.rbStars}>
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Ionicons
-                          key={i}
-                          name="star"
-                          size={20}
-                          color={i <= Math.round(trail.rating) ? '#FFB800' : '#D1D1D6'}
-                        />
-                      ))}
-                    </View>
                   </View>
-                  <View style={styles.rbBars}>
-                    {[5, 4, 3, 2, 1].map((star, idx) => {
-                      const pcts = starDist(trail.rating);
-                      return (
-                        <View key={star} style={styles.rbBarRow}>
-                          <View style={[styles.rbTrack, { backgroundColor: isDark ? '#2a2a2a' : '#E5E5EA' }]}>
-                            <View
-                              style={[
-                                styles.rbFill,
-                                {
-                                  width: `${pcts[idx]}%` as any,
-                                  backgroundColor: isDark ? '#fff' : '#1C1C1E',
-                                },
-                              ]}
+
+                  {/* Card unificada: nombre + métricas */}
+                  <View style={[styles.card, { backgroundColor: isDark ? '#1c1c1e' : '#fff', padding: 0, overflow: 'hidden' }]}>
+                    {/* Nombre + meta */}
+                    <View style={styles.nameSection}>
+                      <ThemedText style={styles.name}>{trail.name}</ThemedText>
+                      <View style={styles.ratingRow}>
+                        <Ionicons name="star" size={14} color="#000" />
+                        <ThemedText style={[styles.ratingText, { color: '#000', fontWeight: '500' }]}>
+                          {trail.rating.toFixed(1)}
+                        </ThemedText>
+                        <ThemedText style={[styles.ratingText, { color: colors.icon }]}>
+                          ({trail.reviewCount})
+                        </ThemedText>
+                      </View>
+                    </View>
+
+                    {/* Divisor */}
+                    <View style={[styles.cardDivider, { backgroundColor: isDark ? '#2a2a2a' : '#F2F4F7' }]} />
+
+                    {/* Métricas */}
+                    <View style={styles.metricsRow}>
+                      <Metric icon="map-outline" label="Distancia" value={trail.distance} iconColor={colors.tint} />
+                      <View style={[styles.metricSep, { backgroundColor: isDark ? '#2a2a2a' : '#EDF0F5' }]} />
+                      <Metric icon="time-outline" label="Duración" value={trail.duration} iconColor={colors.tint} />
+                      <View style={[styles.metricSep, { backgroundColor: isDark ? '#2a2a2a' : '#EDF0F5' }]} />
+                      <Metric icon="trending-up-outline" label="Desnivel" value={trail.elevationGain} iconColor={colors.tint} />
+                      <View style={[styles.metricSep, { backgroundColor: isDark ? '#2a2a2a' : '#EDF0F5' }]} />
+                      <Metric
+                        icon="flag-outline"
+                        label="Dificultad"
+                        value={trail.difficulty}
+                        iconColor={DIFFICULTY_COLOR[trail.difficulty] ?? colors.icon}
+                      />
+                    </View>
+
+                    {detailLoading ? (
+                      <>
+                        <View style={{ paddingHorizontal: 16, paddingBottom: 20, gap: 8 }}>
+                          <View style={{ height: 14, borderRadius: 4, backgroundColor: skelBlock }} />
+                          <View style={{ height: 14, width: '92%', borderRadius: 4, backgroundColor: skelBlock }} />
+                          <View style={{ height: 14, width: '78%', borderRadius: 4, backgroundColor: skelBlock }} />
+                        </View>
+                        <View style={styles.mapSection}>
+                          <View style={styles.mapWrap}>
+                            <View style={[styles.mapLayoutBox, { backgroundColor: skelBlock }]} />
+                          </View>
+                        </View>
+                        <ThemedText
+                          style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
+                          Puntos de interés
+                        </ThemedText>
+                        <View style={styles.poiListSection}>
+                          {[0, 1].map((i) => (
+                            <View key={i} style={styles.poiListSkeletonCard}>
+                              <View style={[styles.poiListCardHero, { backgroundColor: skelBlock }]} />
+                              <View style={styles.poiListSkeletonBody}>
+                                <View
+                                  style={[
+                                    styles.poiListSkeletonLine,
+                                    { width: '72%', backgroundColor: skelBlockInner },
+                                  ]}
+                                />
+                                <View
+                                  style={[styles.poiListSkeletonLine, { width: '36%', backgroundColor: skelBlock }]}
+                                />
+                                <View
+                                  style={[styles.poiListSkeletonLine, { width: '100%', backgroundColor: skelBlock }]}
+                                />
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        {descriptionText ? (
+                          <View style={styles.trailDescBlock}>
+                            <ExpandableDescription
+                              text={descriptionText}
+                              textStyle={[styles.descInline, { color: colors.icon }]}
+                              tint={colors.tint}
                             />
                           </View>
-                          <ThemedText style={[styles.rbLabel, { color: colors.icon }]}>{star}</ThemedText>
-                          <Ionicons name="star" size={10} color={isDark ? '#555' : '#C7C7CC'} />
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>}
-              </View>
+                        ) : null}
 
-              {/* Reseñas */}
-              <View style={styles.reviewsCard}>
-                {REVIEWS.length > 0 && (
-                  <View style={styles.reviewsHeader}>
-                    <ThemedText style={[styles.reviewsTitle, { color: '#808080' }]}>
-                      {REVIEWS.length}{' '}
-                      {REVIEWS.length === 1 ? 'reseña' : 'reseñas'}
-                    </ThemedText>
-                    <View style={[styles.reviewsHeaderSep, { backgroundColor: '#808080' }]} />
-                    <View style={styles.reviewsRating}>
-                      <Ionicons name="star" size={15} color="#808080" />
-                      <ThemedText style={[styles.reviewsCount, { color: '#808080' }]}>
-                        {trail.rating.toFixed(1)}
-                      </ThemedText>
-                    </View>
-                  </View>
-                )}
-                {REVIEWS.length === 0 ? (
-                  <View style={styles.reviewEmpty}>
-                    <Ionicons name="chatbubble-outline" size={32} color={colors.icon} />
-                    <ThemedText style={[styles.reviewEmptyTitle, { color: colors.text }]}>
-                      Sin reseñas aún
-                    </ThemedText>
-                    <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>
-                      Sé el primero en compartir tu experiencia en este sendero.
-                    </ThemedText>
-                  </View>
-                ) : REVIEWS.map((review, idx) => (
-                  <View key={review.id}>
-                    {idx > 0 && (
-                      <View style={[styles.reviewDivider, { backgroundColor: isDark ? '#2a2a2a' : '#F2F4F7' }]} />
-                    )}
-                    <View style={styles.reviewItem}>
-                      <Image source={{ uri: review.avatar }} style={styles.reviewAvatar} />
-                      <View style={styles.reviewBody}>
-                        <View style={styles.reviewHeader}>
-                          <ThemedText style={styles.reviewUser}>{review.user}</ThemedText>
-                          <ThemedText style={[styles.reviewDate, { color: colors.icon }]}>
-                            {relativeDate(review.date)}
-                          </ThemedText>
+                        <View style={styles.mapSection}>
+                          <View style={styles.mapWrap}>
+                            <View style={styles.mapLayoutBox} />
+                            <View style={styles.mapOverlay}>
+                              <TrailRouteTileMap
+                                routeCoordinates={lineCoordinates}
+                                interestPoints={mapInterestPoints}
+                                mainPoint={null}
+                                fallbackCenter={trail.coordinate}
+                                isDark={isDark}
+                                tint={colors.tint}
+                                routeColor={TRAIL_ROUTE_LINE_COLOR}
+                                interactive
+                                focusTarget={mapFocus}
+                                onPoiPress={handleMapPoiPress}
+                                onMapPressAt={handleMapPressAt}
+                              />
+                            </View>
+                            <TouchableOpacity
+                              style={styles.mapExpandBtn}
+                              onPress={() => {
+                                setPoiOverlay({ kind: 'itinerary' });
+                                setMapFullscreen(true);
+                              }}
+                              accessibilityRole="button"
+                              accessibilityLabel="Ver mapa en pantalla completa">
+                              <Ionicons name="scan-outline" size={22} color="#000" />
+                            </TouchableOpacity>
+                          </View>
                         </View>
-                        <View style={styles.reviewStars}>
+
+                        <ThemedText
+                          style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
+                          Puntos de interés
+                        </ThemedText>
+                        <View style={styles.poiListSection}>
+                          {sortedTrailPoints.length === 0 ? (
+                            <ThemedText style={[styles.poiListEmpty, { color: colors.icon }]}>
+                              Este sendero aún no tiene puntos de interés cargados.
+                            </ThemedText>
+                          ) : (
+                            sortedTrailPoints.map((p) => (
+                              <TrailPoiListCard
+                                key={p.id}
+                                point={p}
+                                colors={colors}
+                                isDark={isDark}
+                                tint={colors.tint}
+                                onMapPress={handleMapPoiPress}
+                              />
+                            ))
+                          )}
+                        </View>
+                      </>
+                    )}
+
+                    {/* Rating breakdown */}
+                    {reviews.length > 0 && <View style={styles.ratingBreakdown}>
+                      <View style={styles.rbLeft}>
+                        <ThemedText style={[styles.rbScore, { color: colors.tint }]}>
+                          {reviewsAverageRating.toFixed(1)}
+                        </ThemedText>
+                        <View style={styles.rbStars}>
                           {[1, 2, 3, 4, 5].map((i) => (
                             <Ionicons
                               key={i}
                               name="star"
-                              size={12}
-                              color={i <= review.rating ? '#FFB800' : '#D1D1D6'}
+                              size={20}
+                              color={i <= Math.round(reviewsAverageRating) ? '#FFB800' : '#D1D1D6'}
                             />
                           ))}
                         </View>
-                        <ThemedText style={[styles.reviewText, { color: colors.icon }]}>
-                          {review.text}
-                        </ThemedText>
                       </View>
-                    </View>
-                  </View>
-                ))}
-              </View>
-
-
-<View style={{ height: 16 }} />
-            </View>
-          )}
-        />
-
-        {mapFullscreen && (
-          <View
-            style={[
-              styles.mapFullscreenOverlay,
-              { backgroundColor: isDark ? '#1c1c1e' : '#e8e4dc', bottom },
-            ]}
-            pointerEvents="auto">
-            <View style={[styles.mapFullscreenHeader, { paddingTop: top + 8 }]}>
-              <View style={{ flex: 1 }} />
-              <TouchableOpacity
-                onPress={closeMapFullscreen}
-                style={styles.mapFullscreenClose}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel="Cerrar mapa">
-                <Ionicons name="close" size={28} color={isDark ? '#fff' : '#000'} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.mapFullscreenBody}>
-              <TrailRouteTileMap
-                routeCoordinates={lineCoordinates}
-                interestPoints={mapInterestPoints}
-                mainPoint={null}
-                fallbackCenter={trail.coordinate}
-                isDark={isDark}
-                tint={colors.tint}
-                routeColor={TRAIL_ROUTE_LINE_COLOR}
-                interactive
-                focusTarget={mapFocus}
-                onPoiPress={handleMapPoiPress}
-                onMapPressAt={handleMapPressAt}
-              />
-            </View>
-
-            {!detailLoading && (
-              <BottomSheet
-                ref={poiSheetRef}
-                index={-1}
-                snapPoints={poiSnapPoints}
-                enablePanDownToClose
-                bottomInset={0}
-                onChange={(index) => {
-                  if (index === -1) setPoiOverlay({ kind: 'closed' });
-                }}
-                backdropComponent={renderPoiBackdrop}
-                backgroundStyle={{
-                  backgroundColor: isDark ? '#2c2c2e' : '#fff',
-                }}
-                handleIndicatorStyle={{
-                  backgroundColor: isDark ? '#636366' : '#c7c7cc',
-                  width: 40,
-                }}>
-                <BottomSheetScrollView
-                  contentContainerStyle={styles.poiSheetScrollContent}
-                  showsVerticalScrollIndicator={false}>
-                  {poiOverlay.kind === 'itinerary' ? (
-                    <>
-                      <ThemedText style={[styles.poiItineraryTitle, { color: colors.text }]}>
-                        Recorrido
-                      </ThemedText>
-                      <ThemedText style={[styles.poiItinerarySubtitle, { color: colors.icon }]}>
-                        Puntos en orden del sendero. Tocá uno para centrarlo en el mapa.
-                      </ThemedText>
-                      {(trailDetail?.points ?? []).length === 0 ? (
-                        <ThemedText style={[styles.poiItineraryEmpty, { color: colors.icon }]}>
-                          Este sendero no tiene puntos de interés cargados.
-                        </ThemedText>
-                      ) : (
-                        (trailDetail?.points ?? []).map((p, index) => {
-                          const loc = normalizeTrailPointLocation(p.location ?? null);
-                          const title = p.name?.trim() || 'Punto de interés';
-                          const typeLabel = p.type ? POI_TYPE_LABEL[p.type] ?? p.type : null;
-                          return (
-                            <Pressable
-                              key={p.id}
-                              onPress={() => {
-                                setPoiOverlay({ kind: 'poi', id: p.id });
-                                if (loc) bumpMapFocus(loc.latitude, loc.longitude);
-                              }}
-                              style={({ pressed }) => [
-                                styles.poiItineraryRow,
-                                {
-                                  backgroundColor: isDark ? '#3a3a3c' : '#f2f2f7',
-                                  opacity: pressed ? 0.85 : 1,
-                                },
-                              ]}>
-                              <View style={styles.poiItineraryLeadingCol}>
-                                <View
-                                  style={[
-                                    styles.poiItineraryStep,
-                                    { backgroundColor: colors.tint + '22' },
-                                  ]}>
-                                  <ThemedText
-                                    style={[styles.poiItineraryStepNum, { color: colors.tint }]}>
-                                    {index + 1}
-                                  </ThemedText>
-                                </View>
-                                <Ionicons name={poiTypeIcon(p.type)} size={22} color={colors.tint} />
-                              </View>
-                              <View style={styles.poiItineraryRowBody}>
-                                <ThemedText
-                                  style={[styles.poiItineraryRowTitle, { color: colors.text }]}
-                                  numberOfLines={2}>
-                                  {title}
-                                </ThemedText>
-                                {typeLabel ? (
-                                  <ThemedText
-                                    style={[styles.poiItineraryRowMeta, { color: colors.icon }]}>
-                                    {typeLabel}
-                                    {p.km_marker != null
-                                      ? ` · Km ${Number(p.km_marker).toFixed(1)}`
-                                      : ''}
-                                  </ThemedText>
-                                ) : p.km_marker != null ? (
-                                  <ThemedText
-                                    style={[styles.poiItineraryRowMeta, { color: colors.icon }]}>
-                                    Km {Number(p.km_marker).toFixed(1)}
-                                  </ThemedText>
-                                ) : null}
-                              </View>
-                              <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-                            </Pressable>
-                          );
-                        })
-                      )}
-                    </>
-                  ) : selectedPoi ? (
-                    <>
-                      {(() => {
-                        const hero = poiHeroFromPoint(selectedPoi);
-                        if (!hero) {
-                          return (
-                            <View
-                              style={[
-                                styles.poiSheetImage,
-                                styles.poiSheetImagePlaceholder,
-                                { backgroundColor: isDark ? '#3a3a3c' : '#e5e5ea' },
-                              ]}>
-                              <Ionicons
-                                name={poiTypeIcon(selectedPoi.type)}
-                                size={48}
-                                color={colors.tint}
+                      <View style={styles.rbBars}>
+                        {[5, 4, 3, 2, 1].map((star, idx) => (
+                          <View key={star} style={styles.rbBarRow}>
+                            <View style={[styles.rbTrack, { backgroundColor: isDark ? '#2a2a2a' : '#E5E5EA' }]}>
+                              <View
+                                style={[
+                                  styles.rbFill,
+                                  {
+                                    width: `${ratingPercentages[idx]}%` as any,
+                                    backgroundColor: isDark ? '#fff' : '#1C1C1E',
+                                  },
+                                ]}
                               />
                             </View>
-                          );
-                        }
-                        if (hero.kind === 'panorama') {
-                          return (
-                            <PanoramaWebView
-                              uri={hero.uri}
-                              panoramaHalf={hero.half}
-                              style={styles.poiSheetImage}
-                            />
-                          );
-                        }
-                        return (
-                          <ExpoImage
-                            source={{ uri: hero.uri }}
-                            style={styles.poiSheetImage}
-                            contentFit="cover"
-                          />
-                        );
-                      })()}
-                      <Pressable
-                        onPress={() => setPoiOverlay({ kind: 'itinerary' })}
-                        style={({ pressed }) => [{ opacity: pressed ? 0.65 : 1 }]}>
-                        <ThemedText style={[styles.poiSheetBackToList, { color: colors.tint }]}>
-                          ← Ver todo el recorrido
-                        </ThemedText>
-                      </Pressable>
-                      <View style={styles.poiSheetHeader}>
-                        <Ionicons name={poiTypeIcon(selectedPoi.type)} size={26} color={colors.tint} />
-                        <ThemedText style={[styles.poiSheetTitle, { color: colors.text }]}>
-                          {selectedPoi.name?.trim() || 'Punto de interés'}
-                        </ThemedText>
+                            <ThemedText style={[styles.rbLabel, { color: colors.icon }]}>{star}</ThemedText>
+                            <Ionicons name="star" size={10} color={isDark ? '#555' : '#C7C7CC'} />
+                          </View>
+                        ))}
                       </View>
-                      {selectedPoi.type ? (
-                        <View
-                          style={[
-                            styles.poiTypePill,
-                            { borderColor: colors.tint, alignSelf: 'flex-start' },
-                          ]}>
-                          <ThemedText style={[styles.poiTypePillText, { color: colors.tint }]}>
-                            {POI_TYPE_LABEL[selectedPoi.type] ?? selectedPoi.type}
+                    </View>}
+                  </View>
+
+                  {/* Formulario de reseña */}
+                  <View
+                    style={[
+                      styles.reviewFormCard,
+                      {
+                        backgroundColor: isDark ? '#1c1c1e' : '#fff',
+                        borderColor: isDark ? '#2a2a2a' : '#E5E7EB',
+                      },
+                    ]}>
+                    <ThemedText style={[styles.reviewFormTitle, { color: colors.text }]}>
+                      Dejá tu reseña
+                    </ThemedText>
+                    <View style={styles.reviewFormRatingRow}>
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <TouchableOpacity
+                          key={i}
+                          onPress={() => setReviewRating(i)}
+                          activeOpacity={0.75}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Calificar con ${i} estrella${i > 1 ? 's' : ''}`}>
+                          <Ionicons
+                            name="star"
+                            size={24}
+                            color={i <= reviewRating ? '#FFB800' : (isDark ? '#555' : '#D1D1D6')}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <TextInput
+                      value={reviewComment}
+                      onChangeText={setReviewComment}
+                      multiline
+                      placeholder="Contá tu experiencia en este sendero..."
+                      placeholderTextColor={colors.icon}
+                      style={[
+                        styles.reviewTextarea,
+                        {
+                          color: colors.text,
+                          borderColor: isDark ? '#2a2a2a' : '#E5E7EB',
+                          backgroundColor: isDark ? '#111' : '#fff',
+                        },
+                      ]}
+                      textAlignVertical="top"
+                      maxLength={500}
+                    />
+                    {reviewsSubmitError ? (
+                      <ThemedText style={styles.reviewFormError}>{reviewsSubmitError}</ThemedText>
+                    ) : null}
+                    <TouchableOpacity
+                      style={[
+                        styles.reviewSubmitBtn,
+                        { backgroundColor: colors.tint, opacity: reviewsSubmitting ? 0.7 : 1 },
+                      ]}
+                      disabled={reviewsSubmitting}
+                      onPress={handleSubmitReview}
+                      activeOpacity={0.85}>
+                      <ThemedText style={styles.reviewSubmitBtnText}>
+                        {reviewsSubmitting ? 'Enviando...' : 'Enviar reseña'}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Reseñas */}
+                  <View style={styles.reviewsCard}>
+                    {reviews.length > 0 && (
+                      <View style={styles.reviewsHeader}>
+                        <ThemedText style={[styles.reviewsTitle, { color: '#808080' }]}>
+                          {reviews.length}{' '}
+                          {reviews.length === 1 ? 'reseña' : 'reseñas'}
+                        </ThemedText>
+                        <View style={[styles.reviewsHeaderSep, { backgroundColor: '#808080' }]} />
+                        <View style={styles.reviewsRating}>
+                          <Ionicons name="star" size={15} color="#808080" />
+                          <ThemedText style={[styles.reviewsCount, { color: '#808080' }]}>
+                            {reviewsAverageRating.toFixed(1)}
                           </ThemedText>
                         </View>
-                      ) : null}
-                      {selectedPoi.km_marker != null ? (
-                        <ThemedText style={[styles.poiSheetKm, { color: colors.icon }]}>
-                          Km {Number(selectedPoi.km_marker).toFixed(1)}
+                      </View>
+                    )}
+                    {reviewsLoading ? (
+                      <View style={styles.reviewEmpty}>
+                        <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>
+                          Cargando reseñas...
                         </ThemedText>
+                      </View>
+                    ) : reviewsError ? (
+                      <View style={styles.reviewEmpty}>
+                        <ThemedText style={[styles.reviewEmptyTitle, { color: '#ff3b30' }]}>
+                          Error al cargar reseñas
+                        </ThemedText>
+                        <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>
+                          {reviewsError}
+                        </ThemedText>
+                      </View>
+                    ) : reviews.length === 0 ? (
+                      <View style={styles.reviewEmpty}>
+                        <Ionicons name="chatbubble-outline" size={32} color={colors.icon} />
+                        <ThemedText style={[styles.reviewEmptyTitle, { color: colors.text }]}>
+                          No hay reseñas aún
+                        </ThemedText>
+                        <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>
+                          Sé el primero en compartir tu experiencia en este sendero.
+                        </ThemedText>
+                      </View>
+                    ) : reviews.map((review, idx) => (
+                      <View key={review.id}>
+                        {idx > 0 && (
+                          <View style={[styles.reviewDivider, { backgroundColor: isDark ? '#2a2a2a' : '#F2F4F7' }]} />
+                        )}
+                        <View style={styles.reviewItem}>
+                          <View style={styles.reviewAvatarPlaceholder}>
+                            <Ionicons name="person-circle" size={40} color={colors.tint} />
+                          </View>
+                          <View style={styles.reviewBody}>
+                            <View style={styles.reviewHeader}>
+                              <ThemedText style={styles.reviewUser}>
+                                {review.name ?? 'Usuario'}
+                              </ThemedText>
+                              <ThemedText style={[styles.reviewDate, { color: colors.icon }]}>
+                                {relativeDate(new Date(review.created_at))}
+                              </ThemedText>
+                            </View>
+                            <View style={styles.reviewStars}>
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <Ionicons
+                                  key={i}
+                                  name="star"
+                                  size={12}
+                                  color={i <= review.rating ? '#FFB800' : '#D1D1D6'}
+                                />
+                              ))}
+                            </View>
+                            <ThemedText style={[styles.reviewText, { color: colors.icon }]}>
+                              {review.comment}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                    {reviews.length > 0 && reviews.length < reviewsTotal && (
+                      <TouchableOpacity
+                        style={[styles.loadMoreButton, { borderColor: colors.tint }]}
+                        onPress={loadMoreReviews}
+                        activeOpacity={0.8}>
+                        <ThemedText style={[styles.loadMoreButtonText, { color: colors.tint }]}>
+                          Ver más reseñas ({reviews.length}/{reviewsTotal})
+                        </ThemedText>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+
+                  <View style={{ height: 16 }} />
+                </View>
+              )}
+            />
+
+            {mapFullscreen && (
+              <Animated.View
+                entering={mapFullscreenEntering}
+                exiting={mapFullscreenExiting}
+                style={[
+                  styles.mapFullscreenOverlay,
+                  { backgroundColor: isDark ? '#1c1c1e' : '#e8e4dc', bottom: 0 },
+                ]}
+                pointerEvents="auto">
+                <View style={[styles.mapFullscreenHeader, { paddingTop: top + 8 }]}>
+                  <View style={{ flex: 1 }} />
+                  <TouchableOpacity
+                    onPress={closeMapFullscreen}
+                    style={styles.mapFullscreenClose}
+                    hitSlop={12}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cerrar mapa">
+                    <Ionicons name="close" size={28} color={isDark ? '#fff' : '#000'} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.mapFullscreenBody}>
+                  <TrailRouteTileMap
+                    routeCoordinates={lineCoordinates}
+                    interestPoints={mapInterestPoints}
+                    mainPoint={null}
+                    fallbackCenter={trail.coordinate}
+                    isDark={isDark}
+                    tint={colors.tint}
+                    routeColor={TRAIL_ROUTE_LINE_COLOR}
+                    interactive
+                    focusTarget={mapFocus}
+                    onPoiPress={handleMapPoiPress}
+                    onMapPressAt={handleMapPressAt}
+                  />
+                </View>
+
+                {!detailLoading && (
+                  <BottomSheet
+                    ref={poiSheetRef}
+                    index={poiOverlay.kind !== 'closed' ? 0 : -1}
+                    snapPoints={poiSnapPoints}
+                    enablePanDownToClose
+                    bottomInset={0}
+                    onChange={(index) => {
+                      if (index === -1) setPoiOverlay({ kind: 'closed' });
+                    }}
+                    backdropComponent={renderPoiBackdrop}
+                    backgroundStyle={{
+                      backgroundColor: isDark ? '#2c2c2e' : '#fff',
+                    }}
+                    handleIndicatorStyle={{
+                      backgroundColor: isDark ? '#636366' : '#c7c7cc',
+                      width: 40,
+                    }}>
+                    <BottomSheetScrollView
+                      contentContainerStyle={styles.poiSheetScrollContent}
+                      showsVerticalScrollIndicator={false}>
+                      {poiOverlay.kind === 'itinerary' ? (
+                        <>
+                          <ThemedText style={[styles.poiItineraryTitle, { color: colors.text }]}>
+                            Recorrido
+                          </ThemedText>
+                          <ThemedText style={[styles.poiItinerarySubtitle, { color: colors.icon }]}>
+                            Puntos en orden del sendero. Tocá uno para centrarlo en el mapa.
+                          </ThemedText>
+                          {(trailDetail?.points ?? []).length === 0 ? (
+                            <ThemedText style={[styles.poiItineraryEmpty, { color: colors.icon }]}>
+                              Este sendero no tiene puntos de interés cargados.
+                            </ThemedText>
+                          ) : (
+                            (trailDetail?.points ?? []).map((p, index) => {
+                              const loc = normalizeTrailPointLocation(p.location ?? null);
+                              const title = p.name?.trim() || 'Punto de interés';
+                              const typeLabel = p.type ? POI_TYPE_LABEL[p.type] ?? p.type : null;
+                              return (
+                                <Pressable
+                                  key={p.id}
+                                  onPress={() => {
+                                    setPoiOverlay({ kind: 'poi', id: p.id });
+                                    if (loc) bumpMapFocus(loc.latitude, loc.longitude);
+                                  }}
+                                  style={({ pressed }) => [
+                                    styles.poiItineraryRow,
+                                    {
+                                      backgroundColor: isDark ? '#3a3a3c' : '#f2f2f7',
+                                      opacity: pressed ? 0.85 : 1,
+                                    },
+                                  ]}>
+                                  <View style={styles.poiItineraryLeadingCol}>
+                                    <View
+                                      style={[
+                                        styles.poiItineraryStep,
+                                        { backgroundColor: colors.tint + '22' },
+                                      ]}>
+                                      <ThemedText
+                                        style={[styles.poiItineraryStepNum, { color: colors.tint }]}>
+                                        {index + 1}
+                                      </ThemedText>
+                                    </View>
+                                    <Ionicons name={poiTypeIcon(p.type)} size={22} color={colors.tint} />
+                                  </View>
+                                  <View style={styles.poiItineraryRowBody}>
+                                    <ThemedText
+                                      style={[styles.poiItineraryRowTitle, { color: colors.text }]}
+                                      numberOfLines={2}>
+                                      {title}
+                                    </ThemedText>
+                                    {typeLabel ? (
+                                      <ThemedText
+                                        style={[styles.poiItineraryRowMeta, { color: colors.icon }]}>
+                                        {typeLabel}
+                                        {p.km_marker != null
+                                          ? ` · Km ${Number(p.km_marker).toFixed(1)}`
+                                          : ''}
+                                      </ThemedText>
+                                    ) : p.km_marker != null ? (
+                                      <ThemedText
+                                        style={[styles.poiItineraryRowMeta, { color: colors.icon }]}>
+                                        Km {Number(p.km_marker).toFixed(1)}
+                                      </ThemedText>
+                                    ) : null}
+                                  </View>
+                                  <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                                </Pressable>
+                              );
+                            })
+                          )}
+                        </>
+                      ) : selectedPoi ? (
+                        <>
+                          {(() => {
+                            const hero = poiHeroFromPoint(selectedPoi);
+                            if (!hero) {
+                              return (
+                                <View
+                                  style={[
+                                    styles.poiSheetImage,
+                                    styles.poiSheetImagePlaceholder,
+                                    { backgroundColor: isDark ? '#3a3a3c' : '#e5e5ea' },
+                                  ]}>
+                                  <Ionicons
+                                    name={poiTypeIcon(selectedPoi.type)}
+                                    size={48}
+                                    color={colors.tint}
+                                  />
+                                </View>
+                              );
+                            }
+                            if (hero.kind === 'panorama') {
+                              return (
+                                <PanoramaWebView
+                                  uri={hero.uri}
+                                  panoramaHalf={hero.half}
+                                  style={styles.poiSheetImage}
+                                />
+                              );
+                            }
+                            return (
+                              <ExpoImage
+                                source={{ uri: hero.uri }}
+                                style={styles.poiSheetImage}
+                                contentFit="cover"
+                              />
+                            );
+                          })()}
+                          <View style={styles.poiSheetHeader}>
+                            <Ionicons name={poiTypeIcon(selectedPoi.type)} size={26} color={colors.tint} />
+                            <ThemedText style={[styles.poiSheetTitle, { color: colors.text }]}>
+                              {selectedPoi.name?.trim() || 'Punto de interés'}
+                            </ThemedText>
+                          </View>
+                          {(selectedPoi.type || selectedPoi.km_marker != null) ? (
+                            <View style={styles.poiSheetMeta}>
+                              {selectedPoi.type ? (
+                                <View
+                                  style={[
+                                    styles.poiTypePill,
+                                    { backgroundColor: colors.tint + '1A', borderColor: colors.tint },
+                                  ]}>
+                                  <ThemedText style={[styles.poiTypePillText, { color: colors.tint }]}>
+                                    {POI_TYPE_LABEL[selectedPoi.type] ?? selectedPoi.type}
+                                  </ThemedText>
+                                </View>
+                              ) : null}
+                              {selectedPoi.km_marker != null ? (
+                                <View style={styles.poiSheetKmRow}>
+                                  <Ionicons name="map-outline" size={13} color={colors.icon} />
+                                  <ThemedText style={[styles.poiSheetKm, { color: colors.icon }]}>
+                                    Km {Number(selectedPoi.km_marker).toFixed(1)}
+                                  </ThemedText>
+                                </View>
+                              ) : null}
+                            </View>
+                          ) : null}
+                          {selectedPoi.description?.trim() ? (
+                            <ExpandableDescription
+                              key={selectedPoi.id}
+                              text={selectedPoi.description}
+                              textStyle={[styles.poiSheetDesc, { color: colors.icon }]}
+                              tint={colors.tint}
+                            />
+                          ) : null}
+                        </>
                       ) : null}
-                      {selectedPoi.description?.trim() ? (
-                        <ExpandableDescription
-                          key={selectedPoi.id}
-                          text={selectedPoi.description}
-                          textStyle={[styles.poiSheetDesc, { color: colors.icon }]}
-                          tint={colors.tint}
-                        />
-                      ) : null}
-                    </>
-                  ) : null}
-                </BottomSheetScrollView>
-              </BottomSheet>
+                    </BottomSheetScrollView>
+                    {poiOverlay.kind === 'poi' ? (
+                      <View style={styles.poiSheetBottomBar}>
+                        <Pressable
+                          onPress={() => setPoiOverlay({ kind: 'itinerary' })}
+                          style={({ pressed }) => [styles.poiSheetBackBtn, { borderColor: colors.tint, opacity: pressed ? 0.85 : 1 }]}>
+                          <ThemedText style={[styles.poiSheetBackBtnLabel, { color: colors.tint }]}>
+                            Volver al recorrido
+                          </ThemedText>
+                        </Pressable>
+                      </View>
+                    ) : null}
+                  </BottomSheet>
+                )}
+              </Animated.View>
+            )}
+
+            {!mapFullscreen && !detailLoading && (
+              <View
+                style={[styles.trailFloatActions, { bottom: 0 }]}
+                pointerEvents="box-none">
+                <View style={[styles.trailFloatBar, { paddingTop: 22, paddingBottom: bottom + 2 }]}>
+                  <TouchableOpacity
+                    style={[
+                      styles.trailFloatBtnPrimary,
+                      {
+                        backgroundColor: colors.tint,
+                        opacity: primaryTrailActionDisabled ? 0.45 : 1,
+                      },
+                    ]}
+                    onPress={onPrimaryTrailAction}
+                    disabled={primaryTrailActionDisabled}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={primaryTrailActionLabel}>
+                    <Ionicons
+                      name={sessionForThisTrail ? 'play-circle' : 'play'}
+                      size={20}
+                      color="#fff"
+                    />
+                    <ThemedText style={styles.trailFloatBtnPrimaryLabel} numberOfLines={1}>
+                      {primaryTrailActionLabel}
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.trailFloatBtnSecondary, { borderColor: colors.tint }]}
+                    onPress={() => { }}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel="Descargar sendero">
+                    <Ionicons name="download-outline" size={22} color={colors.tint} />
+                    <ThemedText style={styles.trailFloatBtnSecondaryLabel} numberOfLines={1}>
+                      Descargar sendero
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
           </View>
-        )}
 
-        {!mapFullscreen && !detailLoading && (
-          <View
-            style={[styles.trailFloatActions, { bottom: 0 }]}
-            pointerEvents="box-none">
-            <View style={[styles.trailFloatBar, { paddingTop: 22, paddingBottom: bottom + 2 }]}>
-              <TouchableOpacity
-                style={[
-                  styles.trailFloatBtnPrimary,
-                  {
-                    backgroundColor: colors.tint,
-                    opacity: primaryTrailActionDisabled ? 0.45 : 1,
-                  },
-                ]}
-                onPress={onPrimaryTrailAction}
-                disabled={primaryTrailActionDisabled}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel={primaryTrailActionLabel}>
-                <Ionicons
-                  name={sessionForThisTrail ? 'play-circle' : 'play'}
-                  size={20}
-                  color="#fff"
-                />
-                <ThemedText style={styles.trailFloatBtnPrimaryLabel} numberOfLines={1}>
-                  {primaryTrailActionLabel}
-                </ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.trailFloatBtnSecondary, { borderColor: colors.tint }]}
-                onPress={() => {}}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Descargar sendero">
-                <Ionicons name="download-outline" size={22} color={colors.tint} />
-                <ThemedText style={styles.trailFloatBtnSecondaryLabel} numberOfLines={1}>
-                  Descargar sendero
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        </View>
+          {trail && gallerySlides.length > 0 && (
+            <TrailGalleryLightbox
+              visible={lightboxOpen}
+              onClose={() => setLightboxOpen(false)}
+              items={gallerySlides}
+              initialIndex={lightboxStartIndex}
+            />
+          )}
 
-        {/* Top bar animada */}
-        {trail && gallerySlides.length > 0 && (
-          <TrailGalleryLightbox
-            visible={lightboxOpen}
-            onClose={() => setLightboxOpen(false)}
-            items={gallerySlides}
-            initialIndex={lightboxStartIndex}
-          />
-        )}
-
-        {trail && (
-          <Animated.View
-            style={[
-              styles.topBar,
-              { backgroundColor: isDark ? '#000' : '#fff', paddingTop: top },
-              topBarStyle,
-            ]}
-            pointerEvents="box-none">
-            <TouchableOpacity style={styles.topBarBtn} onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={22} color={isDark ? '#fff' : '#000'} />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }} />
-            <View style={styles.topBarRight} pointerEvents="auto">
-              <TouchableOpacity
-                style={styles.topBarBtn}
-                onPress={() => Share.share({ message: `Mirá este sendero: ${trail.name}` })}>
-                <Ionicons name="share-outline" size={20} color={isDark ? '#fff' : '#000'} />
+          {trail && (
+            <Animated.View
+              style={[
+                styles.topBar,
+                { backgroundColor: isDark ? '#000' : '#fff', paddingTop: top },
+                topBarStyle,
+              ]}
+              pointerEvents="box-none">
+              <TouchableOpacity style={styles.topBarBtn} onPress={() => router.back()}>
+                <Ionicons name="chevron-back" size={22} color={isDark ? '#fff' : '#000'} />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.topBarBtn}
-                onPress={async () => {
-                  if (!token) { redirectToLogin(pathname || '/(tabs)'); return; }
-                  await toggleTrailFavorite(trailId!, token, !trailFavorited);
-                }}>
-                <Ionicons
-                  name={trailFavorited ? 'heart' : 'heart-outline'}
-                  size={20}
-                  color={trailFavorited ? '#ff3b30' : isDark ? '#fff' : '#000'}
-                />
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        )}
+              <View style={{ flex: 1 }} />
+              <View style={styles.topBarRight} pointerEvents="auto">
+                <TouchableOpacity
+                  style={styles.topBarBtn}
+                  onPress={() => Share.share({ message: `Mirá este sendero: ${trail.name}` })}>
+                  <Ionicons name="share-outline" size={20} color={isDark ? '#fff' : '#000'} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.topBarBtn}
+                  onPress={async () => {
+                    if (!token) { redirectToLogin(pathname || '/(tabs)'); return; }
+                    await toggleTrailFavorite(trailId!, token, !trailFavorited);
+                  }}>
+                  <Ionicons
+                    name={trailFavorited ? 'heart' : 'heart-outline'}
+                    size={20}
+                    color={trailFavorited ? '#ff3b30' : isDark ? '#fff' : '#000'}
+                  />
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          )}
         </>
       )}
     </ThemedView>
@@ -1654,6 +1876,36 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
   description: { fontSize: 15, lineHeight: 22 },
 
+  reviewFormCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 12,
+  },
+  reviewFormTitle: { fontSize: 16, fontWeight: '700' },
+  reviewFormRatingRow: { flexDirection: 'row', gap: 8 },
+  reviewTextarea: {
+    minHeight: 110,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  reviewFormError: { color: '#ff3b30', fontSize: 13 },
+  reviewSubmitBtn: {
+    borderRadius: 999,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewSubmitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
   reviewsCard: {
     marginHorizontal: 16,
     marginTop: 4,
@@ -1698,12 +1950,22 @@ const styles = StyleSheet.create({
   reviewDivider: { height: 1, marginVertical: 24 },
   reviewItem: { flexDirection: 'row', gap: 12 },
   reviewAvatar: { width: 40, height: 40, borderRadius: 20 },
+  reviewAvatarPlaceholder: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   reviewBody: { flex: 1, gap: 4 },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   reviewUser: { fontSize: 14, fontWeight: '600' },
   reviewDate: { fontSize: 12 },
   reviewStars: { flexDirection: 'row', gap: 2 },
   reviewText: { fontSize: 14, lineHeight: 20 },
+  loadMoreButton: {
+    marginTop: 18,
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderRadius: 999, 
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  loadMoreButtonText: { fontSize: 14, fontWeight: '600' },
 
   mapSection: { padding: 16, paddingTop: 20, paddingBottom: 24, gap: 12 },
   mapTitle: { fontSize: 16, fontWeight: '500' },
@@ -1866,20 +2128,51 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
-  poiSheetKm: {
+  poiSheetBottomBar: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 76,
+  },
+  poiSheetBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#fff',
+    borderRadius: 100,
+    borderWidth: 1.5,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  poiSheetBackBtnLabel: {
     fontSize: 15,
     fontWeight: '600',
-    marginTop: 6,
+  },
+  poiSheetMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  poiSheetKmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  poiSheetKm: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   poiSheetDesc: {
     fontSize: 16,
     lineHeight: 24,
-    marginTop: 12,
-  },
-  poiSheetBackToList: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 12,
+    marginTop: 4,
   },
   poiItineraryTitle: {
     fontSize: 20,

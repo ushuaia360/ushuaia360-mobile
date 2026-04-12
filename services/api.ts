@@ -226,6 +226,68 @@ export async function fetchTrailById(trailId: string): Promise<TrailDetail> {
   return data.trail;
 }
 
+export interface TrailReview {
+  id: string;
+  trail_id: string;
+  user_id: string;
+  name: string | null;
+  avatar_url: string | null;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+
+
+export interface TrailReviewsResponse {
+  reviews: TrailReview[];
+  total: number;
+  limit: number;
+  offset: number;
+  average_rating: number;
+  rating_counts: {
+    one_star: number;
+    two_star: number;
+    three_star: number;
+    four_star: number;
+    five_star: number;
+  };
+
+}
+
+export interface CreateTrailReviewBody {
+  rating: number;
+  comment: string;
+}
+
+export interface CreateTrailReviewResponse {
+  message: string;
+  review: TrailReview;
+}
+
+export async function fetchTrailReviews(
+  trailId: string,
+  limit = 20,
+  offset = 0,
+): Promise<TrailReviewsResponse> {
+  const qs = new URLSearchParams();
+  qs.set('limit', String(limit));
+  qs.set('offset', String(offset));
+  return apiRequest<TrailReviewsResponse>(`/trails/${trailId}/reviews?${qs.toString()}`);
+}
+
+export async function createTrailReview(
+  trailId: string,
+  token: string,
+  body: CreateTrailReviewBody,
+): Promise<CreateTrailReviewResponse> {
+  return apiRequest<CreateTrailReviewResponse>(`/trails/${trailId}/reviews`, {
+    method: 'POST',
+    token,
+    body,
+  });
+}
+
 // ── Favoritos (senderos) ──────────────────────────────────────────────────────
 
 export async function fetchFavoriteTrailIds(token: string): Promise<string[]> {
