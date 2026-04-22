@@ -288,6 +288,51 @@ export async function createTrailReview(
   });
 }
 
+// ── Reseñas (puntos turísticos) — mismo cuerpo que senderos ──────────────────
+
+export interface PlaceReview {
+  id: string;
+  place_id: string;
+  user_id: string;
+  name: string | null;
+  avatar_url: string | null;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+export type PlaceReviewsResponse = Omit<TrailReviewsResponse, 'reviews'> & {
+  reviews: PlaceReview[];
+};
+
+export async function fetchPlaceReviews(
+  placeId: string,
+  limit = 20,
+  offset = 0,
+): Promise<PlaceReviewsResponse> {
+  const qs = new URLSearchParams();
+  qs.set('limit', String(limit));
+  qs.set('offset', String(offset));
+  return apiRequest<PlaceReviewsResponse>(`/places/${placeId}/reviews?${qs.toString()}`);
+}
+
+export type CreatePlaceReviewResponse = {
+  message: string;
+  review: PlaceReview;
+};
+
+export async function createPlaceReview(
+  placeId: string,
+  token: string,
+  body: CreateTrailReviewBody,
+): Promise<CreatePlaceReviewResponse> {
+  return apiRequest<CreatePlaceReviewResponse>(`/places/${placeId}/reviews`, {
+    method: 'POST',
+    token,
+    body,
+  });
+}
+
 // ── Favoritos (senderos) ──────────────────────────────────────────────────────
 
 export async function fetchFavoriteTrailIds(token: string): Promise<string[]> {
@@ -311,6 +356,19 @@ export async function addTrailFavorite(token: string, trailId: string): Promise<
 
 export async function removeTrailFavorite(token: string, trailId: string): Promise<void> {
   await apiRequest(`/me/favorite-trails/${trailId}`, { method: 'DELETE', token });
+}
+
+export async function fetchFavoritePlaceIds(token: string): Promise<string[]> {
+  const data = await apiRequest<{ place_ids: string[] }>('/me/favorite-places/ids', { token });
+  return data.place_ids ?? [];
+}
+
+export async function addPlaceFavorite(token: string, placeId: string): Promise<void> {
+  await apiRequest(`/me/favorite-places/${placeId}`, { method: 'POST', token });
+}
+
+export async function removePlaceFavorite(token: string, placeId: string): Promise<void> {
+  await apiRequest(`/me/favorite-places/${placeId}`, { method: 'DELETE', token });
 }
 
 export interface ProfileStatsResponse {

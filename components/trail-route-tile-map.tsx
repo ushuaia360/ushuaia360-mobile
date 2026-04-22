@@ -23,6 +23,48 @@ const MIN_LAYOUT = 32;
 
 const MAX_ROUTE_VERTICES = 400;
 
+/** Padding (px) al ajustar la ruta al viewport (tile map) — más alto = encuadre más holgado, menos zoom. */
+const FIT_MAP_PADDING = 50;
+/**
+ * iOS: margen hacia adentro al hacer fitToCoordinates. Más valor = se ve más entorno, menos zoom al abrir.
+ */
+const IOS_FIT_EDGE_PADDING = { top: 92, right: 68, bottom: 92, left: 68 } as const;
+/**
+ * Si el encuadre es casi un punto (ficha de un lugar o duplicados), forzamos caja mínima en grados
+ * para no abrir al máximo acercamiento.
+ */
+const TINY_DEG = 0.00022;
+const MIN_SINGLE_FIT_BOX_HALF_DEG = 0.0065;
+
+/**
+ * Asegura caja mínima en grados alrededor del centro para que el ajuste inicial no sea a zoom/calle.
+ */
+function coordsForInitialFit(pts: { latitude: number; longitude: number }[]) {
+  if (pts.length === 0) return pts;
+  let minLat = pts[0].latitude;
+  let maxLat = pts[0].latitude;
+  let minLon = pts[0].longitude;
+  let maxLon = pts[0].longitude;
+  for (const c of pts) {
+    minLat = Math.min(minLat, c.latitude);
+    maxLat = Math.max(maxLat, c.latitude);
+    minLon = Math.min(minLon, c.longitude);
+    maxLon = Math.max(maxLon, c.longitude);
+  }
+  const latSpan = maxLat - minLat;
+  const lonSpan = maxLon - minLon;
+  if (latSpan < TINY_DEG && lonSpan < TINY_DEG) {
+    const cLat = (minLat + maxLat) / 2;
+    const cLon = (minLon + maxLon) / 2;
+    const d = MIN_SINGLE_FIT_BOX_HALF_DEG;
+    return [
+      { latitude: cLat - d, longitude: cLon - d },
+      { latitude: cLat + d, longitude: cLon + d },
+    ];
+  }
+  return pts;
+}
+
 function decimateRoute(
   coords: { latitude: number; longitude: number }[],
   max: number,
@@ -121,26 +163,28 @@ export default function TrailRouteTileMap({
     }
     if (mainPoint) pts.push(mainPoint);
     if (!pts.length) pts.push(fallbackCenter);
-    return pts;
+    return coordsForInitialFit(pts);
   }, [routeCoordinates, interestPoints, mainPoint, fallbackCenter]);
 
   const baseMapState = useMemo(() => {
     if (size.w < MIN_LAYOUT || size.h < MIN_LAYOUT) {
       return clampPanToTdf({ zoom: 12, panX: 0, panY: 0 });
     }
-    return fitMapStateToCoordinatesInTdf(allForFit, size.w, size.h, 24);
+    return fitMapStateToCoordinatesInTdf(allForFit, size.w, size.h, FIT_MAP_PADDING);
   }, [allForFit, size.w, size.h]);
 
   const baseMapStateRef = useRef(baseMapState);
   baseMapStateRef.current = baseMapState;
 
-  const routeFingerprint = useMemo(
-    () =>
-      `${routeCoordinates.length}:${routeCoordinates[0]?.latitude ?? ''}:${
-        routeCoordinates[routeCoordinates.length - 1]?.longitude ?? ''
-      }:${interestPoints.map((p) => p.id).join(',')}`,
-    [routeCoordinates, interestPoints],
-  );
+  const routeFingerprint = useMemo(() => {
+    const mainFp =
+      mainPoint != null
+        ? `:${mainPoint.latitude.toFixed(5)}:${mainPoint.longitude.toFixed(5)}`
+        : '';
+    return `${routeCoordinates.length}:${routeCoordinates[0]?.latitude ?? ''}:${
+      routeCoordinates[routeCoordinates.length - 1]?.longitude ?? ''
+    }:${interestPoints.map((p) => p.id).join(',')}${mainFp}`;
+  }, [routeCoordinates, interestPoints, mainPoint]);
 
   useEffect(() => {
     setUserTileState(null);
@@ -236,7 +280,7 @@ export default function TrailRouteTileMap({
     const id = requestAnimationFrame(() => {
       iosMapRef.current?.fitToCoordinates(
         allForFit.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
-        { edgePadding: { top: 50, right: 30, bottom: 50, left: 30 }, animated: false },
+        { edgePadding: IOS_FIT_EDGE_PADDING, animated: false },
       );
     });
     return () => cancelAnimationFrame(id);
@@ -346,8 +390,9 @@ export default function TrailRouteTileMap({
             <Marker
               coordinate={mainPoint}
               anchor={{ x: 0.5, y: 1 }}
-              tracksViewChanges={false}>
-              <View pointerEvents="none" style={{ alignItems: 'center' }}>
+              tracksViewChanges
+              zIndex={200}>
+              <View pointerEvents="none" style={{ alignItems: 'center' }} collapsable={false}>
                 <Ionicons name="location" size={MAIN_PIN} color={TRAIL_MAIN_MARKER_COLOR} />
               </View>
             </Marker>
@@ -356,7 +401,8 @@ export default function TrailRouteTileMap({
             <Marker
               coordinate={fallbackCenter}
               anchor={{ x: 0.5, y: 1 }}
-              tracksViewChanges={false}>
+              tracksViewChanges
+              zIndex={100}>
               <View pointerEvents="none" style={{ alignItems: 'center' }}>
                 <Ionicons name="location" size={LOCATION_PIN} color={tint} />
               </View>

@@ -556,6 +556,21 @@ export default function TrailDetailScreen() {
       .filter((x): x is { id: string; latitude: number; longitude: number; type: string | null } => x != null);
   }, [trailDetail?.points]);
 
+  /** Si `map_point` coincide con un POI (p. ej. inicio), un solo pin verde; evita doble marcar + bug iOS. */
+  const { mapPointForMap, interestPointsForMap } = useMemo(() => {
+    const mp = trailDetail?.map_point;
+    if (!mp) {
+      return { mapPointForMap: null as { latitude: number; longitude: number } | null, interestPointsForMap: mapInterestPoints };
+    }
+    const eps = 0.00008;
+    const onMapPoint = (p: { latitude: number; longitude: number }) =>
+      Math.abs(p.latitude - mp.latitude) < eps && Math.abs(p.longitude - mp.longitude) < eps;
+    if (mapInterestPoints.some((p) => onMapPoint(p))) {
+      return { mapPointForMap: null, interestPointsForMap: mapInterestPoints };
+    }
+    return { mapPointForMap: mp, interestPointsForMap: mapInterestPoints };
+  }, [trailDetail?.map_point, mapInterestPoints]);
+
   const storedSessions = useActiveTrailSessionStore((s) => s.sessions);
   /** Sin login no aplica «recorrido en curso» (el store se limpia en logout). */
   const sessionForThisTrail = useMemo(
@@ -1090,8 +1105,8 @@ export default function TrailDetailScreen() {
                             <View style={styles.mapOverlay}>
                               <TrailRouteTileMap
                                 routeCoordinates={lineCoordinates}
-                                interestPoints={mapInterestPoints}
-                                mainPoint={null}
+                                interestPoints={interestPointsForMap}
+                                mainPoint={mapPointForMap}
                                 fallbackCenter={trail.coordinate}
                                 isDark={isDark}
                                 tint={colors.tint}
@@ -1359,8 +1374,8 @@ export default function TrailDetailScreen() {
                 <View style={styles.mapFullscreenBody}>
                   <TrailRouteTileMap
                     routeCoordinates={lineCoordinates}
-                    interestPoints={mapInterestPoints}
-                    mainPoint={null}
+                    interestPoints={interestPointsForMap}
+                    mainPoint={mapPointForMap}
                     fallbackCenter={trail.coordinate}
                     isDark={isDark}
                     tint={colors.tint}

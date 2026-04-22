@@ -377,6 +377,8 @@ export default function TrailRecorridoScreen() {
 
       <TrailCompletionCelebrationModal
         visible={celebrationVisible}
+        trailId={session.trailId}
+        token={token}
         trailName={celebrationTrailName || session.trailName}
         onClose={closeCelebration}
       />

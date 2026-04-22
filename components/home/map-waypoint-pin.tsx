@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getPlaceCategoryVisual } from '@/lib/place-category-map';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -15,6 +16,8 @@ export function getWaypointPinBox(sizeScale: number) {
 interface Props {
   selected: boolean;
   variant: 'trail' | 'place';
+  /** Categoría del API (slug o etiqueta); solo aplica a `place`. */
+  placeCategory?: string | null;
   onPress: () => void;
   /** 1 = tamaño diseño; &lt;1 al alejar el mapa */
   sizeScale?: number;
@@ -23,6 +26,7 @@ interface Props {
 export default function MapWaypointPin({
   selected,
   variant,
+  placeCategory,
   onPress,
   sizeScale = 1,
 }: Props) {
@@ -32,12 +36,17 @@ export default function MapWaypointPin({
 
   const bubbleBg = isDark ? '#2c2c2e' : '#ffffff';
   const bubbleBorder = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.06)';
+  const placeVisual =
+    variant === 'place' ? getPlaceCategoryVisual(placeCategory, isDark) : null;
   const iconColor =
     variant === 'trail'
       ? Colors[colorScheme ?? 'light'].tint
-      : isDark
-        ? '#ff9f0a'
-        : '#e85d04';
+      : placeVisual
+        ? placeVisual.accent
+        : isDark
+          ? '#ff9f0a'
+          : '#e85d04';
+  const placeIcon = placeVisual?.icon ?? 'camera';
   const pressScale = selected ? 1.08 : 1;
   const shadowOpacity = selected ? 0.24 : 0.15;
   const elevation = selected ? 11 : 7;
@@ -77,7 +86,11 @@ export default function MapWaypointPin({
             elevation,
           },
         ]}>
-        <Ionicons name={variant === 'trail' ? 'footsteps' : 'camera'} size={iconSz} color={iconColor} />
+        <Ionicons
+          name={variant === 'trail' ? 'footsteps' : placeIcon}
+          size={iconSz}
+          color={iconColor}
+        />
       </View>
       <View
         style={[
