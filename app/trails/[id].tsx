@@ -1,4 +1,5 @@
 import PanoramaWebView from '@/components/panorama-webview';
+import ReviewSelectedPhotosStrip from '@/components/review-selected-photos-strip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import TrailGalleryLightbox from '@/components/trail-gallery-lightbox';
@@ -16,6 +17,9 @@ import { normalizeSessionStartedAtToISO } from '@/lib/session-started-at';
 import { buildLineFromTrailPoints, normalizeTrailPointLocation } from '@/lib/trail-geo-normalize';
 import { alertLocationDenied, ensureTrailMapLocationPermission } from '@/lib/trail-location-permission';
 import { buildTrailLineCoordinates } from '@/lib/trail-route-path';
+import { pickReviewImagesToAppend } from '@/lib/review-image-picker';
+import { REVIEW_GALLERY_MAX_PHOTOS, REVIEWS_LIST_PAGE_SIZE } from '@/lib/review-constants';
+import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
 import {
   ApiHttpError,
   createTrailReview,
@@ -23,6 +27,7 @@ import {
   fetchTrailReviews,
   startUserTrailHistory,
   trailHistoryEntryStartedAt,
+  uploadReviewImages,
   type TrailDetail,
   type TrailPointDetail,
   type TrailReview
@@ -403,6 +408,11 @@ export default function TrailDetailScreen() {
   const [reviewsSubmitError, setReviewsSubmitError] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [reviewPhotoUris, setReviewPhotoUris] = useState<string[]>([]);
+  const [reviewImagesLightbox, setReviewImagesLightbox] = useState<{
+    uris: string[];
+    index: number;
+  } | null>(null);
   const poiSheetRef = useRef<BottomSheet>(null);
   const poiSnapPoints = useMemo(() => ['40%', '78%'], []);
 
@@ -460,7 +470,7 @@ export default function TrailDetailScreen() {
     setReviewsLoading(true);
     setReviewsError(null);
     try {
-      const data = await fetchTrailReviews(trailId, 20, 0);
+      const data = await fetchTrailReviews(trailId, REVIEWS_LIST_PAGE_SIZE, 0);
       setReviews(data.reviews);
       setReviewsTotal(data.total);
       setReviewsOffset(0);
@@ -731,28 +741,40 @@ export default function TrailDetailScreen() {
     setReviewsSubmitting(true);
     setReviewsSubmitError(null);
     try {
+      let image_urls: string[] | undefined;
+      if (reviewPhotoUris.length > 0) {
+        image_urls = await uploadReviewImages(token, reviewPhotoUris);
+      }
       await createTrailReview(trailId, token, {
         rating: reviewRating,
         comment,
+        ...(image_urls?.length ? { image_urls } : {}),
       });
       await refreshReviews();
       setReviewComment('');
       setReviewRating(5);
+      setReviewPhotoUris([]);
     } catch (err) {
       setReviewsSubmitError(err instanceof Error ? err.message : 'Error al enviar la reseña');
     } finally {
       setReviewsSubmitting(false);
     }
-  }, [pathname, reviewComment, reviewRating, token, trailId, refreshReviews]);
+  }, [pathname, reviewComment, reviewPhotoUris, reviewRating, token, trailId, refreshReviews]);
+
+  const handlePickReviewPhotos = useCallback(async () => {
+    if (reviewsSubmitting) return;
+    const next = await pickReviewImagesToAppend(reviewPhotoUris);
+    if (next) setReviewPhotoUris(next);
+  }, [reviewsSubmitting, reviewPhotoUris]);
 
   const loadMoreReviews = useCallback(async () => {
     if (!trailId) return;
     if (reviewsLoading) return;
     if (reviews.length >= reviewsTotal) return;
-    const nextOffset = reviewsOffset + 20;
+    const nextOffset = reviewsOffset + REVIEWS_LIST_PAGE_SIZE;
     setReviewsLoading(true);
     try {
-      const data = await fetchTrailReviews(trailId, 20, nextOffset);
+      const data = await fetchTrailReviews(trailId, REVIEWS_LIST_PAGE_SIZE, nextOffset);
       setReviews((prev) => [...prev, ...data.reviews]);
       setReviewsOffset(nextOffset);
       setReviewsTotal(data.total);
@@ -918,6 +940,7 @@ export default function TrailDetailScreen() {
               showsVerticalScrollIndicator={false}
               onScroll={scrollHandler}
               scrollEventThrottle={16}
+              keyboardShouldPersistTaps="handled"
               pointerEvents={mapFullscreen ? 'none' : 'auto'}
               contentContainerStyle={{ paddingBottom: detailListBottomPad }}
               renderItem={() => (
@@ -1222,22 +1245,55 @@ export default function TrailDetailScreen() {
                         </TouchableOpacity>
                       ))}
                     </View>
-                    <TextInput
-                      value={reviewComment}
-                      onChangeText={setReviewComment}
-                      multiline
-                      placeholder="Contá tu experiencia en este sendero..."
-                      placeholderTextColor={colors.icon}
+                    <View
                       style={[
-                        styles.reviewTextarea,
+                        styles.reviewInputOuter,
                         {
-                          color: colors.text,
                           borderColor: isDark ? '#2a2a2a' : '#E5E7EB',
                           backgroundColor: isDark ? '#111' : '#fff',
                         },
-                      ]}
-                      textAlignVertical="top"
-                      maxLength={500}
+                      ]}>
+                      <TextInput
+                        value={reviewComment}
+                        onChangeText={setReviewComment}
+                        multiline
+                        placeholder="Contá tu experiencia en este sendero..."
+                        placeholderTextColor={colors.icon}
+                        style={[styles.reviewTextInputFlex, { color: colors.text }]}
+                        textAlignVertical="top"
+                        maxLength={500}
+                      />
+                      <View style={styles.reviewAttachBtnWrap} pointerEvents="box-none">
+                        <TouchableOpacity
+                          onPress={() => void handlePickReviewPhotos()}
+                          disabled={
+                            reviewsSubmitting ||
+                            reviewPhotoUris.length >= REVIEW_GALLERY_MAX_PHOTOS
+                          }
+                          style={styles.reviewAttachBtn}
+                          hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Adjuntar fotos a la reseña">
+                          <Ionicons
+                            name="image-outline"
+                            size={24}
+                            color={colors.tint}
+                            style={{
+                              opacity:
+                                reviewsSubmitting ||
+                                reviewPhotoUris.length >= REVIEW_GALLERY_MAX_PHOTOS
+                                  ? 0.35
+                                  : 1,
+                            }}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <ReviewSelectedPhotosStrip
+                      value={reviewPhotoUris}
+                      onChange={setReviewPhotoUris}
+                      disabled={reviewsSubmitting}
+                      isDark={isDark}
                     />
                     {reviewsSubmitError ? (
                       <ThemedText style={styles.reviewFormError}>{reviewsSubmitError}</ThemedText>
@@ -1258,11 +1314,11 @@ export default function TrailDetailScreen() {
 
                   {/* Reseñas */}
                   <View style={styles.reviewsCard}>
-                    {reviews.length > 0 && (
+                    {reviewsTotal > 0 && (
                       <View style={styles.reviewsHeader}>
                         <ThemedText style={[styles.reviewsTitle, { color: '#808080' }]}>
-                          {reviews.length}{' '}
-                          {reviews.length === 1 ? 'reseña' : 'reseñas'}
+                          {reviewsTotal}{' '}
+                          {reviewsTotal === 1 ? 'reseña' : 'reseñas'}
                         </ThemedText>
                         <View style={[styles.reviewsHeaderSep, { backgroundColor: '#808080' }]} />
                         <View style={styles.reviewsRating}>
@@ -1329,6 +1385,40 @@ export default function TrailDetailScreen() {
                             <ThemedText style={[styles.reviewText, { color: colors.icon }]}>
                               {review.comment}
                             </ThemedText>
+                            {(review.image_urls?.length ?? 0) > 0
+                              ? (() => {
+                                  const reviewPhotoUrisResolved = (review.image_urls ?? [])
+                                    .map((x) => resolveApiMediaUrl(x) ?? x)
+                                    .filter((x): x is string => Boolean(x));
+                                  return (
+                                    <ScrollView
+                                      horizontal
+                                      showsHorizontalScrollIndicator={false}
+                                      style={styles.reviewPhotosScroll}
+                                      contentContainerStyle={styles.reviewPhotosRow}>
+                                      {reviewPhotoUrisResolved.map((uri, photoIdx) => (
+                                        <TouchableOpacity
+                                          key={`${review.id}-photo-${photoIdx}`}
+                                          activeOpacity={0.85}
+                                          onPress={() =>
+                                            setReviewImagesLightbox({
+                                              uris: reviewPhotoUrisResolved,
+                                              index: photoIdx,
+                                            })
+                                          }
+                                          accessibilityRole="imagebutton"
+                                          accessibilityLabel="Ampliar foto de la reseña">
+                                          <ExpoImage
+                                            source={{ uri }}
+                                            style={styles.reviewPhotoThumb}
+                                            contentFit="cover"
+                                          />
+                                        </TouchableOpacity>
+                                      ))}
+                                    </ScrollView>
+                                  );
+                                })()
+                              : null}
                           </View>
                         </View>
                       </View>
@@ -1337,9 +1427,12 @@ export default function TrailDetailScreen() {
                       <TouchableOpacity
                         style={[styles.loadMoreButton, { borderColor: colors.tint }]}
                         onPress={loadMoreReviews}
-                        activeOpacity={0.8}>
+                        activeOpacity={0.8}
+                        disabled={reviewsLoading}>
                         <ThemedText style={[styles.loadMoreButtonText, { color: colors.tint }]}>
-                          Ver más reseñas ({reviews.length}/{reviewsTotal})
+                          {reviewsLoading
+                            ? 'Cargando...'
+                            : `Ver más reseñas (${reviews.length}/${reviewsTotal})`}
                         </ThemedText>
                       </TouchableOpacity>
                     )}
@@ -1624,6 +1717,15 @@ export default function TrailDetailScreen() {
             />
           )}
 
+          {reviewImagesLightbox && reviewImagesLightbox.uris.length > 0 ? (
+            <TrailGalleryLightbox
+              visible
+              onClose={() => setReviewImagesLightbox(null)}
+              items={imageUrlsToGallerySlides(reviewImagesLightbox.uris)}
+              initialIndex={reviewImagesLightbox.index}
+            />
+          ) : null}
+
           {trail && (
             <Animated.View
               style={[
@@ -1903,6 +2005,38 @@ const styles = StyleSheet.create({
   },
   reviewFormTitle: { fontSize: 16, fontWeight: '700' },
   reviewFormRatingRow: { flexDirection: 'row', gap: 8 },
+  reviewInputOuter: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    borderWidth: 1,
+    borderRadius: 12,
+    minHeight: 110,
+    paddingLeft: 12,
+    paddingRight: 4,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  reviewTextInputFlex: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    minHeight: 100,
+    paddingVertical: 8,
+    paddingRight: 6,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  reviewAttachBtnWrap: {
+    flexShrink: 0,
+    justifyContent: 'flex-end',
+  },
+  reviewAttachBtn: {
+    padding: 10,
+    alignSelf: 'flex-end',
+    marginBottom: 2,
+    zIndex: 2,
+    elevation: 4,
+  },
   reviewTextarea: {
     minHeight: 110,
     borderWidth: 1,
@@ -1972,6 +2106,14 @@ const styles = StyleSheet.create({
   reviewDate: { fontSize: 12 },
   reviewStars: { flexDirection: 'row', gap: 2 },
   reviewText: { fontSize: 14, lineHeight: 20 },
+  reviewPhotosScroll: { marginTop: 8, maxHeight: 88 },
+  reviewPhotosRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  reviewPhotoThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    backgroundColor: '#e5e5ea',
+  },
   loadMoreButton: {
     marginTop: 18,
     alignSelf: 'center',

@@ -1,7 +1,10 @@
+import ReviewSelectedPhotosStrip from '@/components/review-selected-photos-strip';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { createTrailReview } from '@/services/api';
+import { REVIEW_GALLERY_MAX_PHOTOS } from '@/lib/review-constants';
+import { pickReviewImagesToAppend } from '@/lib/review-image-picker';
+import { createTrailReview, uploadReviewImages } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -37,6 +40,7 @@ export default function TrailCompletionCelebrationModal({
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [photoUris, setPhotoUris] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -45,6 +49,7 @@ export default function TrailCompletionCelebrationModal({
     if (!visible) return;
     setRating(5);
     setComment('');
+    setPhotoUris([]);
     setError(null);
     setSubmitted(false);
     setSubmitting(false);
@@ -69,14 +74,28 @@ export default function TrailCompletionCelebrationModal({
     setSubmitting(true);
     setError(null);
     try {
-      await createTrailReview(trailId, token, { rating, comment: text });
+      let image_urls: string[] | undefined;
+      if (photoUris.length > 0) {
+        image_urls = await uploadReviewImages(token, photoUris);
+      }
+      await createTrailReview(trailId, token, {
+        rating,
+        comment: text,
+        ...(image_urls?.length ? { image_urls } : {}),
+      });
       setSubmitted(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al enviar la reseña');
     } finally {
       setSubmitting(false);
     }
-  }, [comment, rating, token, trailId]);
+  }, [comment, photoUris, rating, token, trailId]);
+
+  const handlePickPhotos = useCallback(async () => {
+    if (submitting) return;
+    const next = await pickReviewImagesToAppend(photoUris);
+    if (next) setPhotoUris(next);
+  }, [submitting, photoUris]);
 
   const backdropPress = useCallback(() => {
     if (submitting) return;
@@ -132,24 +151,55 @@ export default function TrailCompletionCelebrationModal({
                   </TouchableOpacity>
                 ))}
               </View>
-              <TextInput
+              <View
                 style={[
-                  styles.reviewInput,
+                  styles.reviewInputRow,
                   {
-                    color: colors.text,
                     borderColor: isDark ? '#3a3a3c' : '#e5e5ea',
                     backgroundColor: isDark ? '#2c2c2e' : '#f2f2f7',
-                    opacity: !token || submitting ? 0.6 : 1,
+                    opacity: submitting ? 0.6 : 1,
                   },
-                ]}
-                placeholder="Contá cómo fue tu experiencia…"
-                placeholderTextColor={isDark ? '#636366' : '#8e8e93'}
-                multiline
-                editable={!!token && !submitting}
-                value={comment}
-                onChangeText={setComment}
-                textAlignVertical="top"
-                maxLength={500}
+                ]}>
+                <TextInput
+                  style={[styles.reviewInputFlex, { color: colors.text }]}
+                  placeholder="Contá cómo fue tu experiencia…"
+                  placeholderTextColor={isDark ? '#636366' : '#8e8e93'}
+                  multiline
+                  editable={!!token && !submitting}
+                  value={comment}
+                  onChangeText={setComment}
+                  textAlignVertical="top"
+                  maxLength={500}
+                />
+                <View style={styles.reviewAttachBtnWrap} pointerEvents="box-none">
+                  <TouchableOpacity
+                    onPress={() => void handlePickPhotos()}
+                    disabled={
+                      submitting || photoUris.length >= REVIEW_GALLERY_MAX_PHOTOS
+                    }
+                    style={styles.reviewAttachBtn}
+                    hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Adjuntar fotos">
+                    <Ionicons
+                      name="image-outline"
+                      size={24}
+                      color={colors.tint}
+                      style={{
+                        opacity:
+                          submitting || photoUris.length >= REVIEW_GALLERY_MAX_PHOTOS
+                            ? 0.35
+                            : 1,
+                      }}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <ReviewSelectedPhotosStrip
+                value={photoUris}
+                onChange={setPhotoUris}
+                disabled={submitting}
+                isDark={isDark}
               />
               {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
               {!token ? (
@@ -205,6 +255,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 24,
     elevation: 12,
+    zIndex: 1,
   },
   iconWrap: {
     width: 76,
@@ -238,14 +289,37 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 14,
   },
-  reviewInput: {
-    minHeight: 88,
+  reviewInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
+    minHeight: 88,
+    paddingLeft: 14,
+    paddingRight: 4,
+    paddingTop: 4,
+    paddingBottom: 4,
     marginBottom: 8,
+  },
+  reviewInputFlex: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    minHeight: 78,
+    paddingVertical: 10,
+    paddingRight: 6,
+    fontSize: 15,
+  },
+  reviewAttachBtnWrap: {
+    flexShrink: 0,
+    justifyContent: 'flex-end',
+  },
+  reviewAttachBtn: {
+    padding: 10,
+    alignSelf: 'flex-end',
+    marginBottom: 2,
+    zIndex: 2,
+    elevation: 4,
   },
   errorText: {
     fontSize: 13,
