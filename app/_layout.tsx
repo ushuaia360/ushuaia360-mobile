@@ -60,6 +60,9 @@ export default function RootLayout() {
           <Stack.Screen name="places/[id]" options={{ headerShown: true }} />
           <Stack.Screen name="login" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="register" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="verify" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="forgot-password" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen name="reset-password" options={{ headerShown: false, presentation: 'modal' }} />
         </Stack>
         <StatusBar style="auto" />
         <SearchPanel />

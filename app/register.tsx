@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { GoogleGMark } from '@/components/auth/google-g-mark';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -115,7 +116,7 @@ export default function RegisterScreen() {
 
         <TouchableOpacity
           style={[styles.backBtn, { borderColor: 'rgba(255,255,255,0.4)', position: 'absolute', top: top + 16, left: 24, marginBottom: 0 }]}
-          onPress={() => router.back()}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/login'))}
           activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
@@ -132,6 +133,28 @@ export default function RegisterScreen() {
                 Continuar con correo
               </ThemedText>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.methodBtn, { backgroundColor: '#fff' }]}
+              onPress={() => Alert.alert('Próximamente', 'El acceso con Google estará disponible pronto.')}
+              activeOpacity={0.85}>
+              <GoogleGMark size={22} />
+              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
+                Continuar con Google
+              </ThemedText>
+            </TouchableOpacity>
+
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={[styles.methodBtn, { backgroundColor: '#000' }]}
+                onPress={() => Alert.alert('Próximamente', 'El acceso con Apple estará disponible pronto.')}
+                activeOpacity={0.85}>
+                <Ionicons name="logo-apple" size={22} color="#fff" />
+                <ThemedText style={[styles.methodBtnText, { color: '#fff' }]}>
+                  Continuar con Apple
+                </ThemedText>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.orRow}>
               <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.4)' }]} />
@@ -347,10 +370,12 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '700',
     marginBottom: 6,
+    lineHeight: 32,
   },
   subtitle: {
     fontSize: 15,
     marginBottom: 28,
+    lineHeight: 22,
   },
   fields: {
     gap: 20,

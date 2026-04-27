@@ -17,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GoogleGMark } from '@/components/auth/google-g-mark';
 import { useAuthStore } from '@/store/auth-store';
 
 const BG_IMAGE = 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1200';
@@ -27,7 +28,7 @@ export default function LoginScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, resendVerification } = useAuthStore();
   const { next: nextParam } = useLocalSearchParams<{ next?: string }>();
 
   const [email, setEmail] = useState('');
@@ -56,7 +57,23 @@ export default function LoginScreen() {
         Alert.alert(
           'Email no verificado',
           'Revisá tu bandeja de entrada y verificá tu cuenta antes de ingresar.',
-          [{ text: 'OK' }],
+          [
+            { text: 'OK', style: 'cancel' },
+            {
+              text: 'Reenviar email',
+              onPress: async () => {
+                try {
+                  const r = await resendVerification(email.trim());
+                  Alert.alert('Listo', r.message || 'Si la cuenta existe, te enviamos un nuevo enlace.');
+                } catch (reErr) {
+                  Alert.alert(
+                    'Error',
+                    reErr instanceof Error ? reErr.message : 'No se pudo reenviar el email',
+                  );
+                }
+              },
+            },
+          ],
         );
       } else {
         Alert.alert('Error', msg);
@@ -113,10 +130,7 @@ export default function LoginScreen() {
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
               onPress={() => Alert.alert('Próximamente', 'El acceso con Google estará disponible pronto.')}
               activeOpacity={0.85}>
-              {/* G de Google con colores */}
-              <View style={styles.googleIcon}>
-                <ThemedText style={styles.googleG}>G</ThemedText>
-              </View>
+              <GoogleGMark size={22} />
               <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
                 Continuar con Google
               </ThemedText>
@@ -231,12 +245,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.forgotBtn}
             activeOpacity={0.7}
-            onPress={() =>
-              Alert.alert(
-                'Recuperar contraseña',
-                'Ingresá tu correo en el campo de arriba y presioná el botón para enviarte un enlace de recuperación.',
-              )
-            }>
+            onPress={() => router.push('/forgot-password')}>
             <ThemedText style={[styles.forgotText, { color: colors.icon }]}>
               ¿Olvidaste tu contraseña?
             </ThemedText>
@@ -298,10 +307,12 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '700',
     marginBottom: 6,
+    lineHeight: 32,
   },
   subtitle: {
     fontSize: 15,
     marginBottom: 28,
+    lineHeight: 22,
   },
   fields: {
     gap: 20,
@@ -343,21 +354,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#fff',
-  },
-  googleIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#dadce0',
-  },
-  googleG: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#4285F4',
-    lineHeight: 16,
   },
 });

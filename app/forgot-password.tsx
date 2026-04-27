@@ -1,0 +1,152 @@
+import { useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { ThemedText } from '@/components/themed-text';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuthStore } from '@/store/auth-store';
+
+export default function ForgotPasswordScreen() {
+  const { top } = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  const isDark = colorScheme === 'dark';
+  const bg = isDark ? '#121212' : '#fff';
+  const inputBg = isDark ? '#1c1c1e' : '#fff';
+  const borderColor = isDark ? '#2a2a2a' : '#ebebeb';
+
+  const { forgotPassword, isLoading } = useAuthStore();
+  const [email, setEmail] = useState('');
+
+  const submit = async () => {
+    const e = email.trim();
+    if (!e) {
+      Alert.alert('Error', 'Ingresá tu correo electrónico');
+      return;
+    }
+    try {
+      const res = await forgotPassword(e);
+      Alert.alert('Listo', res.message || 'Si el email existe, te enviamos un enlace.', [
+        { text: 'OK', onPress: () => router.replace('/login') },
+      ]);
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo enviar el email');
+    }
+  };
+
+  return (
+    <View style={[styles.screen, { backgroundColor: bg }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flex}>
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingTop: top + 20 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <TouchableOpacity
+            style={[styles.backBtn, { backgroundColor: inputBg, borderColor }]}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/login'))}
+            activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+
+          <ThemedText style={[styles.title, { color: colors.text }]}>Recuperar contraseña</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
+            Te enviamos un enlace por email para elegir una nueva contraseña.
+          </ThemedText>
+
+          <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
+            <Ionicons name="mail-outline" size={18} color={colors.icon} />
+            <TextInput
+              style={[styles.fieldInput, { color: colors.text }]}
+              placeholder="Correo electrónico"
+              placeholderTextColor={colors.tabIconDefault}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.submitBtn, { backgroundColor: colors.tint, opacity: isLoading ? 0.7 : 1 }]}
+            onPress={submit}
+            disabled={isLoading}
+            activeOpacity={0.85}>
+            <ThemedText style={styles.submitText}>
+              {isLoading ? 'Enviando…' : 'Enviar enlace'}
+            </ThemedText>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  flex: { flex: 1 },
+  scroll: {
+    paddingHorizontal: 24,
+    paddingBottom: 48,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 8,
+    lineHeight: 32,
+  },
+  subtitle: {
+    fontSize: 15,
+    marginBottom: 28,
+    lineHeight: 22,
+  },
+  field: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    height: 54,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  fieldInput: {
+    flex: 1,
+    fontSize: 15,
+    height: '100%',
+  },
+  submitBtn: {
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+});
