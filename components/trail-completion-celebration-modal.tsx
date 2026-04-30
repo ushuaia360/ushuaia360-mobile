@@ -6,9 +6,6 @@ import { REVIEW_GALLERY_MAX_PHOTOS } from '@/lib/review-constants';
 import { pickReviewImagesToAppend } from '@/lib/review-image-picker';
 import { createTrailReview, uploadReviewImages } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
-<<<<<<< HEAD
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
-=======
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,7 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
->>>>>>> ba3bb53693e69e0a7c7527d570f63ae80470ef75
 
 interface Props {
   visible: boolean;
@@ -117,18 +113,8 @@ export default function TrailCompletionCelebrationModal({
 
           <ThemedText style={styles.title}>¡Felicitaciones!</ThemedText>
           <ThemedText style={[styles.subtitle, { color: sub }]}>
-<<<<<<< HEAD
             Completaste {trailName.trim() ? `«${trailName.trim()}»` : 'el sendero'}.{'\n'}
             El recorrido fue guardado en tu historial.
-          </ThemedText>
-
-          <Pressable
-            style={({ pressed }) => [styles.cta, { backgroundColor: colors.tint, opacity: pressed ? 0.85 : 1 }]}
-            onPress={onClose}>
-            <ThemedText style={styles.ctaLabel}>Listo</ThemedText>
-          </Pressable>
-=======
-            Completaste {trailName.trim() ? `«${trailName.trim()}»` : 'el sendero'}
           </ThemedText>
 
           {submitted ? (
@@ -190,9 +176,7 @@ export default function TrailCompletionCelebrationModal({
                 <View style={styles.reviewAttachBtnWrap} pointerEvents="box-none">
                   <TouchableOpacity
                     onPress={() => void handlePickPhotos()}
-                    disabled={
-                      submitting || photoUris.length >= REVIEW_GALLERY_MAX_PHOTOS
-                    }
+                    disabled={submitting || photoUris.length >= REVIEW_GALLERY_MAX_PHOTOS}
                     style={styles.reviewAttachBtn}
                     hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
                     accessibilityRole="button"
@@ -203,9 +187,7 @@ export default function TrailCompletionCelebrationModal({
                       color={colors.tint}
                       style={{
                         opacity:
-                          submitting || photoUris.length >= REVIEW_GALLERY_MAX_PHOTOS
-                            ? 0.35
-                            : 1,
+                          submitting || photoUris.length >= REVIEW_GALLERY_MAX_PHOTOS ? 0.35 : 1,
                       }}
                     />
                   </TouchableOpacity>
@@ -248,7 +230,6 @@ export default function TrailCompletionCelebrationModal({
               </Pressable>
             </>
           )}
->>>>>>> ba3bb53693e69e0a7c7527d570f63ae80470ef75
         </View>
       </View>
     </Modal>
@@ -272,11 +253,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 24,
     elevation: 12,
-<<<<<<< HEAD
     alignItems: 'center',
-=======
     zIndex: 1,
->>>>>>> ba3bb53693e69e0a7c7527d570f63ae80470ef75
   },
   iconWrap: {
     width: 80,
@@ -296,15 +274,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
-<<<<<<< HEAD
-    marginBottom: 28,
-=======
     marginBottom: 22,
   },
   reviewLabel: {
     fontSize: 15,
     fontWeight: '600',
     marginBottom: 10,
+    alignSelf: 'stretch',
   },
   starsRow: {
     flexDirection: 'row',
@@ -323,6 +299,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 4,
     marginBottom: 8,
+    alignSelf: 'stretch',
   },
   reviewInputFlex: {
     flex: 1,
@@ -348,29 +325,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#ff3b30',
     marginBottom: 8,
+    alignSelf: 'stretch',
   },
   hint: {
     fontSize: 12,
     lineHeight: 17,
     marginBottom: 12,
+    alignSelf: 'stretch',
   },
   thanks: {
     fontSize: 16,
     textAlign: 'center',
     fontWeight: '600',
     marginBottom: 4,
->>>>>>> ba3bb53693e69e0a7c7527d570f63ae80470ef75
   },
   cta: {
     borderRadius: 100,
     paddingVertical: 14,
     alignItems: 'center',
-<<<<<<< HEAD
     width: '100%',
-=======
     minHeight: 50,
     justifyContent: 'center',
->>>>>>> ba3bb53693e69e0a7c7527d570f63ae80470ef75
   },
   ctaLabel: {
     color: '#fff',

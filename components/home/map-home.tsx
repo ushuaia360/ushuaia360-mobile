@@ -7,12 +7,14 @@ import { USHUAIA_REGION } from '@/constants/mock-trails';
 import { CARD_PADDING_TOP, SB_INPUT_HEIGHT } from '@/constants/search-layout';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Ionicons } from '@expo/vector-icons';
 import {
   MAP_BASE_TILE_X,
   MAP_BASE_TILE_Y,
   MAP_BASE_ZOOM,
   MAP_TILE_SIZE,
   centerMapOnLatLon,
+  latLonToMapPixel,
   latToTileY,
   lonToTileX,
 } from '@/lib/map-projection';
@@ -44,6 +46,19 @@ const BASE_TILE_Y = MAP_BASE_TILE_Y;
 const BUFFER = 4;
 const MIN_ZOOM = 11;
 const MAX_ZOOM = 18;
+const REGION_ZOOM_MIN_DELTA = 0.002;
+const REGION_ZOOM_MAX_DELTA = 1.2;
+/**
+ * Tras tap en POI (iOS): acerca hasta este ancho si el mapa estaba más alejado
+ * (delta grande → más zoom out; queremos clamp al target para sí notar zoom).
+ */
+const MARKER_SELECT_FOCUS_SPAN_LAT = 0.009;
+/** Android (tiles): al menos este nivel de zoom al abrir POI (además del +pasos si aplica). */
+const ANDROID_MARKER_SELECT_MIN_ZOOM = 15;
+/** Al tocar un POI en Android: suma estos niveles, y no queda por debajo de ANDROID_MARKER_SELECT_MIN_ZOOM. */
+const ANDROID_MARKER_SELECT_ZOOM_IN_STEPS = 3;
+const ESRI_IMAGERY_TILE_BASE =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile';
 
 // Ushuaia geographic bounds (city + surroundings + Parque Nacional TdF)
 const TDF_BOUNDS = {
@@ -86,7 +101,14 @@ function clampPan(state: MapState): MapState {
   };
 }
 
-function calcTiles(state: MapState, width: number, height: number, baseUrl: string) {
+function calcTiles(
+  state: MapState,
+  width: number,
+  height: number,
+  streetCartoBase: string,
+  esriImageryBase: string,
+  useImageryTiles: boolean,
+) {
   const { zoom, panX, panY } = state;
   const zoomScale = Math.pow(2, zoom - BASE_ZOOM);
 
@@ -108,9 +130,12 @@ function calcTiles(state: MapState, width: number, height: number, baseUrl: stri
       const tx = centerX + dx;
       const ty = centerY + dy;
       if (tx < 0 || ty < 0 || tx > maxTile || ty > maxTile) continue;
+      const url = useImageryTiles
+        ? `${esriImageryBase}/${zoom}/${ty}/${tx}`
+        : `${streetCartoBase}/${zoom}/${tx}/${ty}.png`;
       tiles.push({
         key: `${zoom}-${tx}-${ty}`,
-        url: `${baseUrl}/${zoom}/${tx}/${ty}.png`,
+        url,
         posX: width / 2 - subX + dx * TILE_SIZE,
         posY: height / 2 - subY + dy * TILE_SIZE,
       });
@@ -126,9 +151,11 @@ export default function MapHome() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
-  const baseUrl = isDark
+  const streetCartoBase = isDark
     ? 'https://a.basemaps.cartocdn.com/dark_all'
     : 'https://a.basemaps.cartocdn.com/light_all';
+
+  const [useSatellite, setUseSatellite] = useState(false);
 
   const [committed, setCommitted] = useState<MapState>({ zoom: BASE_ZOOM, panX: 0, panY: 0 });
   const { searchOpen, setSearchOpen, setMapPanning } = useHomeStore();
@@ -332,9 +359,77 @@ export default function MapHome() {
   ).current;
 
   const tiles = useMemo(
-    () => calcTiles(committed, width, height, baseUrl),
-    [committed, width, height, baseUrl],
+    () =>
+      calcTiles(committed, width, height, streetCartoBase, ESRI_IMAGERY_TILE_BASE, useSatellite),
+    [committed, width, height, streetCartoBase, useSatellite],
   );
+
+  const applyAndroidZoomStep = (deltaLevels: number) => {
+    pendingAnimReset.current = true;
+    setCommitted((prev) => {
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev.zoom + deltaLevels));
+      if (newZoom === prev.zoom) return prev;
+      const panMult = Math.pow(2, newZoom - prev.zoom);
+      const newState = clampPan({
+        zoom: newZoom,
+        panX: prev.panX * panMult,
+        panY: prev.panY * panMult,
+      });
+      committedRef.current = newState;
+      return newState;
+    });
+  };
+
+  const mapCtlChrome = isDark
+    ? {
+        bd: 'rgba(109,206,251,0.55)',
+        bg: '#ffffff',
+        hairline: 'rgba(63,169,245,0.22)',
+      }
+    : {
+        bd: 'rgba(63,169,245,0.55)',
+        bg: '#ffffff',
+        hairline: 'rgba(63,169,245,0.28)',
+      };
+
+  const handleCtlZoomIn = () => {
+    if (Platform.OS === 'ios') {
+      bumpIosProgrammaticMapMove();
+      const r = iosRegionRef.current;
+      iosMapRef.current?.animateToRegion(
+        {
+          latitude: r.latitude,
+          longitude: r.longitude,
+          latitudeDelta: Math.max(r.latitudeDelta * 0.5, REGION_ZOOM_MIN_DELTA),
+          longitudeDelta: Math.max(r.longitudeDelta * 0.5, REGION_ZOOM_MIN_DELTA),
+        },
+        200,
+      );
+      return;
+    }
+    applyAndroidZoomStep(1);
+  };
+
+  const handleCtlZoomOut = () => {
+    if (Platform.OS === 'ios') {
+      bumpIosProgrammaticMapMove();
+      const r = iosRegionRef.current;
+      iosMapRef.current?.animateToRegion(
+        {
+          latitude: r.latitude,
+          longitude: r.longitude,
+          latitudeDelta: Math.min(r.latitudeDelta * 2, REGION_ZOOM_MAX_DELTA),
+          longitudeDelta: Math.min(r.longitudeDelta * 2, REGION_ZOOM_MAX_DELTA),
+        },
+        200,
+      );
+      return;
+    }
+    applyAndroidZoomStep(-1);
+  };
+
+  const chromeAccent = colors.tint;
+  const FAB_CHROME_ABOVE_SHEET = Platform.OS === 'android' ? 188 : 160;
 
 
   const mapTransformStyle = {
@@ -351,6 +446,63 @@ export default function MapHome() {
 
   const androidPinScale = pinScaleFromTileZoom(committed.zoom);
 
+  useEffect(() => {
+    if (!selectedMapMarker) return;
+
+    const lat = selectedMapMarker.latitude;
+    const lon = selectedMapMarker.longitude;
+    const sheetReservedBottomPx = Math.round(height * 0.6) + bottom + 44;
+    const mapTopInset = Math.round(top + CARD_PADDING_TOP + SB_INPUT_HEIGHT + 36);
+
+    if (Platform.OS === 'ios') {
+      requestAnimationFrame(() => {
+        bumpIosProgrammaticMapMove();
+        const r = iosRegionRef.current;
+        const currentSpan = Math.max(r.latitudeDelta, r.longitudeDelta);
+        const spanLat = Math.max(
+          REGION_ZOOM_MIN_DELTA,
+          Math.min(currentSpan, MARKER_SELECT_FOCUS_SPAN_LAT),
+        );
+        const spanLon = spanLat * (width / height);
+
+        const usableTop = mapTopInset;
+        const usableBottomEdge = Math.max(height - sheetReservedBottomPx, usableTop + 160);
+        const targetY = usableTop + (usableBottomEdge - usableTop) * 0.4;
+        const fraction = (targetY - height / 2) / height;
+        const centerLat = lat + fraction * spanLat;
+
+        iosMapRef.current?.animateToRegion(
+          {
+            latitude: centerLat,
+            longitude: lon,
+            latitudeDelta: spanLat,
+            longitudeDelta: spanLon,
+          },
+          320,
+        );
+      });
+      return;
+    }
+
+    pendingAnimReset.current = true;
+    const usableTop = mapTopInset;
+    const usableBottomEdge = Math.max(height - sheetReservedBottomPx, usableTop + 160);
+    const targetY = usableTop + (usableBottomEdge - usableTop) * 0.4;
+
+    setCommitted((prev) => {
+      const z = Math.min(
+        MAX_ZOOM,
+        Math.max(prev.zoom + ANDROID_MARKER_SELECT_ZOOM_IN_STEPS, ANDROID_MARKER_SELECT_MIN_ZOOM),
+      );
+      const centered = clampPan(centerMapOnLatLon(lat, lon, z));
+      const pix = latLonToMapPixel(lat, lon, centered, width, height);
+      const dy = targetY - pix.top;
+      const next = clampPan({ ...centered, panY: centered.panY + dy });
+      committedRef.current = next;
+      return next;
+    });
+  }, [selectedMapMarker, bottom, height, width, top]);
+
   return (
     <View style={styles.container}>
       {Platform.OS === 'ios' ? (
@@ -358,7 +510,7 @@ export default function MapHome() {
           ref={iosMapRef}
           style={StyleSheet.absoluteFillObject}
           initialRegion={USHUAIA_REGION}
-          mapType="standard"
+          mapType={useSatellite ? 'satellite' : 'standard'}
           userInterfaceStyle={isDark ? 'dark' : 'light'}
           showsUserLocation={false}
           onRegionChange={(_r: Region, details: Details) => {
@@ -408,7 +560,7 @@ export default function MapHome() {
               key={`${m.kind}-${m.id}`}
               coordinate={{ latitude: m.latitude, longitude: m.longitude }}
               anchor={{ x: 0.5, y: 1 }}
-              tracksViewChanges={false}>
+              tracksViewChanges={selectedMarkerKey === `${m.kind}-${m.id}`}>
               <MapWaypointPin
                 variant={m.kind === 'trail' ? 'trail' : 'place'}
                 placeCategory={m.kind === 'place' ? m.category : null}
@@ -459,43 +611,95 @@ export default function MapHome() {
 
       {/* Zoom, ubicación y sheet — capa superior para que el panel tape la barra Resumir. */}
       <View style={[styles.mapChromeLayer, StyleSheet.absoluteFillObject]} pointerEvents="box-none">
-<TouchableOpacity
-          style={[styles.locationButton, { bottom: bottom + (Platform.OS === 'android' ? 188 : 160), borderColor: colors.tint }]}
-          activeOpacity={0.8}
-          onPress={() => {
-            if (Platform.OS === 'ios') {
-              bumpIosProgrammaticMapMove();
-              if (liveLocation) {
-                const r = iosRegionRef.current;
-                const span = Math.max(
-                  0.006,
-                  Math.min(Math.max(r.latitudeDelta, r.longitudeDelta) * 0.85, 0.045),
-                );
-                iosMapRef.current?.animateToRegion(
-                  {
-                    latitude: liveLocation.latitude,
-                    longitude: liveLocation.longitude,
-                    latitudeDelta: span,
-                    longitudeDelta: span,
-                  },
-                  350,
-                );
-              } else {
-                iosMapRef.current?.animateToRegion(USHUAIA_REGION, 350);
-              }
-              return;
+        <View
+          style={[styles.rightFabChrome, { bottom: bottom + FAB_CHROME_ABOVE_SHEET }]}
+          pointerEvents="box-none">
+          <View
+            style={[styles.mapCtlZoomGroup, { borderColor: mapCtlChrome.bd, backgroundColor: mapCtlChrome.bg }]}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Acercar mapa"
+              style={styles.mapCtlZoomTap}
+              activeOpacity={0.7}
+              onPress={handleCtlZoomIn}>
+              <Ionicons name="add" size={18} color={chromeAccent} />
+            </TouchableOpacity>
+            <View style={[styles.mapCtlHairline, { backgroundColor: mapCtlChrome.hairline }]} />
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Alejar mapa"
+              style={styles.mapCtlZoomTap}
+              activeOpacity={0.7}
+              onPress={handleCtlZoomOut}>
+              <Ionicons name="remove" size={18} color={chromeAccent} />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={
+              useSatellite ? 'Cambiar a vista de mapa' : 'Cambiar a vista satelital'
             }
-            pendingAnimReset.current = true;
-            setCommitted((p) => {
-              const lat = liveLocation?.latitude ?? USHUAIA_REGION.latitude;
-              const lon = liveLocation?.longitude ?? USHUAIA_REGION.longitude;
-              const next = clampPan(centerMapOnLatLon(lat, lon, p.zoom));
-              committedRef.current = next;
-              return next;
-            });
-          }}>
-          <IconSymbol name="location" size={20} color={colors.tint} />
-        </TouchableOpacity>
+            style={[
+              styles.mapCtlChip,
+              {
+                marginTop: 6,
+                borderColor: mapCtlChrome.bd,
+                backgroundColor: mapCtlChrome.bg,
+              },
+            ]}
+            activeOpacity={0.7}
+            onPress={() => setUseSatellite((v) => !v)}>
+            <Ionicons name="layers-outline" size={16} color={chromeAccent} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Centrar el mapa en mi ubicación"
+            style={[
+              styles.mapCtlChip,
+              {
+                marginTop: 6,
+                borderColor: mapCtlChrome.bd,
+                backgroundColor: mapCtlChrome.bg,
+              },
+            ]}
+            activeOpacity={0.7}
+            onPress={() => {
+              if (Platform.OS === 'ios') {
+                bumpIosProgrammaticMapMove();
+                if (liveLocation) {
+                  const r = iosRegionRef.current;
+                  const span = Math.max(
+                    0.006,
+                    Math.min(Math.max(r.latitudeDelta, r.longitudeDelta) * 0.85, 0.045),
+                  );
+                  iosMapRef.current?.animateToRegion(
+                    {
+                      latitude: liveLocation.latitude,
+                      longitude: liveLocation.longitude,
+                      latitudeDelta: span,
+                      longitudeDelta: span,
+                    },
+                    350,
+                  );
+                } else {
+                  iosMapRef.current?.animateToRegion(USHUAIA_REGION, 350);
+                }
+                return;
+              }
+              pendingAnimReset.current = true;
+              setCommitted((p) => {
+                const lat = liveLocation?.latitude ?? USHUAIA_REGION.latitude;
+                const lon = liveLocation?.longitude ?? USHUAIA_REGION.longitude;
+                const next = clampPan(centerMapOnLatLon(lat, lon, p.zoom));
+                committedRef.current = next;
+                return next;
+              });
+            }}>
+            <IconSymbol name="location" size={16} color={chromeAccent} />
+          </TouchableOpacity>
+        </View>
 
         <TrailsBottomSheet
           selectedMapMarker={selectedMapMarker}
@@ -535,16 +739,32 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  locationButton: {
+  rightFabChrome: {
     position: 'absolute',
     right: 16,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    alignItems: 'flex-end',
+  },
+  mapCtlZoomGroup: {
+    width: 42,
+    borderRadius: 6,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  mapCtlZoomTap: {
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+  },
+  mapCtlHairline: {
+    height: StyleSheet.hairlineWidth,
+    width: '100%',
+  },
+  mapCtlChip: {
+    width: 42,
+    height: 36,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

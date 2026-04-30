@@ -1,28 +1,30 @@
+import { Palette } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
-export const MAP_USER_DOT_BLUE = '#4285F4';
+/** Diámetro del disco exterior (coordenadas del mapa = centro del marcador). */
+export const MAP_USER_LOCATION_DOT_DIAMETER = 22;
 
-/** Punto bien visible en mapas (home / recorrido). */
+/** Punto de ubicación: compacto, borde celeste suave sombra discreta (home / overlay / recorrido). */
 export const mapUserLocationDotStyles = StyleSheet.create({
   userDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#fff',
+    width: MAP_USER_LOCATION_DOT_DIAMETER,
+    height: MAP_USER_LOCATION_DOT_DIAMETER,
+    borderRadius: MAP_USER_LOCATION_DOT_DIAMETER / 2,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(63,169,245,0.42)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.28,
-    shadowRadius: 4,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 2,
   },
   userDotInner: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: MAP_USER_DOT_BLUE,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Palette.primary,
   },
 });

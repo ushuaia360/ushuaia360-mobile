@@ -111,6 +111,17 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
     const { bottom: insetBottom } = useSafeAreaInsets();
     const mapRef = useRef<MapView>(null);
     const theme = Colors[isDark ? 'dark' : 'light'];
+    const mapCtlChrome = isDark
+      ? {
+          bd: 'rgba(109,206,251,0.55)',
+          bg: '#ffffff',
+          hairline: 'rgba(63,169,245,0.22)',
+        }
+      : {
+          bd: 'rgba(63,169,245,0.55)',
+          bg: '#ffffff',
+          hairline: 'rgba(63,169,245,0.28)',
+        };
     const geoFix = useWatchUserLocation(Platform.OS !== 'web');
     const displayCoord = useMemo<LatLng | null>(
       () =>
@@ -175,6 +186,36 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
       });
     }, [allForFit]);
 
+    const zoomIn = useCallback(() => {
+      const map = mapRef.current;
+      if (!map || Platform.OS === 'web') return;
+      const r = regionRef.current;
+      map.animateToRegion(
+        {
+          latitude: r.latitude,
+          longitude: r.longitude,
+          latitudeDelta: Math.max(r.latitudeDelta * 0.5, REGION_ZOOM_MIN_DELTA),
+          longitudeDelta: Math.max(r.longitudeDelta * 0.5, REGION_ZOOM_MIN_DELTA),
+        },
+        200,
+      );
+    }, []);
+
+    const zoomOut = useCallback(() => {
+      const map = mapRef.current;
+      if (!map || Platform.OS === 'web') return;
+      const r = regionRef.current;
+      map.animateToRegion(
+        {
+          latitude: r.latitude,
+          longitude: r.longitude,
+          latitudeDelta: Math.min(r.latitudeDelta * 2, REGION_ZOOM_MAX_DELTA),
+          longitudeDelta: Math.min(r.longitudeDelta * 2, REGION_ZOOM_MAX_DELTA),
+        },
+        200,
+      );
+    }, []);
+
     const recenterOnUser = useCallback(() => {
       const map = mapRef.current;
       if (!map || !geoFix || Platform.OS === 'web') return;
@@ -215,37 +256,11 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
     useImperativeHandle(
       ref,
       () => ({
-        zoomIn: () => {
-          const map = mapRef.current;
-          if (!map || Platform.OS === 'web') return;
-          const r = regionRef.current;
-          map.animateToRegion(
-            {
-              latitude: r.latitude,
-              longitude: r.longitude,
-              latitudeDelta: Math.max(r.latitudeDelta * 0.5, REGION_ZOOM_MIN_DELTA),
-              longitudeDelta: Math.max(r.longitudeDelta * 0.5, REGION_ZOOM_MIN_DELTA),
-            },
-            200,
-          );
-        },
-        zoomOut: () => {
-          const map = mapRef.current;
-          if (!map || Platform.OS === 'web') return;
-          const r = regionRef.current;
-          map.animateToRegion(
-            {
-              latitude: r.latitude,
-              longitude: r.longitude,
-              latitudeDelta: Math.min(r.latitudeDelta * 2, REGION_ZOOM_MAX_DELTA),
-              longitudeDelta: Math.min(r.longitudeDelta * 2, REGION_ZOOM_MAX_DELTA),
-            },
-            200,
-          );
-        },
+        zoomIn,
+        zoomOut,
         fitRoute,
       }),
-      [fitRoute],
+      [fitRoute, zoomIn, zoomOut],
     );
 
     useEffect(() => {
@@ -351,11 +366,32 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
 
         {Platform.OS !== 'web' ? (
           <View
-            style={[
-              styles.fabColumn,
-              { bottom: Math.max(insetBottom, 12) + 6 },
-            ]}
+            style={[styles.mapCtlFabColumn, { bottom: Math.max(insetBottom, 12) + 6 }]}
             pointerEvents="box-none">
+            <View
+              style={[
+                styles.mapCtlZoomGroup,
+                { borderColor: mapCtlChrome.bd, backgroundColor: mapCtlChrome.bg },
+              ]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Acercar mapa"
+                onPress={zoomIn}
+                style={({ pressed }) => [styles.mapCtlZoomTap, { opacity: pressed ? 0.7 : 1 }]}>
+                <Ionicons name="add" size={18} color={theme.tint} />
+              </Pressable>
+              <View
+                style={[styles.mapCtlHairline, { backgroundColor: mapCtlChrome.hairline }]}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Alejar mapa"
+                onPress={zoomOut}
+                style={({ pressed }) => [styles.mapCtlZoomTap, { opacity: pressed ? 0.7 : 1 }]}>
+                <Ionicons name="remove" size={18} color={theme.tint} />
+              </Pressable>
+            </View>
+
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
@@ -363,30 +399,32 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
               }
               onPress={() => setUseSatellite((v) => !v)}
               style={({ pressed }) => [
-                styles.mapFab,
+                styles.mapCtlChip,
                 {
-                  backgroundColor: isDark ? 'rgba(44,44,46,0.94)' : 'rgba(255,255,255,0.96)',
-                  borderColor: isDark ? '#3a3a3c' : '#e5e5ea',
-                  opacity: pressed ? 0.85 : 1,
-                  marginBottom: 12,
+                  marginTop: 6,
+                  borderColor: mapCtlChrome.bd,
+                  backgroundColor: mapCtlChrome.bg,
+                  opacity: pressed ? 0.7 : 1,
                 },
               ]}>
-              <Ionicons name="layers-outline" size={26} color={theme.tint} />
+              <Ionicons name="layers-outline" size={16} color={theme.tint} />
             </Pressable>
+
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Ir a mi ubicación y alinear el mapa con mi dirección"
               onPress={recenterOnUser}
               disabled={!geoFix}
               style={({ pressed }) => [
-                styles.mapFab,
+                styles.mapCtlChip,
                 {
-                  backgroundColor: isDark ? 'rgba(44,44,46,0.94)' : 'rgba(255,255,255,0.96)',
-                  borderColor: isDark ? '#3a3a3c' : '#e5e5ea',
-                  opacity: !geoFix ? 0.45 : pressed ? 0.85 : 1,
+                  marginTop: 6,
+                  borderColor: mapCtlChrome.bd,
+                  backgroundColor: mapCtlChrome.bg,
+                  opacity: !geoFix ? 0.42 : pressed ? 0.7 : 1,
                 },
               ]}>
-              <Ionicons name="locate" size={26} color={theme.tint} />
+              <Ionicons name="locate" size={16} color={theme.tint} />
             </Pressable>
           </View>
         ) : null}
@@ -415,23 +453,33 @@ const styles = StyleSheet.create({
     height: 22,
     marginBottom: -4,
   },
-  fabColumn: {
+  mapCtlFabColumn: {
     position: 'absolute',
     right: 16,
     alignItems: 'flex-end',
   },
-  mapFab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: StyleSheet.hairlineWidth,
+  mapCtlZoomGroup: {
+    width: 42,
+    borderRadius: 6,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  mapCtlZoomTap: {
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 6,
+  },
+  mapCtlHairline: {
+    height: StyleSheet.hairlineWidth,
+    width: '100%',
+  },
+  mapCtlChip: {
+    width: 42,
+    height: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   poiHost: {
     alignItems: 'center',

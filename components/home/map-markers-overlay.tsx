@@ -1,4 +1,7 @@
-import { mapUserLocationDotStyles } from '@/components/home/map-user-location-styles';
+import {
+  mapUserLocationDotStyles,
+  MAP_USER_LOCATION_DOT_DIAMETER,
+} from '@/components/home/map-user-location-styles';
 import MapWaypointPin, { getWaypointPinBox } from '@/components/home/map-waypoint-pin';
 import { latLonToMapPixel, type MapPanState } from '@/lib/map-projection';
 import type { MapMarker } from '@/services/api';
@@ -46,7 +49,7 @@ export default function MapMarkersOverlay({
     return latLonToMapPixel(userLocation.latitude, userLocation.longitude, mapState, width, height);
   }, [userLocation, mapState, width, height]);
 
-  const userHalf = 18;
+  const userHalf = MAP_USER_LOCATION_DOT_DIAMETER / 2;
 
   return (
     <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
@@ -70,7 +73,13 @@ export default function MapMarkersOverlay({
             const { left, top } = latLonToMapPixel(m.latitude, m.longitude, mapState, width, height);
             const anchorLeft = left - pinW / 2;
             const anchorTop = top - pinH;
-            if (anchorLeft < -100 || anchorTop < -100 || anchorLeft > width + 60 || anchorTop > height + 60) {
+            const loose = width > height ? height * 0.45 : height * 0.35;
+            if (
+              anchorLeft < -loose ||
+              anchorTop < -loose ||
+              anchorLeft > width + loose ||
+              anchorTop > height + loose
+            ) {
               return null;
             }
             return (
@@ -101,7 +110,9 @@ const styles = StyleSheet.create({
   userHost: {
     position: 'absolute',
     zIndex: 25,
-    width: 36,
-    height: 36,
+    width: MAP_USER_LOCATION_DOT_DIAMETER + 16,
+    height: MAP_USER_LOCATION_DOT_DIAMETER + 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

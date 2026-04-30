@@ -355,23 +355,14 @@ export default function TrailRecorridoScreen() {
           onConfirm={() => setInfoModal(null)}
         />
 
-<<<<<<< HEAD
         <TrailCompletionCelebrationModal
           visible={celebrationVisible}
+          trailId={session.trailId}
+          token={token}
           trailName={celebrationTrailName || session.trailName}
           onClose={closeCelebration}
         />
       </ThemedView>
-=======
-      <TrailCompletionCelebrationModal
-        visible={celebrationVisible}
-        trailId={session.trailId}
-        token={token}
-        trailName={celebrationTrailName || session.trailName}
-        onClose={closeCelebration}
-      />
-    </ThemedView>
->>>>>>> ba3bb53693e69e0a7c7527d570f63ae80470ef75
     </>
   );
 }

@@ -49,14 +49,18 @@ export default function TrailsBottomSheet({
   }, [bottomSheetIndex, setBottomSheetIndex]);
 
   useEffect(() => {
-    if (mapPanning) {
+    // Con ficha abierta no colapsar al mover el mapa: si no, el marcador suele quedar tapado atrás del sheet en index 0.
+    if (mapPanning && !selectedMapMarker) {
       bottomSheetRef.current?.snapToIndex(0);
-    } else if (bottomSheetIndex !== null) {
+    }
+    if (mapPanning) return;
+
+    if (bottomSheetIndex !== null) {
       bottomSheetRef.current?.snapToIndex(bottomSheetIndex);
     } else {
       bottomSheetRef.current?.snapToIndex(1);
     }
-  }, [mapPanning, bottomSheetIndex]);
+  }, [mapPanning, bottomSheetIndex, selectedMapMarker]);
 
   return (
     <BottomSheet
