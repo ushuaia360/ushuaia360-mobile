@@ -319,49 +319,6 @@ export default function MapHome() {
     [committed, width, height, baseUrl],
   );
 
-  const zoomIn = () => {
-    if (Platform.OS === 'ios') {
-      bumpIosProgrammaticMapMove();
-      const r = iosRegionRef.current;
-      iosMapRef.current?.animateToRegion(
-        {
-          ...r,
-          latitudeDelta: Math.max(r.latitudeDelta * 0.5, 0.002),
-          longitudeDelta: Math.max(r.longitudeDelta * 0.5, 0.002),
-        },
-        200,
-      );
-      return;
-    }
-    setCommitted((p) => {
-      if (p.zoom >= MAX_ZOOM) return p;
-      const newState = clampPan({ zoom: p.zoom + 1, panX: p.panX * 2, panY: p.panY * 2 });
-      committedRef.current = newState;
-      return newState;
-    });
-  };
-
-  const zoomOut = () => {
-    if (Platform.OS === 'ios') {
-      bumpIosProgrammaticMapMove();
-      const r = iosRegionRef.current;
-      iosMapRef.current?.animateToRegion(
-        {
-          ...r,
-          latitudeDelta: Math.min(r.latitudeDelta * 2, 1.2),
-          longitudeDelta: Math.min(r.longitudeDelta * 2, 1.2),
-        },
-        200,
-      );
-      return;
-    }
-    setCommitted((p) => {
-      if (p.zoom <= MIN_ZOOM) return p;
-      const newState = clampPan({ zoom: p.zoom - 1, panX: p.panX / 2, panY: p.panY / 2 });
-      committedRef.current = newState;
-      return newState;
-    });
-  };
 
   const mapTransformStyle = {
     transform: [
@@ -464,17 +421,7 @@ export default function MapHome() {
 
       {/* Zoom, ubicación y sheet — capa superior para que el panel tape la barra Resumir. */}
       <View style={[styles.mapChromeLayer, StyleSheet.absoluteFillObject]} pointerEvents="box-none">
-        <View style={[styles.zoomButtons, { bottom: bottom + (Platform.OS === 'android' ? 268 : 240) }]} pointerEvents="box-none">
-          <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn} activeOpacity={0.8}>
-            <IconSymbol name="add" size={18} color="rgba(0,0,0,0.5)" />
-          </TouchableOpacity>
-          <View style={styles.zoomDivider} />
-          <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut} activeOpacity={0.8}>
-            <IconSymbol name="remove-outline" size={18} color="rgba(0,0,0,0.5)" />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
+<TouchableOpacity
           style={[styles.locationButton, { bottom: bottom + (Platform.OS === 'android' ? 188 : 160), borderColor: colors.tint }]}
           activeOpacity={0.8}
           onPress={() => {
@@ -549,26 +496,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
-  },
-  zoomButtons: {
-    position: 'absolute',
-    right: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.2)',
-    overflow: 'hidden',
-  },
-  zoomBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  zoomDivider: {
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    marginHorizontal: 8,
   },
   locationButton: {
     position: 'absolute',

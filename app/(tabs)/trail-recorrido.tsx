@@ -27,6 +27,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+function formatElapsed(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 export default function TrailRecorridoScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -41,7 +49,6 @@ export default function TrailRecorridoScreen() {
   const removeSessionByHistoryId = useActiveTrailSessionStore((s) => s.removeSessionByHistoryId);
   const updateActiveSession = useActiveTrailSessionStore((s) => s.updateActiveSession);
 
-  /** Una sola petición POST /start por par trail+id local (evita spam si el servidor devolvía 404). */
   const localHistorySyncAttemptedRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -77,10 +84,6 @@ export default function TrailRecorridoScreen() {
     })();
   }, [hydrated, session, token, updateActiveSession]);
 
-  /**
-   * Una sola vez por entrada de servidor: alinea `started_at` (DB) en la sesión.
-   * `beganRecorridoSynced === true` → ya listo. `undefined` / `false` disparan (incl. snapshots viejos).
-   */
   useEffect(() => {
     if (!hydrated || !session || !token) return;
     if (session.historyEntryId.startsWith('local-')) return;
@@ -96,28 +99,14 @@ export default function TrailRecorridoScreen() {
     void (async () => {
       try {
         const { entry } = await beginTrailHistoryRecorrido(token, historyId);
-        if (cancelled) {
-          logRecorridoTimer('begin-recorrido → cancelled (unmount)');
-          return;
-        }
+        if (cancelled) return;
         const snap = selectActiveSession(useActiveTrailSessionStore.getState());
-        if (!snap || snap.historyEntryId !== historyId) {
-          logRecorridoTimer('begin-recorrido → stale session after response', {
-            expected: historyId,
-            got: snap?.historyEntryId,
-          });
-          return;
-        }
+        if (!snap || snap.historyEntryId !== historyId) return;
         const startedRaw = trailHistoryEntryStartedAt(entry);
         const hasStartedAt =
           startedRaw != null &&
           (typeof startedRaw === 'number' ||
             (typeof startedRaw === 'string' && startedRaw.trim() !== ''));
-        logRecorridoTimer('begin-recorrido → response', {
-          startedRaw,
-          hasStartedAt,
-          entryId: entry.id,
-        });
         await updateActiveSession({
           beganRecorridoSynced: true,
           ...(hasStartedAt
@@ -134,9 +123,7 @@ export default function TrailRecorridoScreen() {
         }
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [hydrated, session?.historyEntryId, session?.beganRecorridoSynced, token, updateActiveSession]);
 
   const [isPaused, setIsPaused] = useState(false);
@@ -145,6 +132,17 @@ export default function TrailRecorridoScreen() {
   const [completing, setCompleting] = useState(false);
   const [finishConfirmVisible, setFinishConfirmVisible] = useState(false);
   const [infoModal, setInfoModal] = useState<{ title: string; message: string } | null>(null);
+
+  // ─── Timer ────────────────────────────────────────────────────
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (isPaused || !session?.startedAtISO) return;
+    const tick = () =>
+      setElapsed(Math.floor((Date.now() - new Date(session.startedAtISO).getTime()) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isPaused, session?.startedAtISO]);
 
   const minimizeAndLeave = useCallback(() => {
     void setMinimized(true);
@@ -164,9 +162,7 @@ export default function TrailRecorridoScreen() {
 
   const ensureLocation = useCallback(async () => {
     const ok = await ensureTrailMapLocationPermission();
-    if (!ok) {
-      alertLocationDenied();
-    }
+    if (!ok) alertLocationDenied();
   }, []);
 
   useFocusEffect(
@@ -174,14 +170,6 @@ export default function TrailRecorridoScreen() {
       void ensureLocation();
     }, [ensureLocation]),
   );
-
-  const handlePause = () => {
-    setIsPaused(true);
-  };
-
-  const handleResumeNav = () => {
-    setIsPaused(false);
-  };
 
   const openFinishConfirm = () => {
     if (completing || !session) return;
@@ -193,10 +181,7 @@ export default function TrailRecorridoScreen() {
     if (!session) return;
 
     if (!token) {
-      setInfoModal({
-        title: 'Sesión',
-        message: 'Tenés que iniciar sesión para guardar el recorrido.',
-      });
+      setInfoModal({ title: 'Sesión', message: 'Tenés que iniciar sesión para guardar el recorrido.' });
       return;
     }
 
@@ -261,126 +246,121 @@ export default function TrailRecorridoScreen() {
     <>
       <Tabs.Screen options={{ href: null }} />
       <ThemedView style={styles.container}>
-      <View style={styles.mapShell}>
-        <TrailActiveNavigationMap
-          ref={mapRef}
-          lineCoordinates={session.lineCoordinates}
-          interestPoints={session.interestPoints}
-          fallbackCenter={session.fallbackCenter}
-          isDark={isDark}
-        />
+        <View style={styles.mapShell}>
+          <TrailActiveNavigationMap
+            ref={mapRef}
+            lineCoordinates={session.lineCoordinates}
+            interestPoints={session.interestPoints}
+            fallbackCenter={session.fallbackCenter}
+            isDark={isDark}
+          />
 
-        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-          <View style={[styles.topRow, { paddingTop: top + 14 }]}>
-            <View style={styles.zoomCol}>
-              <Pressable
-                style={[styles.zoomBtn, { backgroundColor: chipBg }]}
-                onPress={() => mapRef.current?.zoomIn()}
-                accessibilityLabel="Acercar mapa">
-                <Ionicons name="add" size={22} color={isDark ? '#fff' : '#111'} />
-              </Pressable>
-              <Pressable
-                style={[styles.zoomBtn, { backgroundColor: chipBg, marginTop: 8 }]}
-                onPress={() => mapRef.current?.zoomOut()}
-                accessibilityLabel="Alejar mapa">
-                <Ionicons name="remove" size={22} color={isDark ? '#fff' : '#111'} />
-              </Pressable>
-            </View>
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
 
-            <View style={[styles.trailTitleChip, { backgroundColor: chipBg }]}>
-              <View style={styles.trailTitleRow}>
-                <Ionicons name="map" size={22} color={colors.tint} style={styles.trailTitleIcon} />
+            {/* ── Top row: chip + minimize ── */}
+            <View style={[styles.topRow, { paddingTop: top + 14 }]}>
+              <View style={[styles.trailTitleChip, { backgroundColor: chipBg }]}>
+                <Ionicons name="map" size={20} color={colors.tint} style={styles.trailTitleIcon} />
                 <View style={styles.trailTitleTextCol}>
                   <ThemedText
                     style={[styles.trailTitleName, { color: isDark ? '#fff' : '#111' }]}
-                    numberOfLines={2}>
+                    numberOfLines={1}>
                     {session.trailName.trim() || 'Sendero'}
                   </ThemedText>
-                  <ThemedText
-                    style={[styles.trailTitleSubtitle, { color: isDark ? '#aaa' : '#666' }]}
-                    numberOfLines={1}>
-                    {isPaused ? 'En pausa' : 'Navegación activa'}
+                  <ThemedText style={[styles.trailTitleTime, { color: isDark ? '#aaa' : '#666' }]}>
+                    {isPaused ? 'En pausa' : 'Navegando'}
                   </ThemedText>
                 </View>
               </View>
+
+              <Pressable
+                style={[styles.minimizeBtn, { backgroundColor: chipBg }]}
+                onPress={minimizeAndLeave}
+                accessibilityLabel="Minimizar recorrido">
+                <Ionicons name="chevron-down" size={22} color={isDark ? '#fff' : '#111'} />
+              </Pressable>
             </View>
 
-            <Pressable
-              style={[styles.minimizeBtn, { backgroundColor: chipBg }]}
-              onPress={minimizeAndLeave}
-              accessibilityLabel="Minimizar recorrido">
-              <Ionicons name="chevron-down" size={22} color={isDark ? '#fff' : '#111'} />
-            </Pressable>
-          </View>
+            {/* ── Bottom controls ── */}
+            <View style={[styles.bottomBar, { paddingBottom: Math.max(bottom, 16) + 8 }]} pointerEvents="box-none">
+              {!isPaused ? (
+                <View style={styles.pauseGroup}>
+                  <Pressable
+                    style={[styles.pauseFab, { backgroundColor: colors.tint }]}
+                    onPress={() => setIsPaused(true)}
+                    accessibilityLabel="Pausar recorrido">
+                    <Ionicons name="pause" size={28} color="#fff" />
+                  </Pressable>
+                  <View style={[styles.timerBadge, { backgroundColor: colors.tint }]}>
+                    <ThemedText style={styles.timerText}>{formatElapsed(elapsed)}</ThemedText>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.pausedRow} pointerEvents="box-none">
+                  <Pressable
+                    style={[
+                      styles.actionBtn,
+                      {
+                        borderColor: colors.tint,
+                        backgroundColor: isDark ? 'rgba(44,44,46,0.96)' : 'rgba(255,255,255,0.96)',
+                        borderWidth: 2,
+                      },
+                    ]}
+                    onPress={() => setIsPaused(false)}>
+                    <Ionicons name="play" size={20} color={colors.tint} />
+                    <ThemedText style={[styles.actionBtnLabel, { color: colors.tint }]}>Reanudar</ThemedText>
+                  </Pressable>
 
-          <View style={[styles.bottomLeft, { paddingBottom: Math.max(bottom, 12) + 6 }]} pointerEvents="box-none">
-            {!isPaused ? (
-              <Pressable
-                style={[styles.pauseFab, { backgroundColor: colors.tint }]}
-                onPress={handlePause}
-                accessibilityLabel="Pausar recorrido">
-                <Ionicons name="pause" size={26} color="#fff" />
-              </Pressable>
-            ) : (
-              <View style={styles.pausedActions}>
-                <Pressable
-                  style={[
-                    styles.resumeBtn,
-                    {
-                      borderColor: colors.tint,
-                      backgroundColor: isDark ? 'rgba(44,44,46,0.96)' : 'rgba(255,255,255,0.96)',
-                    },
-                  ]}
-                  onPress={handleResumeNav}>
-                  <Ionicons name="play" size={20} color={colors.tint} />
-                  <ThemedText style={[styles.resumeBtnLabel, { color: colors.tint }]}>Reanudar</ThemedText>
-                </Pressable>
-                <Pressable
-                  style={[styles.finishBtn, { backgroundColor: colors.tint, opacity: completing ? 0.7 : 1 }]}
-                  onPress={openFinishConfirm}
-                  disabled={completing}>
-                  {completing ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <>
-                      <Ionicons name="flag" size={18} color="#fff" />
-                      <ThemedText style={styles.finishBtnLabel}>Finalizar</ThemedText>
-                    </>
-                  )}
-                </Pressable>
-              </View>
-            )}
+                  <Pressable
+                    style={[
+                      styles.actionBtn,
+                      { backgroundColor: colors.tint, opacity: completing ? 0.7 : 1 },
+                    ]}
+                    onPress={openFinishConfirm}
+                    disabled={completing}>
+                    {completing ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <>
+                        <Ionicons name="flag" size={18} color="#fff" />
+                        <ThemedText style={[styles.actionBtnLabel, { color: '#fff' }]}>Finalizar</ThemedText>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
+              )}
+            </View>
+
           </View>
         </View>
-      </View>
 
-      <TrailFinishConfirmModal
-        visible={finishConfirmVisible}
-        title="Finalizar recorrido"
-        message="¿Marcar este sendero como completado? Se guardará en tu historial."
-        cancelLabel="Cancelar"
-        confirmLabel="Finalizar"
-        onCancel={() => setFinishConfirmVisible(false)}
-        onConfirm={() => void runCompleteAfterConfirm()}
-      />
+        <TrailFinishConfirmModal
+          visible={finishConfirmVisible}
+          title="Finalizar recorrido"
+          message="¿Marcar este sendero como completado? Se guardará en tu historial."
+          cancelLabel="Cancelar"
+          confirmLabel="Finalizar"
+          onCancel={() => setFinishConfirmVisible(false)}
+          onConfirm={() => void runCompleteAfterConfirm()}
+        />
 
-      <TrailFinishConfirmModal
-        visible={infoModal != null}
-        variant="info"
-        title={infoModal?.title ?? ''}
-        message={infoModal?.message ?? ''}
-        cancelLabel=""
-        confirmLabel="Entendido"
-        onCancel={() => setInfoModal(null)}
-        onConfirm={() => setInfoModal(null)}
-      />
+        <TrailFinishConfirmModal
+          visible={infoModal != null}
+          variant="info"
+          title={infoModal?.title ?? ''}
+          message={infoModal?.message ?? ''}
+          cancelLabel=""
+          confirmLabel="Entendido"
+          onCancel={() => setInfoModal(null)}
+          onConfirm={() => setInfoModal(null)}
+        />
 
-      <TrailCompletionCelebrationModal
-        visible={celebrationVisible}
-        trailName={celebrationTrailName || session.trailName}
-        onClose={closeCelebration}
-      />
-    </ThemedView>
+        <TrailCompletionCelebrationModal
+          visible={celebrationVisible}
+          trailName={celebrationTrailName || session.trailName}
+          onClose={closeCelebration}
+        />
+      </ThemedView>
     </>
   );
 }
@@ -395,46 +375,27 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     borderWidth: 1,
   },
+
+  // ── Top row ──
   topRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
     paddingHorizontal: 14,
+    gap: 10,
     zIndex: 20,
-    minHeight: 88,
-  },
-  zoomCol: {
-    width: 48,
-  },
-  zoomBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
   },
   trailTitleChip: {
     flex: 1,
-    marginHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 16,
-    justifyContent: 'center',
-    minWidth: 120,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 3,
-  },
-  trailTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   trailTitleIcon: {
     marginRight: 10,
@@ -444,17 +405,15 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   trailTitleName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     lineHeight: 20,
   },
-  trailTitleSubtitle: {
-    fontSize: 11,
-    marginTop: 4,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.35,
-    lineHeight: 14,
+  trailTitleTime: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 2,
+    letterSpacing: 0.2,
   },
   minimizeBtn: {
     width: 44,
@@ -468,45 +427,65 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  bottomLeft: {
+
+  // ── Bottom controls ──
+  bottomBar: {
     position: 'absolute',
-    left: 16,
     bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 20,
     zIndex: 20,
   },
+  pauseGroup: {
+    alignItems: 'center',
+    gap: 10,
+  },
   pauseFab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  pausedActions: {
-    gap: 10,
-    alignItems: 'flex-start',
-  },
-  resumeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
+  timerBadge: {
+    borderRadius: 100,
     paddingHorizontal: 16,
-    borderRadius: 100,
-    borderWidth: 2,
+    paddingVertical: 6,
   },
-  resumeBtnLabel: { fontWeight: '700', fontSize: 15 },
-  finishBtn: {
+  timerText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  pausedRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  actionBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 100,
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  finishBtnLabel: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  actionBtnLabel: {
+    fontWeight: '700',
+    fontSize: 15,
+  },
 });

@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnSecondary: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
   },
   btnSecondaryLabel: {
     fontSize: 16,

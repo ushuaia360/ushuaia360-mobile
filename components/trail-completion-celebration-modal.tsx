@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 interface Props {
   visible: boolean;
@@ -23,44 +23,17 @@ export default function TrailCompletionCelebrationModal({ visible, trailName, on
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Cerrar" />
         <View style={[styles.card, { backgroundColor: cardBg }]} accessibilityViewIsModal>
           <View style={[styles.iconWrap, { backgroundColor: colors.tint + '22' }]}>
-            <Ionicons name="trophy" size={40} color={colors.tint} />
+            <Ionicons name="trophy" size={44} color={colors.tint} />
           </View>
+
           <ThemedText style={styles.title}>¡Felicitaciones!</ThemedText>
           <ThemedText style={[styles.subtitle, { color: sub }]}>
-            Completaste {trailName.trim() ? `«${trailName.trim()}»` : 'el sendero'}
-          </ThemedText>
-
-          <ThemedText style={[styles.reviewLabel, { color: colors.text }]}>Dejá una reseña</ThemedText>
-          <View style={styles.starsRow} accessibilityRole="text" accessibilityLabel="Valoración, próximamente">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Ionicons key={i} name="star" size={28} color="#FFB800" style={{ opacity: 0.85 }} />
-            ))}
-          </View>
-          <TextInput
-            style={[
-              styles.reviewInput,
-              {
-                color: colors.text,
-                borderColor: isDark ? '#3a3a3c' : '#e5e5ea',
-                backgroundColor: isDark ? '#2c2c2e' : '#f2f2f7',
-              },
-            ]}
-            placeholder="Contá cómo fue tu experiencia…"
-            placeholderTextColor={isDark ? '#636366' : '#8e8e93'}
-            multiline
-            editable={false}
-            pointerEvents="none"
-          />
-          <ThemedText style={[styles.comingSoon, { color: sub }]}>
-            Las reseñas estarán disponibles pronto. Este campo es solo una vista previa.
+            Completaste {trailName.trim() ? `«${trailName.trim()}»` : 'el sendero'}.{'\n'}
+            El recorrido fue guardado en tu historial.
           </ThemedText>
 
           <Pressable
-            style={({ pressed }) => [
-              { opacity: pressed ? 0.85 : 1 },
-              styles.cta,
-              { backgroundColor: colors.tint },
-            ]}
+            style={({ pressed }) => [styles.cta, { backgroundColor: colors.tint, opacity: pressed ? 0.85 : 1 }]}
             onPress={onClose}>
             <ThemedText style={styles.ctaLabel}>Listo</ThemedText>
           </Pressable>
@@ -79,66 +52,41 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 20,
-    paddingHorizontal: 22,
-    paddingTop: 28,
-    paddingBottom: 22,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 24,
     elevation: 12,
+    alignItems: 'center',
   },
   iconWrap: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    alignSelf: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 22,
-  },
-  reviewLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 10,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-    marginBottom: 14,
-  },
-  reviewInput: {
-    minHeight: 88,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    textAlignVertical: 'top',
-    marginBottom: 8,
-  },
-  comingSoon: {
-    fontSize: 12,
-    lineHeight: 17,
-    marginBottom: 20,
+    marginBottom: 28,
   },
   cta: {
     borderRadius: 100,
     paddingVertical: 14,
     alignItems: 'center',
+    width: '100%',
   },
   ctaLabel: {
     color: '#fff',

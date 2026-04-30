@@ -17,10 +17,22 @@ import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth-store';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 
 const BG_IMAGE = 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1200';
 
-// Validación de requisitos de contraseña
+function GoogleIcon({ size = 20 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 48 48">
+      <Path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+      <Path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+      <Path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+      <Path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+    </Svg>
+  );
+}
+
 function checkRequirements(password: string) {
   return {
     length: password.length >= 8,
@@ -38,7 +50,7 @@ const REQUIREMENTS = [
 ] as const;
 
 export default function RegisterScreen() {
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -52,13 +64,13 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const reqs = checkRequirements(password);
   const allReqsMet = Object.values(reqs).every(Boolean);
 
-  const bg = isDark ? '#121212' : '#fff';
-  const inputBg = isDark ? '#1c1c1e' : '#fff';
-  const borderColor = isDark ? '#2a2a2a' : '#ebebeb';
+  const inputBg = isDark ? '#1c1c1e' : '#f5f5f7';
+  const borderColor = isDark ? '#2a2a2a' : '#e5e5ea';
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -77,14 +89,9 @@ export default function RegisterScreen() {
     try {
       const result = await register(name.trim(), email.trim(), password, confirmPassword);
       Alert.alert(
-        '¡Registro exitoso! 🎉',
+        'Registro exitoso',
         result.message || 'Revisá tu correo para verificar tu cuenta antes de ingresar.',
-        [
-          {
-            text: 'Ir a iniciar sesión',
-            onPress: () => router.replace('/login'),
-          },
-        ],
+        [{ text: 'Ir a iniciar sesión', onPress: () => router.replace('/login') }],
       );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al registrarse';
@@ -96,47 +103,58 @@ export default function RegisterScreen() {
   if (step === 'method') {
     return (
       <ImageBackground source={{ uri: BG_IMAGE }} style={styles.bgImage} resizeMode="cover">
-        <View style={styles.bgOverlay} />
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-          {[0.55, 0.45, 0.34, 0.24, 0.15, 0.08, 0.03, 0].map((opacity, i) => (
-            <View
-              key={i}
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: `${(i + 1) * 12}%`,
-                backgroundColor: `rgba(0,0,0,${opacity})`,
-              }}
-            />
-          ))}
-        </View>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.15)', 'transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.92)']}
+          locations={[0, 0.28, 0.62, 1]}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
 
         <TouchableOpacity
-          style={[styles.backBtn, { borderColor: 'rgba(255,255,255,0.4)', position: 'absolute', top: top + 16, left: 24, marginBottom: 0 }]}
+          style={[styles.backBtn, { top: top + 16 }]}
           onPress={() => router.back()}
           activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
 
-        <View style={[styles.container, { paddingTop: top + 440 }]}>
+        <View style={[styles.welcomeLayout, { paddingBottom: bottom + 32 }]}>
           <View style={styles.methodButtons}>
-            {/* Solo correo electrónico */}
             <TouchableOpacity
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
               onPress={() => setStep('form')}
               activeOpacity={0.85}>
-              <Ionicons name="mail" size={20} color="#000" />
-              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
+              <Ionicons name="mail" size={20} color="#111" />
+              <ThemedText style={[styles.methodBtnText, { color: '#111' }]}>
                 Continuar con correo
               </ThemedText>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={[styles.methodBtn, { backgroundColor: '#fff' }]}
+              onPress={() => Alert.alert('Próximamente', 'El registro con Google estará disponible pronto.')}
+              activeOpacity={0.85}>
+              <GoogleIcon size={20} />
+              <ThemedText style={[styles.methodBtnText, { color: '#111' }]}>
+                Continuar con Google
+              </ThemedText>
+            </TouchableOpacity>
+
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={[styles.methodBtn, { backgroundColor: '#000' }]}
+                onPress={() => Alert.alert('Próximamente', 'El registro con Apple estará disponible pronto.')}
+                activeOpacity={0.85}>
+                <Ionicons name="logo-apple" size={22} color="#fff" />
+                <ThemedText style={[styles.methodBtnText, { color: '#fff' }]}>
+                  Continuar con Apple
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+
             <View style={styles.orRow}>
-              <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.4)' }]} />
-              <ThemedText style={[styles.orText, { color: 'rgba(255,255,255,0.7)' }]}>o</ThemedText>
-              <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.4)' }]} />
+              <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+              <ThemedText style={[styles.orText, { color: 'rgba(255,255,255,0.6)' }]}>o</ThemedText>
+              <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
             </View>
 
             <TouchableOpacity
@@ -152,64 +170,93 @@ export default function RegisterScreen() {
   }
 
   // ─── Step 2: formulario de registro ─────────────────────────
+  const confirmBorderColor =
+    confirmPassword.length > 0
+      ? confirmPassword === password
+        ? '#34c759'
+        : '#ff3b30'
+      : focusedField === 'confirm'
+        ? colors.tint
+        : borderColor;
+
   return (
-    <View style={[styles.formContainer, { backgroundColor: bg }]}>
+    <View style={[styles.formContainer, { backgroundColor: isDark ? '#121212' : '#fff' }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={[styles.formScroll, { paddingTop: top + 20 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
 
-          <TouchableOpacity
-            style={[styles.backBtn, { backgroundColor: inputBg, borderColor }]}
-            onPress={() => setStep('method')}
-            activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <TouchableOpacity onPress={() => setStep('method')} activeOpacity={0.7}>
+            <View style={[styles.backBtnForm, { backgroundColor: inputBg, borderColor }]}>
+              <Ionicons name="arrow-back" size={20} color={colors.text} />
+            </View>
           </TouchableOpacity>
 
-          <ThemedText style={[styles.title, { color: colors.text }]}>Crear cuenta</ThemedText>
+          <ThemedText style={[styles.title, { color: colors.text, marginTop: 40 }]}>Crear cuenta</ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
             Registrate con tu correo electrónico
           </ThemedText>
 
           <View style={styles.fields}>
             {/* Nombre */}
-            <View style={styles.fieldGroup}>
-              <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
-                <Ionicons name="person-outline" size={18} color={colors.icon} />
-                <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
-                  placeholder="Tu nombre completo"
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                  autoComplete="name"
-                />
-              </View>
+            <View style={[styles.field, {
+              backgroundColor: inputBg,
+              borderColor: focusedField === 'name' ? colors.tint : borderColor,
+            }]}>
+              <Ionicons
+                name="person-outline"
+                size={18}
+                color={focusedField === 'name' ? colors.tint : colors.icon}
+              />
+              <TextInput
+                style={[styles.fieldInput, { color: colors.text }]}
+                placeholder="Tu nombre completo"
+                placeholderTextColor={colors.tabIconDefault}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                autoComplete="name"
+                onFocus={() => setFocusedField('name')}
+                onBlur={() => setFocusedField(null)}
+              />
             </View>
 
             {/* Email */}
-            <View style={styles.fieldGroup}>
-              <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
-                <Ionicons name="mail-outline" size={18} color={colors.icon} />
-                <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
-                  placeholder="tu@correo.com"
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                />
-              </View>
+            <View style={[styles.field, {
+              backgroundColor: inputBg,
+              borderColor: focusedField === 'email' ? colors.tint : borderColor,
+            }]}>
+              <Ionicons
+                name="mail-outline"
+                size={18}
+                color={focusedField === 'email' ? colors.tint : colors.icon}
+              />
+              <TextInput
+                style={[styles.fieldInput, { color: colors.text }]}
+                placeholder="tu@correo.com"
+                placeholderTextColor={colors.tabIconDefault}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
+              />
             </View>
 
             {/* Contraseña */}
             <View style={styles.fieldGroup}>
-              <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.icon} />
+              <View style={[styles.field, {
+                backgroundColor: inputBg,
+                borderColor: focusedField === 'password' ? colors.tint : borderColor,
+              }]}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={18}
+                  color={focusedField === 'password' ? colors.tint : colors.icon}
+                />
                 <TextInput
                   style={[styles.fieldInput, { color: colors.text }]}
                   placeholder="Contraseña"
@@ -218,6 +265,8 @@ export default function RegisterScreen() {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(p => !p)} hitSlop={8}>
                   <Ionicons
@@ -228,56 +277,48 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Requisitos */}
-              <View style={styles.requirements}>
-                {REQUIREMENTS.map(({ key, label }) => (
-                  <View key={key} style={styles.reqRow}>
-                    <Ionicons
-                      name={reqs[key] ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={14}
-                      color={reqs[key] ? '#34c759' : colors.tabIconDefault}
-                    />
-                    <ThemedText style={[styles.reqText, { color: reqs[key] ? '#34c759' : colors.icon }]}>
-                      {label}
-                    </ThemedText>
-                  </View>
-                ))}
-              </View>
+              {password.length > 0 && (
+                <View style={styles.requirements}>
+                  {REQUIREMENTS.map(({ key, label }) => (
+                    <View key={key} style={styles.reqRow}>
+                      <Ionicons
+                        name={reqs[key] ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={14}
+                        color={reqs[key] ? '#34c759' : colors.tabIconDefault}
+                      />
+                      <ThemedText style={[styles.reqText, { color: reqs[key] ? '#34c759' : colors.icon }]}>
+                        {label}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Repetir contraseña */}
-            <View style={styles.fieldGroup}>
-              <View
-                style={[
-                  styles.field,
-                  {
-                    backgroundColor: inputBg,
-                    borderColor:
-                      confirmPassword.length > 0
-                        ? confirmPassword === password
-                          ? '#34c759'
-                          : '#ff3b30'
-                        : borderColor,
-                  },
-                ]}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.icon} />
-                <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
-                  placeholder="Repetí tu contraseña"
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showConfirm}
-                  autoCapitalize="none"
+            <View style={[styles.field, {
+              backgroundColor: inputBg,
+              borderColor: confirmBorderColor,
+            }]}>
+              <Ionicons name="lock-closed-outline" size={18} color={colors.icon} />
+              <TextInput
+                style={[styles.fieldInput, { color: colors.text }]}
+                placeholder="Repetí tu contraseña"
+                placeholderTextColor={colors.tabIconDefault}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirm}
+                autoCapitalize="none"
+                onFocus={() => setFocusedField('confirm')}
+                onBlur={() => setFocusedField(null)}
+              />
+              <TouchableOpacity onPress={() => setShowConfirm(p => !p)} hitSlop={8}>
+                <Ionicons
+                  name={showConfirm ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.icon}
                 />
-                <TouchableOpacity onPress={() => setShowConfirm(p => !p)} hitSlop={8}>
-                  <Ionicons
-                    name={showConfirm ? 'eye-off-outline' : 'eye-outline'}
-                    size={18}
-                    color={colors.icon}
-                  />
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -299,21 +340,31 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   bgImage: { flex: 1 },
-  bgOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  container: {
+  welcomeLayout: {
     flex: 1,
     paddingHorizontal: 24,
+    justifyContent: 'flex-end',
   },
-  methodButtons: { gap: 14 },
+  backBtn: {
+    position: 'absolute',
+    left: 24,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  methodButtons: { gap: 12 },
   methodBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    height: 50,
+    height: 52,
     borderRadius: 14,
   },
   methodBtnText: {
@@ -325,15 +376,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginVertical: 2,
   },
   orLine: { flex: 1, height: 1 },
   orText: { fontSize: 14 },
+
   formContainer: { flex: 1 },
   formScroll: {
     paddingHorizontal: 24,
     paddingBottom: 48,
   },
-  backBtn: {
+  backBtnForm: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -341,10 +394,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 28,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    overflow: 'hidden',
   },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '700',
     marginBottom: 6,
   },
@@ -353,10 +406,10 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   fields: {
-    gap: 20,
+    gap: 14,
     marginBottom: 28,
   },
-  fieldGroup: { gap: 7 },
+  fieldGroup: { gap: 8 },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -364,7 +417,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 54,
     borderRadius: 14,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   fieldInput: {
     flex: 1,
@@ -373,7 +426,6 @@ const styles = StyleSheet.create({
   },
   requirements: {
     gap: 8,
-    marginTop: 6,
     paddingLeft: 4,
   },
   reqRow: {
@@ -383,14 +435,14 @@ const styles = StyleSheet.create({
   },
   reqText: { fontSize: 13 },
   submitBtn: {
-    height: 48,
+    height: 52,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   submitText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#fff',
   },
 });

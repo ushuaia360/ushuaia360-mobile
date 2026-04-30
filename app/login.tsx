@@ -18,11 +18,24 @@ import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth-store';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 
 const BG_IMAGE = 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1200';
 
+function GoogleIcon({ size = 20 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 48 48">
+      <Path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+      <Path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+      <Path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+      <Path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+    </Svg>
+  );
+}
+
 export default function LoginScreen() {
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -33,11 +46,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  // 'method' → pantalla de bienvenida | 'form' → formulario de email
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [step, setStep] = useState<'method' | 'form'>('method');
 
-  const inputBg = isDark ? '#1c1c1e' : '#fff';
-  const borderColor = isDark ? '#2a2a2a' : '#ebebeb';
+  const inputBg = isDark ? '#1c1c1e' : '#f5f5f7';
+  const borderColor = isDark ? '#2a2a2a' : '#e5e5ea';
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -51,7 +64,6 @@ export default function LoginScreen() {
       router.replace(dest as Href);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al iniciar sesión';
-      // Email no verificado → ofrecer reenviar
       if (msg.includes('verificad')) {
         Alert.alert(
           'Email no verificado',
@@ -68,61 +80,42 @@ export default function LoginScreen() {
   if (step === 'method') {
     return (
       <ImageBackground source={{ uri: BG_IMAGE }} style={styles.bgImage} resizeMode="cover">
-        <View style={styles.bgOverlay} />
-        {/* Gradient */}
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-          {[0.55, 0.45, 0.34, 0.24, 0.15, 0.08, 0.03, 0].map((opacity, i) => (
-            <View
-              key={i}
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: `${(i + 1) * 12}%`,
-                backgroundColor: `rgba(0,0,0,${opacity})`,
-              }}
-            />
-          ))}
-        </View>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.15)', 'transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.92)']}
+          locations={[0, 0.28, 0.62, 1]}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
 
-        {/* Back */}
         <TouchableOpacity
-          style={[styles.backBtn, { borderColor: 'rgba(255,255,255,0.4)', position: 'absolute', top: top + 16, left: 24 }]}
-          onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}
+          style={[styles.backBtn, { top: top + 16 }]}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
           activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
 
-        <View style={[styles.container, { paddingTop: top + 400 }]}>
+        <View style={[styles.welcomeLayout, { paddingBottom: bottom + 32 }]}>
           <View style={styles.methodButtons}>
-
-            {/* Correo */}
             <TouchableOpacity
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
               onPress={() => setStep('form')}
               activeOpacity={0.85}>
-              <Ionicons name="mail" size={20} color="#000" />
-              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
+              <Ionicons name="mail" size={20} color="#111" />
+              <ThemedText style={[styles.methodBtnText, { color: '#111' }]}>
                 Continuar con correo
               </ThemedText>
             </TouchableOpacity>
 
-            {/* Google */}
             <TouchableOpacity
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
               onPress={() => Alert.alert('Próximamente', 'El acceso con Google estará disponible pronto.')}
               activeOpacity={0.85}>
-              {/* G de Google con colores */}
-              <View style={styles.googleIcon}>
-                <ThemedText style={styles.googleG}>G</ThemedText>
-              </View>
-              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
+              <GoogleIcon size={20} />
+              <ThemedText style={[styles.methodBtnText, { color: '#111' }]}>
                 Continuar con Google
               </ThemedText>
             </TouchableOpacity>
 
-            {/* Apple — solo iOS */}
             {Platform.OS === 'ios' && (
               <TouchableOpacity
                 style={[styles.methodBtn, { backgroundColor: '#000' }]}
@@ -136,9 +129,9 @@ export default function LoginScreen() {
             )}
 
             <View style={styles.orRow}>
-              <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.4)' }]} />
-              <ThemedText style={[styles.orText, { color: 'rgba(255,255,255,0.7)' }]}>o</ThemedText>
-              <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.4)' }]} />
+              <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+              <ThemedText style={[styles.orText, { color: 'rgba(255,255,255,0.6)' }]}>o</ThemedText>
+              <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
             </View>
 
             <TouchableOpacity
@@ -162,11 +155,10 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
 
-          <TouchableOpacity
-            style={[styles.backBtn, { backgroundColor: inputBg, borderColor }]}
-            onPress={() => setStep('method')}
-            activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <TouchableOpacity onPress={() => setStep('method')} activeOpacity={0.7}>
+            <View style={[styles.backBtnForm, { backgroundColor: inputBg, borderColor }]}>
+              <Ionicons name="arrow-back" size={20} color={colors.text} />
+            </View>
           </TouchableOpacity>
 
           <ThemedText style={[styles.title, { color: colors.text }]}>Iniciar sesión</ThemedText>
@@ -175,46 +167,72 @@ export default function LoginScreen() {
           </ThemedText>
 
           <View style={styles.fields}>
-            {/* Email */}
-            <View style={styles.fieldGroup}>
-              <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
-                <Ionicons name="mail-outline" size={18} color={colors.icon} />
-                <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
-                  placeholder="Correo electrónico"
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                />
-              </View>
+            <View style={[styles.field, {
+              backgroundColor: inputBg,
+              borderColor: focusedField === 'email' ? colors.tint : borderColor,
+            }]}>
+              <Ionicons
+                name="mail-outline"
+                size={18}
+                color={focusedField === 'email' ? colors.tint : colors.icon}
+              />
+              <TextInput
+                style={[styles.fieldInput, { color: colors.text }]}
+                placeholder="Correo electrónico"
+                placeholderTextColor={colors.tabIconDefault}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
+              />
             </View>
 
-            {/* Contraseña */}
-            <View style={styles.fieldGroup}>
-              <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.icon} />
-                <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
-                  placeholder="Contraseña"
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
+            <View style={[styles.field, {
+              backgroundColor: inputBg,
+              borderColor: focusedField === 'password' ? colors.tint : borderColor,
+            }]}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={focusedField === 'password' ? colors.tint : colors.icon}
+              />
+              <TextInput
+                style={[styles.fieldInput, { color: colors.text }]}
+                placeholder="Contraseña"
+                placeholderTextColor={colors.tabIconDefault}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(p => !p)} hitSlop={8}>
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.icon}
                 />
-                <TouchableOpacity onPress={() => setShowPassword(p => !p)} hitSlop={8}>
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={18}
-                    color={colors.icon}
-                  />
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
+
+          <TouchableOpacity
+            style={styles.forgotBtn}
+            activeOpacity={0.7}
+            onPress={() =>
+              Alert.alert(
+                'Recuperar contraseña',
+                'Ingresá tu correo en el campo de arriba y te enviaremos un enlace de recuperación.',
+              )
+            }>
+            <ThemedText style={[styles.forgotText, { color: colors.tint }]}>
+              ¿Olvidaste tu contraseña?
+            </ThemedText>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.submitBtn, { backgroundColor: colors.tint, opacity: isLoading ? 0.7 : 1 }]}
@@ -226,22 +244,6 @@ export default function LoginScreen() {
             </ThemedText>
           </TouchableOpacity>
 
-          <View style={[styles.divider, { backgroundColor: borderColor }]} />
-
-          <TouchableOpacity
-            style={styles.forgotBtn}
-            activeOpacity={0.7}
-            onPress={() =>
-              Alert.alert(
-                'Recuperar contraseña',
-                'Ingresá tu correo en el campo de arriba y presioná el botón para enviarte un enlace de recuperación.',
-              )
-            }>
-            <ThemedText style={[styles.forgotText, { color: colors.icon }]}>
-              ¿Olvidaste tu contraseña?
-            </ThemedText>
-          </TouchableOpacity>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -250,31 +252,31 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   bgImage: { flex: 1 },
-  bgOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  container: {
+  welcomeLayout: {
     flex: 1,
     paddingHorizontal: 24,
+    justifyContent: 'flex-end',
   },
   backBtn: {
+    position: 'absolute',
+    left: 24,
+    zIndex: 10,
     width: 40,
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  methodButtons: { gap: 14 },
+  methodButtons: { gap: 12 },
   methodBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    height: 50,
+    height: 52,
     borderRadius: 14,
   },
   methodBtnText: {
@@ -286,16 +288,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginVertical: 2,
   },
   orLine: { flex: 1, height: 1 },
   orText: { fontSize: 14 },
+
   formContainer: { flex: 1 },
   formScroll: {
     paddingHorizontal: 24,
     paddingBottom: 48,
   },
+  backBtnForm: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+  },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '700',
     marginBottom: 6,
   },
@@ -304,10 +317,9 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   fields: {
-    gap: 20,
-    marginBottom: 28,
+    gap: 14,
+    marginBottom: 16,
   },
-  fieldGroup: { gap: 7 },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -315,49 +327,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 54,
     borderRadius: 14,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   fieldInput: {
     flex: 1,
     fontSize: 15,
     height: '100%',
   },
-  divider: {
-    height: 1,
-    marginVertical: 20,
-  },
   forgotBtn: {
-    alignItems: 'center',
+    alignSelf: 'flex-end',
+    marginBottom: 20,
   },
   forgotText: {
     fontSize: 14,
-    fontWeight: '400',
+    fontWeight: '500',
   },
   submitBtn: {
-    height: 48,
+    height: 52,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   submitText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#fff',
-  },
-  googleIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#dadce0',
-  },
-  googleG: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#4285F4',
-    lineHeight: 16,
   },
 });
