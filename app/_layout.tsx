@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -29,6 +30,14 @@ export default function RootLayout() {
     initialize();
   }, []);
 
+  /** En web, precarga pickers para no perder user gesture tras `await import`. */
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      void import('expo-image-picker');
+      void import('expo-document-picker');
+    }
+  }, []);
+
   useEffect(() => {
     void hydrateActiveTrailSession();
   }, [hydrateActiveTrailSession]);
@@ -51,6 +60,9 @@ export default function RootLayout() {
           <Stack.Screen name="places/[id]" options={{ headerShown: true }} />
           <Stack.Screen name="login" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="register" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="verify" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="forgot-password" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen name="reset-password" options={{ headerShown: false, presentation: 'modal' }} />
         </Stack>
         <StatusBar style="auto" />
         <SearchPanel />

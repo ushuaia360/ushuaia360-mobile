@@ -2,6 +2,8 @@ import { ThemedText } from '@/components/themed-text';
 import TrailImage from '@/components/home/trail-image';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { formatPlaceCategoryLabel, getPlaceCategoryVisual } from '@/lib/place-category-map';
+import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
 import type { MapMarker } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -85,8 +87,9 @@ export default function MapMarkerBottomCard({ marker, onClose }: Props) {
   const isDark = colorScheme === 'dark';
 
   const isTrail = marker.kind === 'trail';
-  const thumb = marker.thumbnail_url ?? undefined;
+  const thumb = resolveApiMediaUrl(marker.thumbnail_url) ?? undefined;
   const ctaLabel = isTrail ? 'Ver sendero completo' : 'Ver ficha del lugar';
+  const placeIconVisual = !isTrail ? getPlaceCategoryVisual(marker.category, isDark) : null;
 
   const chipBg = isDark ? '#3a3a3c' : '#fff';
   const chipBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -105,7 +108,12 @@ export default function MapMarkerBottomCard({ marker, onClose }: Props) {
   const trailChips = isTrail ? buildTrailStatChips(marker) : [];
 
   const placeMeta = !isTrail
-    ? [marker.category, marker.region].filter(Boolean).join(' · ') || null
+    ? (() => {
+        const hasCat = marker.category != null && String(marker.category).trim() !== '';
+        const cat = hasCat ? formatPlaceCategoryLabel(marker.category) : null;
+        const reg = marker.region != null && String(marker.region).trim() !== '' ? marker.region : null;
+        return [cat, reg].filter(Boolean).join(' · ') || null;
+      })()
     : null;
 
   return (
@@ -120,9 +128,9 @@ export default function MapMarkerBottomCard({ marker, onClose }: Props) {
       <View style={styles.cardHeader}>
         <View style={styles.badgeRow}>
           <Ionicons
-            name={isTrail ? 'footsteps' : 'camera'}
+            name={isTrail ? 'footsteps' : placeIconVisual?.icon ?? 'location'}
             size={14}
-            color={colors.tint}
+            color={isTrail ? colors.tint : placeIconVisual?.accent ?? colors.tint}
           />
           <ThemedText style={[styles.badge, { color: colors.tint }]}>
             {isTrail ? 'Sendero' : 'Lugar'}

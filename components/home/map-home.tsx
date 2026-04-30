@@ -144,10 +144,21 @@ export default function MapHome() {
    * Apple Maps no rellena `isGesture` bien; usamos casi todo cambio de región como gesto
    * salvo una ventana tras `animateToRegion` y un margen inicial al montar.
    */
-  const iosIgnoreRegionPanningUntil = useRef(Date.now() + 750);
+  const iosIgnoreRegionPanningUntil = useRef(Date.now() + 900);
+  /**
+   * True desde el primer gesto del usuario hasta que el mapa queda en reposo (incluye inercia).
+   * Durante la inercia, MapKit a menudo pone `isGesture: false`; sin esto el sheet re-expanda a destiempo.
+   */
+  const iosMapGestureSession = useRef(false);
+  /**
+   * Evita `setMapPanning(false)` mientras aún corren ajustes de región; el último `complete` gana.
+   */
+  const iosMapPanningIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const IOS_MAP_PANNING_SETTLE_MS = 130;
 
   const bumpIosProgrammaticMapMove = () => {
-    iosIgnoreRegionPanningUntil.current = Date.now() + 520;
+    iosMapGestureSession.current = false;
+    iosIgnoreRegionPanningUntil.current = Date.now() + 1000;
   };
 
   const liveLocation = useWatchUserLocation(Platform.OS !== 'web');
@@ -162,6 +173,12 @@ export default function MapHome() {
     fetchMapMarkers()
       .then(setMapMarkers)
       .catch(() => setMapMarkers([]));
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (iosMapPanningIdleTimer.current) clearTimeout(iosMapPanningIdleTimer.current);
+    };
   }, []);
 
   const animPanX = useRef(new Animated.Value(0)).current;
@@ -346,12 +363,32 @@ export default function MapHome() {
           showsUserLocation={false}
           onRegionChange={(_r: Region, details: Details) => {
             if (Date.now() < iosIgnoreRegionPanningUntil.current) return;
-            if (details.isGesture !== false) setMapPanning(true);
+            if (iosMapPanningIdleTimer.current) {
+              clearTimeout(iosMapPanningIdleTimer.current);
+              iosMapPanningIdleTimer.current = null;
+            }
+            if (details.isGesture !== false) {
+              iosMapGestureSession.current = true;
+              if (!useHomeStore.getState().mapPanning) {
+                setMapPanning(true);
+              }
+            } else if (iosMapGestureSession.current) {
+              if (!useHomeStore.getState().mapPanning) {
+                setMapPanning(true);
+              }
+            }
           }}
           onRegionChangeComplete={(r) => {
             iosRegionRef.current = r;
             setIosPinScale(homePinScaleFromRegionSpan(Math.max(r.latitudeDelta, r.longitudeDelta)));
-            setMapPanning(false);
+            if (iosMapPanningIdleTimer.current) {
+              clearTimeout(iosMapPanningIdleTimer.current);
+            }
+            iosMapPanningIdleTimer.current = setTimeout(() => {
+              iosMapPanningIdleTimer.current = null;
+              iosMapGestureSession.current = false;
+              setMapPanning(false);
+            }, IOS_MAP_PANNING_SETTLE_MS);
           }}
           showsCompass={false}
           rotateEnabled={false}>
@@ -374,6 +411,7 @@ export default function MapHome() {
               tracksViewChanges={false}>
               <MapWaypointPin
                 variant={m.kind === 'trail' ? 'trail' : 'place'}
+                placeCategory={m.kind === 'place' ? m.category : null}
                 selected={selectedMarkerKey === `${m.kind}-${m.id}`}
                 sizeScale={iosPinScale}
                 onPress={() => setSelectedMapMarker(m)}

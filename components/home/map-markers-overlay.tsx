@@ -80,6 +80,7 @@ export default function MapMarkersOverlay({
                 pointerEvents="box-none">
                 <MapWaypointPin
                   variant={m.kind === 'trail' ? 'trail' : 'place'}
+                  placeCategory={m.kind === 'place' ? m.category : null}
                   selected={selectedKey === markerKey(m)}
                   sizeScale={pinScale}
                   onPress={() => onMarkerPress(m)}

@@ -12,13 +12,17 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.nuddo.ushuaia360",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Ushuaia360 usa tu ubicación para mostrarte en el mapa mientras hacés un sendero."
+        "NSLocationWhenInUseUsageDescription": "Ushuaia360 usa tu ubicación para mostrarte en el mapa mientras hacés un sendero.",
+        "NSPhotoLibraryUsageDescription": "Ushuaia360 necesita acceso a tus fotos para que puedas adjuntar imágenes a tus reseñas.",
+        "NSCameraUsageDescription": "Ushuaia360 puede usar la cámara si elegís sacar una foto para tu reseña."
       }
     },
     "android": {
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE"
       ],
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
@@ -37,6 +41,15 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
+      "expo-document-picker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ushuaia360 necesita acceso a tus fotos para que puedas adjuntar imágenes a tus reseñas.",
+          "cameraPermission": "Ushuaia360 puede usar la cámara si elegís sacar una foto para tu reseña."
+        }
+      ],
       [
         "expo-splash-screen",
         {

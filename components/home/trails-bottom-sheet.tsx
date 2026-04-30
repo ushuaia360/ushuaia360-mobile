@@ -52,10 +52,8 @@ export default function TrailsBottomSheet({
     if (mapPanning) {
       bottomSheetRef.current?.snapToIndex(0);
     } else if (bottomSheetIndex !== null) {
-      // If there's a requested index from store, use it
       bottomSheetRef.current?.snapToIndex(bottomSheetIndex);
     } else {
-      // Default behavior: return to index 1
       bottomSheetRef.current?.snapToIndex(1);
     }
   }, [mapPanning, bottomSheetIndex]);

@@ -17,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GoogleGMark } from '@/components/auth/google-g-mark';
 import { useAuthStore } from '@/store/auth-store';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -40,7 +41,7 @@ export default function LoginScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, resendVerification } = useAuthStore();
   const { next: nextParam } = useLocalSearchParams<{ next?: string }>();
 
   const [email, setEmail] = useState('');
@@ -68,7 +69,23 @@ export default function LoginScreen() {
         Alert.alert(
           'Email no verificado',
           'Revisá tu bandeja de entrada y verificá tu cuenta antes de ingresar.',
-          [{ text: 'OK' }],
+          [
+            { text: 'OK', style: 'cancel' },
+            {
+              text: 'Reenviar email',
+              onPress: async () => {
+                try {
+                  const r = await resendVerification(email.trim());
+                  Alert.alert('Listo', r.message || 'Si la cuenta existe, te enviamos un nuevo enlace.');
+                } catch (reErr) {
+                  Alert.alert(
+                    'Error',
+                    reErr instanceof Error ? reErr.message : 'No se pudo reenviar el email',
+                  );
+                }
+              },
+            },
+          ],
         );
       } else {
         Alert.alert('Error', msg);
@@ -110,8 +127,13 @@ export default function LoginScreen() {
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
               onPress={() => Alert.alert('Próximamente', 'El acceso con Google estará disponible pronto.')}
               activeOpacity={0.85}>
+<<<<<<< HEAD
               <GoogleIcon size={20} />
               <ThemedText style={[styles.methodBtnText, { color: '#111' }]}>
+=======
+              <GoogleGMark size={22} />
+              <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
+>>>>>>> ba3bb53693e69e0a7c7527d570f63ae80470ef75
                 Continuar con Google
               </ThemedText>
             </TouchableOpacity>
@@ -244,6 +266,20 @@ export default function LoginScreen() {
             </ThemedText>
           </TouchableOpacity>
 
+<<<<<<< HEAD
+=======
+          <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+          <TouchableOpacity
+            style={styles.forgotBtn}
+            activeOpacity={0.7}
+            onPress={() => router.push('/forgot-password')}>
+            <ThemedText style={[styles.forgotText, { color: colors.icon }]}>
+              ¿Olvidaste tu contraseña?
+            </ThemedText>
+          </TouchableOpacity>
+
+>>>>>>> ba3bb53693e69e0a7c7527d570f63ae80470ef75
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -311,10 +347,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 6,
+    lineHeight: 32,
   },
   subtitle: {
     fontSize: 15,
     marginBottom: 28,
+    lineHeight: 22,
   },
   fields: {
     gap: 14,

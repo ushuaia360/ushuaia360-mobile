@@ -40,6 +40,18 @@ interface AuthStore {
     confirmPassword: string,
   ) => Promise<{ message: string }>;
 
+  /** POST /auth/verify-email */
+  verifyEmail: (token: string) => Promise<{ message: string }>;
+
+  /** POST /auth/resend-verification */
+  resendVerification: (email: string) => Promise<{ message: string }>;
+
+  /** POST /auth/forgot-password */
+  forgotPassword: (email: string) => Promise<{ message: string }>;
+
+  /** POST /auth/change-password (flujo recuperación) */
+  resetPassword: (resetToken: string, newPassword: string) => Promise<{ message: string }>;
+
   /** Elimina token y limpia el estado */
   logout: () => Promise<void>;
 }
@@ -101,6 +113,34 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ isLoading: false });
       throw error;
     }
+  },
+
+  verifyEmail: async (token) => {
+    return apiRequest<{ message: string }>('/auth/verify-email', {
+      method: 'POST',
+      body: { token },
+    });
+  },
+
+  resendVerification: async (email) => {
+    return apiRequest<{ message: string }>('/auth/resend-verification', {
+      method: 'POST',
+      body: { email },
+    });
+  },
+
+  forgotPassword: async (email) => {
+    return apiRequest<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+    });
+  },
+
+  resetPassword: async (resetToken, newPassword) => {
+    return apiRequest<{ message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: { reset_token: resetToken, new_password: newPassword },
+    });
   },
 
   logout: async () => {

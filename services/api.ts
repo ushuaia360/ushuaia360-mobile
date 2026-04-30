@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '@/constants/api';
 import { logRecorridoTimer } from '@/lib/recorrido-timer-debug';
+import { REVIEW_GALLERY_MAX_PHOTOS } from '@/lib/review-constants';
 
 interface RequestOptions {
   method?: string;
@@ -234,6 +235,7 @@ export interface TrailReview {
   avatar_url: string | null;
   rating: number;
   comment: string;
+  image_urls?: string[];
   created_at: string;
 }
 
@@ -258,6 +260,7 @@ export interface TrailReviewsResponse {
 export interface CreateTrailReviewBody {
   rating: number;
   comment: string;
+  image_urls?: string[];
 }
 
 export interface CreateTrailReviewResponse {
@@ -288,6 +291,100 @@ export async function createTrailReview(
   });
 }
 
+// ── Reseñas (puntos turísticos) — mismo cuerpo que senderos ──────────────────
+
+export interface PlaceReview {
+  id: string;
+  place_id: string;
+  user_id: string;
+  name: string | null;
+  avatar_url: string | null;
+  rating: number;
+  comment: string;
+  image_urls?: string[];
+  created_at: string;
+}
+
+export type PlaceReviewsResponse = Omit<TrailReviewsResponse, 'reviews'> & {
+  reviews: PlaceReview[];
+};
+
+export async function fetchPlaceReviews(
+  placeId: string,
+  limit = 20,
+  offset = 0,
+): Promise<PlaceReviewsResponse> {
+  const qs = new URLSearchParams();
+  qs.set('limit', String(limit));
+  qs.set('offset', String(offset));
+  return apiRequest<PlaceReviewsResponse>(`/places/${placeId}/reviews?${qs.toString()}`);
+}
+
+export type CreatePlaceReviewResponse = {
+  message: string;
+  review: PlaceReview;
+};
+
+export async function createPlaceReview(
+  placeId: string,
+  token: string,
+  body: CreateTrailReviewBody,
+): Promise<CreatePlaceReviewResponse> {
+  return apiRequest<CreatePlaceReviewResponse>(`/places/${placeId}/reviews`, {
+    method: 'POST',
+    token,
+    body,
+  });
+}
+
+/**
+ * Sube una foto ya comprimida (WebP) al bucket `reviews` vía API.
+ * `localUri` debe ser un archivo local (`file://` / content URI).
+ */
+export async function uploadReviewImage(token: string, localUri: string): Promise<string> {
+  const { compressReviewPhotoForUpload } = await import('@/lib/image');
+  const compressedUri = await compressReviewPhotoForUpload(localUri);
+  const form = new FormData();
+  form.append('file', {
+    uri: compressedUri,
+    name: 'review.webp',
+    type: 'image/webp',
+  } as unknown as Blob);
+
+  const res = await fetch(`${API_BASE_URL}/uploads/review-image`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  const raw = await res.text();
+  let data: Record<string, unknown> = {};
+  try {
+    data = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+  } catch {
+    /* ignore */
+  }
+
+  if (!res.ok) {
+    const msg =
+      (typeof data.error === 'string' && data.error) ||
+      res.statusText ||
+      'Error al subir la imagen';
+    throw new ApiHttpError(res.status, msg, data);
+  }
+
+  const url = data.url;
+  if (typeof url !== 'string' || !url.trim()) {
+    throw new ApiHttpError(res.status, 'Respuesta inválida al subir imagen', data);
+  }
+  return url.trim();
+}
+
+export async function uploadReviewImages(token: string, localUris: string[]): Promise<string[]> {
+  const slice = localUris.slice(0, REVIEW_GALLERY_MAX_PHOTOS);
+  return Promise.all(slice.map((uri) => uploadReviewImage(token, uri)));
+}
+
 // ── Favoritos (senderos) ──────────────────────────────────────────────────────
 
 export async function fetchFavoriteTrailIds(token: string): Promise<string[]> {
@@ -311,6 +408,19 @@ export async function addTrailFavorite(token: string, trailId: string): Promise<
 
 export async function removeTrailFavorite(token: string, trailId: string): Promise<void> {
   await apiRequest(`/me/favorite-trails/${trailId}`, { method: 'DELETE', token });
+}
+
+export async function fetchFavoritePlaceIds(token: string): Promise<string[]> {
+  const data = await apiRequest<{ place_ids: string[] }>('/me/favorite-places/ids', { token });
+  return data.place_ids ?? [];
+}
+
+export async function addPlaceFavorite(token: string, placeId: string): Promise<void> {
+  await apiRequest(`/me/favorite-places/${placeId}`, { method: 'POST', token });
+}
+
+export async function removePlaceFavorite(token: string, placeId: string): Promise<void> {
+  await apiRequest(`/me/favorite-places/${placeId}`, { method: 'DELETE', token });
 }
 
 export interface ProfileStatsResponse {
