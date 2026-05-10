@@ -30,7 +30,7 @@ export function stackTabBarReserveHeight(bottomInset: number): number {
 const STACK_TABS: TabItem[] = [
   { name: 'index', path: '/(tabs)', icon: 'home-outline', iconFilled: 'home' },
   { name: 'search', path: '/(tabs)/search', icon: 'search-outline', iconFilled: 'search' },
-  { name: 'map', path: '/(tabs)/map', icon: 'map-outline', iconFilled: 'map' },
+  { name: 'downloads', path: '/(tabs)/downloads', icon: 'download-outline', iconFilled: 'download' },
   { name: 'favorites', path: '/(tabs)/favorites', icon: 'heart-outline', iconFilled: 'heart' },
   { name: 'profile', path: '/(tabs)/profile', icon: 'person-outline', iconFilled: 'person' },
 ];
@@ -61,10 +61,11 @@ export default function StackTabBar() {
     opacity: opacity.value,
   }));
 
-  const stackMapContext = pathname.includes('/trails/') || pathname.includes('/places/');
+  /** En detalle de sendero/lugar no hay ruta de tab activa; se resalta Inicio como ancla. */
+  const stackDetailContext = pathname.includes('/trails/') || pathname.includes('/places/');
 
   const focusedForPath = (tab: TabItem): boolean => {
-    if (stackMapContext) return tab.name === 'map';
+    if (stackDetailContext) return tab.name === 'index';
     if (tab.path === '/(tabs)') {
       return pathname === '/(tabs)' || pathname === '/' || pathname === '/index' || pathname === '';
     }

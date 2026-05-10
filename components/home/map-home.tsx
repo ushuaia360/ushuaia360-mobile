@@ -20,6 +20,8 @@ import {
 } from '@/lib/map-projection';
 import { useWatchUserLocation } from '@/hooks/use-watch-user-location';
 import { homePinScaleFromRegionSpan, pinScaleFromTileZoom } from '@/lib/map-pin-scale';
+import { useNetworkReachable } from '@/hooks/use-network-reachable';
+import { loadMapMarkersSnapshot, saveMapMarkersSnapshot } from '@/lib/offline-pack';
 import { fetchMapMarkers, type MapMarker } from '@/services/api';
 import MapView, { Marker, type Details, type Region } from 'react-native-maps';
 import { useHomeStore } from '@/store/home-store';
@@ -31,6 +33,7 @@ import {
   PanResponder,
   Platform,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
   useWindowDimensions,
@@ -156,6 +159,8 @@ export default function MapHome() {
     : 'https://a.basemaps.cartocdn.com/light_all';
 
   const [useSatellite, setUseSatellite] = useState(false);
+  /** iOS siempre MapKit. Android: teselas PNG remotas en calle; satélite con MapView nativo (mejor sin red vía caché de Google). */
+  const useNativeMapView = Platform.OS === 'ios' || (Platform.OS === 'android' && useSatellite);
 
   const [committed, setCommitted] = useState<MapState>({ zoom: BASE_ZOOM, panX: 0, panY: 0 });
   const { searchOpen, setSearchOpen, setMapPanning } = useHomeStore();
@@ -189,6 +194,7 @@ export default function MapHome() {
   };
 
   const liveLocation = useWatchUserLocation(Platform.OS !== 'web');
+  const networkReachable = useNetworkReachable();
 
   const orderedMapMarkers = useMemo(() => {
     const places = mapMarkers.filter((m): m is Extract<MapMarker, { kind: 'place' }> => m.kind === 'place');
@@ -198,8 +204,14 @@ export default function MapHome() {
 
   useEffect(() => {
     fetchMapMarkers()
-      .then(setMapMarkers)
-      .catch(() => setMapMarkers([]));
+      .then((markers) => {
+        setMapMarkers(markers);
+        void saveMapMarkersSnapshot(markers);
+      })
+      .catch(async () => {
+        const cached = await loadMapMarkersSnapshot();
+        setMapMarkers(cached ?? []);
+      });
   }, []);
 
   useEffect(() => {
@@ -393,7 +405,7 @@ export default function MapHome() {
       };
 
   const handleCtlZoomIn = () => {
-    if (Platform.OS === 'ios') {
+    if (useNativeMapView) {
       bumpIosProgrammaticMapMove();
       const r = iosRegionRef.current;
       iosMapRef.current?.animateToRegion(
@@ -411,7 +423,7 @@ export default function MapHome() {
   };
 
   const handleCtlZoomOut = () => {
-    if (Platform.OS === 'ios') {
+    if (useNativeMapView) {
       bumpIosProgrammaticMapMove();
       const r = iosRegionRef.current;
       iosMapRef.current?.animateToRegion(
@@ -454,7 +466,7 @@ export default function MapHome() {
     const sheetReservedBottomPx = Math.round(height * 0.6) + bottom + 44;
     const mapTopInset = Math.round(top + CARD_PADDING_TOP + SB_INPUT_HEIGHT + 36);
 
-    if (Platform.OS === 'ios') {
+    if (useNativeMapView) {
       requestAnimationFrame(() => {
         bumpIosProgrammaticMapMove();
         const r = iosRegionRef.current;
@@ -505,12 +517,12 @@ export default function MapHome() {
 
   return (
     <View style={styles.container}>
-      {Platform.OS === 'ios' ? (
+      {useNativeMapView ? (
         <MapView
           ref={iosMapRef}
           style={StyleSheet.absoluteFillObject}
           initialRegion={USHUAIA_REGION}
-          mapType={useSatellite ? 'satellite' : 'standard'}
+          mapType={Platform.OS === 'ios' ? (useSatellite ? 'satellite' : 'standard') : 'satellite'}
           userInterfaceStyle={isDark ? 'dark' : 'light'}
           showsUserLocation={false}
           onRegionChange={(_r: Region, details: Details) => {
@@ -604,6 +616,15 @@ export default function MapHome() {
           onPress={() => setSearchOpen(true)}
           isActive={searchOpen}
         />
+        {networkReachable === false ? (
+          <View style={[styles.offlineBanner, { borderTopColor: isDark ? '#2a2a2a' : '#ececec' }]}>
+            <Text style={[styles.offlineBannerText, { color: colors.text }]} numberOfLines={2}>
+              {mapMarkers.length > 0
+                ? 'Sin conexión: estás viendo la última descarga del mapa.'
+                : 'Sin conexión. Con datos, abrí el mapa una vez para guardar senderos y lugares.'}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Debajo del BottomSheet «Senderos para ti» (misma idea que con el buscador en modal). */}
@@ -666,7 +687,7 @@ export default function MapHome() {
             ]}
             activeOpacity={0.7}
             onPress={() => {
-              if (Platform.OS === 'ios') {
+              if (useNativeMapView) {
                 bumpIosProgrammaticMapMove();
                 if (liveLocation) {
                   const r = iosRegionRef.current;
@@ -738,6 +759,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
+  },
+  offlineBanner: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    paddingTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  offlineBannerText: {
+    fontSize: 12,
+    lineHeight: 16,
+    opacity: 0.85,
   },
   rightFabChrome: {
     position: 'absolute',

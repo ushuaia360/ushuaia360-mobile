@@ -22,7 +22,7 @@ interface TabItem {
 const tabs: TabItem[] = [
   { name: 'index', icon: 'home-outline', iconFilled: 'home' },
   { name: 'search', icon: 'search-outline', iconFilled: 'search' },
-  { name: 'map', icon: 'map-outline', iconFilled: 'map' },
+  { name: 'downloads', icon: 'download-outline', iconFilled: 'download' },
   { name: 'favorites', icon: 'heart-outline', iconFilled: 'heart' },
   { name: 'profile', icon: 'person-outline', iconFilled: 'person' },
 ];
@@ -65,9 +65,13 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
         animatedStyle,
       ]}
       pointerEvents={searchOpen ? 'none' : 'auto'}>
-      {state.routes.map((route, index) => {
+      {tabs.map((tab) => {
+        const route = state.routes.find((r) => r.name === tab.name);
+        if (!route) return null;
+
         const { options } = descriptors[route.key];
-        const isFocused = state.index === index;
+        const routeIndex = state.routes.findIndex((r) => r.key === route.key);
+        const isFocused = state.index === routeIndex;
 
         const onPress = () => {
           const event = navigation.emit({
@@ -88,9 +92,6 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
           });
         };
 
-        const tab = tabs.find((t) => t.name === route.name);
-        if (!tab) return null;
-
         return (
           <TouchableOpacity
             key={route.key}
@@ -101,7 +102,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
             onPress={onPress}
             onLongPress={onLongPress}
             style={styles.tabButton}
-            activeOpacity={0.7}>
+            activeOpacity={0.65}>
             <IconSymbol
               size={24}
               name={isFocused ? tab.iconFilled : tab.icon}

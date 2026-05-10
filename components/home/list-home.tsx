@@ -5,6 +5,7 @@ import { Trail } from '@/constants/mock-trails';
 import { SB_INPUT_HEIGHT } from '@/constants/search-layout';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import { useHomeStore } from '@/store/home-store';
 import { useTrailsStore } from '@/store/trails-store';
 import { router } from 'expo-router';
@@ -78,6 +79,7 @@ export default function ListHome() {
     searchQuery,
   } = useTrailsStore();
   const { setMode, searchOpen, setSearchOpen } = useHomeStore();
+  const networkReachable = useNetworkReachable();
 
   // Carga inicial
   useEffect(() => {
@@ -161,7 +163,9 @@ export default function ListHome() {
             <View style={styles.empty}>
               <IconSymbol name="search-outline" size={40} color={isDark ? '#444' : '#ccc'} />
               <ThemedText style={[styles.emptyText, { color: colors.icon }]}>
-                No se encontraron senderos
+                {networkReachable === false
+                  ? 'Sin conexión. No pudimos cargar el listado; probá el mapa con la última descarga guardada.'
+                  : 'No se encontraron senderos'}
               </ThemedText>
             </View>
           }

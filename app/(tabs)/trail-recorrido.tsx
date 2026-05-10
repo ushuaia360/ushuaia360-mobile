@@ -7,10 +7,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { logRecorridoTimer } from '@/lib/recorrido-timer-debug';
+import { appAlert } from '@/lib/app-alert';
+import { shouldQueueTrailCompletionError } from '@/lib/network-error';
+import { enqueuePendingTrailCompletion } from '@/lib/pending-trail-completion';
 import { normalizeSessionStartedAtToISO } from '@/lib/session-started-at';
+import { logRecorridoTimer } from '@/lib/recorrido-timer-debug';
 import { ensureTrailMapLocationPermission, alertLocationDenied } from '@/lib/trail-location-permission';
 import {
+  ApiHttpError,
   beginTrailHistoryRecorrido,
   completeUserTrailHistory,
   startUserTrailHistory,
@@ -185,18 +189,46 @@ export default function TrailRecorridoScreen() {
       return;
     }
 
+    const snapBefore = selectActiveSession(useActiveTrailSessionStore.getState()) ?? session;
+
     setCompleting(true);
+    let serverIdAfterStart: string | undefined;
     try {
-      const snap = selectActiveSession(useActiveTrailSessionStore.getState()) ?? session;
-      let historyEntryId = snap.historyEntryId;
+      let historyEntryId = snapBefore.historyEntryId;
       if (historyEntryId.startsWith('local-')) {
-        const entry = await startUserTrailHistory(token, snap.trailId);
+        const entry = await startUserTrailHistory(token, snapBefore.trailId);
         historyEntryId = entry.id;
+        serverIdAfterStart = entry.id;
       }
       await completeUserTrailHistory(token, historyEntryId);
-      setCelebrationTrailName(snap.trailName);
+      setCelebrationTrailName(snapBefore.trailName);
       setCelebrationVisible(true);
     } catch (e) {
+      if (e instanceof ApiHttpError && e.status === 401) {
+        setInfoModal({ title: 'Sesión', message: 'Tenés que iniciar sesión para guardar el recorrido.' });
+        return;
+      }
+      if (shouldQueueTrailCompletionError(e)) {
+        try {
+          await enqueuePendingTrailCompletion({
+            trailId: snapBefore.trailId,
+            serverHistoryEntryId: serverIdAfterStart,
+          });
+          await removeSessionByHistoryId(snapBefore.historyEntryId);
+          router.replace('/(tabs)' as any);
+          setTimeout(() => {
+            appAlert(
+              'Sin conexión',
+              'Tu recorrido quedó marcado para subirse cuando vuelva la conexión.',
+            );
+          }, 400);
+        } catch {
+          const msg =
+            e instanceof Error ? e.message : 'No pudimos guardar la finalización. Intentá de nuevo.';
+          setInfoModal({ title: 'Error', message: msg });
+        }
+        return;
+      }
       const msg = e instanceof Error ? e.message : 'No pudimos guardar la finalización. Intentá de nuevo.';
       setInfoModal({ title: 'Error', message: msg });
     } finally {

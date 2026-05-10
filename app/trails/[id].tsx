@@ -6,6 +6,7 @@ import TrailGalleryLightbox from '@/components/trail-gallery-lightbox';
 import TrailRouteTileMap, { TRAIL_ROUTE_LINE_COLOR } from '@/components/trail-route-tile-map';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import {
   filterDisplayableMedia,
   imageUrlsToGallerySlides,
@@ -13,6 +14,16 @@ import {
 } from '@/lib/gallery-slides';
 import { redirectToLogin } from '@/lib/needAuth';
 import { poiTypeIcon } from '@/lib/poi-icons';
+import { appAlert } from '@/lib/app-alert';
+import { isLikelyNetworkError, shouldQueueTrailCompletionError } from '@/lib/network-error';
+import { cacheTrailDetailMediaForOffline } from '@/lib/offline-media-cache';
+import { canDownloadForOffline } from '@/lib/offline-download-gate';
+import {
+  addManualTrailDownload,
+  isTrailManuallyDownloaded,
+  loadTrailOfflinePack,
+  removeManualTrailDownload,
+} from '@/lib/offline-pack';
 import { normalizeSessionStartedAtToISO } from '@/lib/session-started-at';
 import { buildLineFromTrailPoints, normalizeTrailPointLocation } from '@/lib/trail-geo-normalize';
 import { alertLocationDenied, ensureTrailMapLocationPermission } from '@/lib/trail-location-permission';
@@ -42,11 +53,12 @@ import { mapBackendTrail, useTrailsStore } from '@/store/trails-store';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Image as ExpoImage } from 'expo-image';
+import { useFocusEffect } from '@react-navigation/native';
 import { Stack, router, useLocalSearchParams, usePathname } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   BackHandler,
   Dimensions,
   FlatList,
@@ -344,7 +356,8 @@ function poiHeroFromPoint(p: TrailPointDetail): PoiHeroBlock | null {
   const list = filterDisplayableMedia(p.media);
   const m = list[0];
   if (!m) return null;
-  const uri = (m.thumbnail_url || m.url) as string;
+  const raw = (m.thumbnail_url || m.url) as string;
+  const uri = resolveApiMediaUrl(raw) ?? raw;
   if (m.media_type === 'photo_360') return { kind: 'panorama', uri };
   if (m.media_type === 'photo_180') return { kind: 'panorama', uri, half: true };
   return { kind: 'image', uri };
@@ -377,12 +390,15 @@ export default function TrailDetailScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
   const { top, bottom } = useSafeAreaInsets();
+  const networkReachable = useNetworkReachable();
+  const isOnline = networkReachable === true;
 
   const { id } = useLocalSearchParams<{ id?: string }>();
   const trailId = typeof id === 'string' ? id : undefined;
 
   const { trails, featuredTrails, fetchTrails, loading } = useTrailsStore();
   const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
   const pathname = usePathname();
   const trailFavorited = useFavoritesStore((s) => (trailId ? s.isFavorite(trailId) : false));
   const toggleTrailFavorite = useFavoritesStore((s) => s.toggleTrail);
@@ -450,13 +466,82 @@ export default function TrailDetailScreen() {
 
   const [trailDetail, setTrailDetail] = useState<TrailDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(() => Boolean(trailId));
+  const [trailManualDownload, setTrailManualDownload] = useState(false);
+
+  const refreshTrailManualDownload = useCallback(() => {
+    if (!trailId) return;
+    void isTrailManuallyDownloaded(trailId).then(setTrailManualDownload);
+  }, [trailId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshTrailManualDownload();
+    }, [refreshTrailManualDownload]),
+  );
+
+  const [trailDownloadBusy, setTrailDownloadBusy] = useState(false);
+
+  const handleTrailOfflineDownload = useCallback(async () => {
+    if (!trailId) return;
+    if (!canDownloadForOffline(user)) {
+      appAlert(
+        'Próximamente Premium',
+        'La descarga para uso sin conexión estará disponible para cuentas Premium.',
+      );
+      return;
+    }
+    if (trailManualDownload) {
+      appAlert(
+        'Quitar descarga',
+        '¿Eliminar este sendero de tus descargas? No podrás abrirlo sin conexión.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Quitar',
+            style: 'destructive',
+            onPress: async () => {
+              await removeManualTrailDownload(trailId);
+              setTrailManualDownload(false);
+            },
+          },
+        ],
+      );
+      return;
+    }
+    setTrailDownloadBusy(true);
+    try {
+      let detail = trailDetail;
+      if (!detail) {
+        detail = await fetchTrailById(trailId);
+        setTrailDetail(detail);
+      }
+      const withLocalMedia = await cacheTrailDetailMediaForOffline(detail);
+      await addManualTrailDownload(withLocalMedia);
+      setTrailDetail(withLocalMedia);
+      setTrailManualDownload(true);
+      appAlert('Listo', 'Sendero descargado. Lo encontrás en la pestaña Descargas.');
+    } catch {
+      appAlert('Error', 'No se pudo descargar. Comprobá tu conexión e intentá de nuevo.');
+    } finally {
+      setTrailDownloadBusy(false);
+    }
+  }, [trailId, trailDetail, user, trailManualDownload]);
 
   useEffect(() => {
     if (!trailId) return;
     setDetailLoading(true);
     fetchTrailById(trailId)
-      .then(setTrailDetail)
-      .catch(() => setTrailDetail(null))
+      .then((d) => {
+        setTrailDetail(d);
+      })
+      .catch(async () => {
+        const cached = await loadTrailOfflinePack(trailId);
+        if (cached) {
+          setTrailDetail(cached);
+        } else {
+          setTrailDetail(null);
+        }
+      })
       .finally(() => setDetailLoading(false));
   }, [trailId]);
 
@@ -504,9 +589,9 @@ export default function TrailDetailScreen() {
   }, [reviewsRatingCounts, reviewsTotal]);
 
   useEffect(() => {
-    if (!trailId) return;
+    if (!trailId || networkReachable !== true) return;
     void refreshReviews();
-  }, [trailId, refreshReviews]);
+  }, [trailId, refreshReviews, networkReachable]);
 
   const selectedPoi = useMemo(() => {
     if (poiOverlay.kind !== 'poi' || !trailDetail?.points) return null;
@@ -633,10 +718,16 @@ export default function TrailDetailScreen() {
       await setActiveSession(snap);
       router.push('/(tabs)/trail-recorrido' as any);
     } catch (e) {
+      if (e instanceof ApiHttpError && e.status === 401) {
+        redirectToLogin(pathname || '/(tabs)');
+        return;
+      }
       const notFound =
         (e instanceof ApiHttpError && e.status === 404) ||
         (e instanceof Error && /not\s*found/i.test(e.message));
-      if (notFound) {
+      const useLocal =
+        notFound || isLikelyNetworkError(e) || shouldQueueTrailCompletionError(e);
+      if (useLocal) {
         const snap = buildSessionSnapshot(
           `local-${Date.now()}-${trailId.slice(0, 8)}`,
           new Date().toISOString(),
@@ -647,7 +738,7 @@ export default function TrailDetailScreen() {
       }
       const msg =
         e instanceof Error ? e.message : 'No pudimos iniciar el recorrido. Intentá de nuevo.';
-      Alert.alert('Error', msg);
+      appAlert('Error', msg);
     }
   }, [trailId, trailDetail, token, buildSessionSnapshot, setActiveSession]);
 
@@ -662,7 +753,7 @@ export default function TrailDetailScreen() {
       return;
     }
     if (storedSessions.length > 0) {
-      Alert.alert(
+      appAlert(
         'Otros recorridos en curso',
         `Tenés ${storedSessions.length} ${storedSessions.length === 1 ? 'recorrido' : 'recorridos'} sin terminar. ¿También empezás este? Los otros siguen guardados.`,
         [
@@ -928,7 +1019,10 @@ export default function TrailDetailScreen() {
         </View>
       ) : !trail ? (
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.icon }}>No encontramos este sendero.</ThemedText>
+          <ThemedText
+            style={{ color: colors.icon, textAlign: 'center', paddingHorizontal: 24 }}>
+            No encontramos este sendero.
+          </ThemedText>
         </View>
       ) : (
         <>
@@ -1011,28 +1105,32 @@ export default function TrailDetailScreen() {
                         <Ionicons name="chevron-back" size={22} color="#000" />
                       </TouchableOpacity>
                       <View style={styles.floatRightGroup}>
-                        <TouchableOpacity
-                          style={[styles.floatBtn, { backgroundColor: '#fff' }]}
-                          onPress={() => Share.share({ message: `Mirá este sendero: ${trail.name}` })}
-                          hitSlop={12}>
-                          <Ionicons name="share-outline" size={20} color="#000" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.floatBtn, { backgroundColor: '#fff' }, trailFavorited && styles.floatBtnLiked]}
-                          onPress={async () => {
-                            if (!token) {
-                              redirectToLogin(pathname || '/(tabs)');
-                              return;
-                            }
-                            await toggleTrailFavorite(trailId!, token, !trailFavorited);
-                          }}
-                          hitSlop={12}>
-                          <Ionicons
-                            name={trailFavorited ? 'heart' : 'heart-outline'}
-                            size={20}
-                            color={trailFavorited ? '#ff3b30' : '#000'}
-                          />
-                        </TouchableOpacity>
+                        {isOnline ? (
+                          <>
+                            <TouchableOpacity
+                              style={[styles.floatBtn, { backgroundColor: '#fff' }]}
+                              onPress={() => Share.share({ message: `Mirá este sendero: ${trail.name}` })}
+                              hitSlop={12}>
+                              <Ionicons name="share-outline" size={20} color="#000" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.floatBtn, { backgroundColor: '#fff' }, trailFavorited && styles.floatBtnLiked]}
+                              onPress={async () => {
+                                if (!token) {
+                                  redirectToLogin(pathname || '/(tabs)');
+                                  return;
+                                }
+                                await toggleTrailFavorite(trailId!, token, !trailFavorited);
+                              }}
+                              hitSlop={12}>
+                              <Ionicons
+                                name={trailFavorited ? 'heart' : 'heart-outline'}
+                                size={20}
+                                color={trailFavorited ? '#ff3b30' : '#000'}
+                              />
+                            </TouchableOpacity>
+                          </>
+                        ) : null}
                       </View>
                     </View>
                   </View>
@@ -1042,15 +1140,17 @@ export default function TrailDetailScreen() {
                     {/* Nombre + meta */}
                     <View style={styles.nameSection}>
                       <ThemedText style={styles.name}>{trail.name}</ThemedText>
-                      <View style={styles.ratingRow}>
-                        <Ionicons name="star" size={14} color="#000" />
-                        <ThemedText style={[styles.ratingText, { color: '#000', fontWeight: '500' }]}>
-                          {trail.rating.toFixed(1)}
-                        </ThemedText>
-                        <ThemedText style={[styles.ratingText, { color: colors.icon }]}>
-                          ({trail.reviewCount})
-                        </ThemedText>
-                      </View>
+                      {isOnline ? (
+                        <View style={styles.ratingRow}>
+                          <Ionicons name="star" size={14} color="#000" />
+                          <ThemedText style={[styles.ratingText, { color: '#000', fontWeight: '500' }]}>
+                            {trail.rating.toFixed(1)}
+                          </ThemedText>
+                          <ThemedText style={[styles.ratingText, { color: colors.icon }]}>
+                            ({trail.reviewCount})
+                          </ThemedText>
+                        </View>
+                      ) : null}
                     </View>
 
                     {/* Divisor */}
@@ -1179,7 +1279,8 @@ export default function TrailDetailScreen() {
                     )}
 
                     {/* Rating breakdown */}
-                    {reviews.length > 0 && <View style={styles.ratingBreakdown}>
+                    {isOnline && reviews.length > 0 ? (
+                    <View style={styles.ratingBreakdown}>
                       <View style={styles.rbLeft}>
                         <ThemedText style={[styles.rbScore, { color: colors.tint }]}>
                           {reviewsAverageRating.toFixed(1)}
@@ -1214,9 +1315,12 @@ export default function TrailDetailScreen() {
                           </View>
                         ))}
                       </View>
-                    </View>}
+                    </View>
+                    ) : null}
                   </View>
 
+                  {isOnline ? (
+                  <>
                   {/* Formulario de reseña */}
                   <View
                     style={[
@@ -1437,6 +1541,8 @@ export default function TrailDetailScreen() {
                       </TouchableOpacity>
                     )}
                   </View>
+                  </>
+                  ) : null}
 
 
                   <View style={{ height: 16 }} />
@@ -1694,13 +1800,24 @@ export default function TrailDetailScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.trailFloatBtnSecondary, { borderColor: colors.tint }]}
-                    onPress={() => { }}
+                    onPress={handleTrailOfflineDownload}
+                    disabled={trailDownloadBusy}
                     activeOpacity={0.85}
                     accessibilityRole="button"
-                    accessibilityLabel="Descargar sendero">
-                    <Ionicons name="download-outline" size={22} color={colors.tint} />
+                    accessibilityLabel={
+                      trailManualDownload ? 'Gestión de descarga del sendero' : 'Descargar sendero'
+                    }>
+                    {trailDownloadBusy ? (
+                      <ActivityIndicator size="small" color={colors.tint} />
+                    ) : (
+                      <Ionicons
+                        name={trailManualDownload ? 'checkmark-circle' : 'download-outline'}
+                        size={22}
+                        color={colors.tint}
+                      />
+                    )}
                     <ThemedText style={styles.trailFloatBtnSecondaryLabel} numberOfLines={1}>
-                      Descargar sendero
+                      {trailManualDownload ? 'Descargado' : 'Descargar sendero'}
                     </ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -1738,6 +1855,7 @@ export default function TrailDetailScreen() {
                 <Ionicons name="chevron-back" size={22} color={isDark ? '#fff' : '#000'} />
               </TouchableOpacity>
               <View style={{ flex: 1 }} />
+              {isOnline ? (
               <View style={styles.topBarRight} pointerEvents="auto">
                 <TouchableOpacity
                   style={styles.topBarBtn}
@@ -1757,6 +1875,7 @@ export default function TrailDetailScreen() {
                   />
                 </TouchableOpacity>
               </View>
+              ) : null}
             </Animated.View>
           )}
         </>
@@ -1873,7 +1992,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
 
   galleryWrap: {
+    position: 'relative',
     marginHorizontal: GALLERY_HORIZONTAL_MARGIN,
+    zIndex: 1,
   },
   gallery: {
     overflow: 'hidden',
@@ -1907,6 +2028,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 12,
     right: 12,
+    zIndex: 40,
+    elevation: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },

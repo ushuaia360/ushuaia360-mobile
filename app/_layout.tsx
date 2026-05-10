@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import SearchPanel from '@/components/home/search-panel';
+import PendingTrailCompletionSync from '@/components/pending-trail-completion-sync';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -65,6 +66,7 @@ export default function RootLayout() {
           <Stack.Screen name="reset-password" options={{ headerShown: false, presentation: 'modal' }} />
         </Stack>
         <StatusBar style="auto" />
+        <PendingTrailCompletionSync />
         <SearchPanel />
       </ThemeProvider>
     </GestureHandlerRootView>

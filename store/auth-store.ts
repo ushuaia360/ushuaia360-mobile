@@ -1,9 +1,10 @@
 import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiRequest } from '@/services/api';
+import { ApiHttpError, apiRequest } from '@/services/api';
 
 const TOKEN_KEY = 'auth_token';
+const USER_CACHE_KEY = 'auth_user_cache_v1';
 
 export interface User {
   id: string;
@@ -65,16 +66,40 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   initialize: async () => {
     try {
       const token = await AsyncStorage.getItem(TOKEN_KEY);
-      if (token) {
-        const data = await apiRequest<{ user: User }>('/auth/me-app', { token });
-        set({ token, user: data.user, isInitialized: true });
-      } else {
+      if (!token) {
         await useActiveTrailSessionStore.getState().clearSession();
         set({ isInitialized: true });
+        return;
+      }
+      try {
+        const data = await apiRequest<{ user: User }>('/auth/me-app', { token });
+        await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(data.user));
+        set({ token, user: data.user, isInitialized: true });
+      } catch (err) {
+        const unauthorized =
+          err instanceof ApiHttpError && (err.status === 401 || err.status === 403);
+        if (unauthorized) {
+          await AsyncStorage.removeItem(TOKEN_KEY);
+          await AsyncStorage.removeItem(USER_CACHE_KEY);
+          await useActiveTrailSessionStore.getState().clearSession();
+          set({ token: null, user: null, isInitialized: true });
+          return;
+        }
+        const rawUser = await AsyncStorage.getItem(USER_CACHE_KEY);
+        if (rawUser) {
+          try {
+            const user = JSON.parse(rawUser) as User;
+            set({ token, user, isInitialized: true });
+            return;
+          } catch {
+            await AsyncStorage.removeItem(USER_CACHE_KEY);
+          }
+        }
+        set({ token, user: null, isInitialized: true });
       }
     } catch {
-      // Token inválido o vencido → limpiar
       await AsyncStorage.removeItem(TOKEN_KEY);
+      await AsyncStorage.removeItem(USER_CACHE_KEY);
       await useActiveTrailSessionStore.getState().clearSession();
       set({ token: null, user: null, isInitialized: true });
     }
@@ -88,6 +113,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         body: { email, password },
       });
       await AsyncStorage.setItem(TOKEN_KEY, data.token);
+      await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(data.user));
       set({ token: data.token, user: data.user, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
@@ -145,6 +171,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   logout: async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
+    await AsyncStorage.removeItem(USER_CACHE_KEY);
     await useActiveTrailSessionStore.getState().clearSession();
     set({ token: null, user: null });
   },

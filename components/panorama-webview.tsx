@@ -1,3 +1,4 @@
+import { PANNELLUM_INLINE_CSS, PANNELLUM_INLINE_JS } from '@/components/panorama-pannellum-inline';
 import { useMemo } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import WebView from 'react-native-webview';
@@ -16,7 +17,6 @@ function buildPannellumHtml(imageUrl: string, panoramaHalf: boolean): string {
     pitch: 0,
     yaw: 0,
     compass: true,
-    basePath: 'https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/',
   };
   if (panoramaHalf) {
     config.minYaw = -90;
@@ -28,7 +28,7 @@ function buildPannellumHtml(imageUrl: string, panoramaHalf: boolean): string {
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+  <style>${PANNELLUM_INLINE_CSS}</style>
   <style>
     html, body {
       margin: 0;
@@ -69,7 +69,7 @@ function buildPannellumHtml(imageUrl: string, panoramaHalf: boolean): string {
 </head>
 <body>
   <div id="panorama"></div>
-  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+  <script>${PANNELLUM_INLINE_JS}</script>
   <script>
     (function () {
       try {

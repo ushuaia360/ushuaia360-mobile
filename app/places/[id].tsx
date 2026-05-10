@@ -9,12 +9,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import { imageUrlsToGallerySlides, placeMediaToGallerySlides } from '@/lib/gallery-slides';
 import { formatPlaceCategoryLabel, getPlaceCategoryVisual } from '@/lib/place-category-map';
 import { redirectToLogin } from '@/lib/needAuth';
 import { pickReviewImagesToAppend } from '@/lib/review-image-picker';
 import { REVIEW_GALLERY_MAX_PHOTOS, REVIEWS_LIST_PAGE_SIZE } from '@/lib/review-constants';
 import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
+import { loadPlaceOfflinePack } from '@/lib/offline-pack';
 import {
   createPlaceReview,
   fetchPlace,
@@ -157,6 +159,8 @@ export default function PlaceDetailScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
   const { top, bottom } = useSafeAreaInsets();
+  const networkReachable = useNetworkReachable();
+  const isOnline = networkReachable === true;
 
   const { id } = useLocalSearchParams<{ id?: string }>();
   const placeId = typeof id === 'string' ? id : undefined;
@@ -175,6 +179,7 @@ export default function PlaceDetailScreen() {
   }));
 
   const [place, setPlace] = useState<BackendPlace | null>(null);
+  const [placeFromOffline, setPlaceFromOffline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -203,12 +208,22 @@ export default function PlaceDetailScreen() {
     if (!placeId) return;
     setLoading(true);
     setError(null);
+    setPlaceFromOffline(false);
     try {
       const p = await fetchPlace(placeId);
       setPlace(p);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo cargar el lugar');
-      setPlace(null);
+      setPlaceFromOffline(false);
+    } catch {
+      const cached = await loadPlaceOfflinePack(placeId);
+      if (cached) {
+        setPlace(cached);
+        setPlaceFromOffline(true);
+        setError(null);
+      } else {
+        setError('No se pudo cargar el lugar');
+        setPlace(null);
+        setPlaceFromOffline(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -294,9 +309,9 @@ export default function PlaceDetailScreen() {
   }, [placeId]);
 
   useEffect(() => {
-    if (!placeId) return;
+    if (!placeId || networkReachable !== true) return;
     void refreshReviews();
-  }, [placeId, refreshReviews]);
+  }, [placeId, refreshReviews, networkReachable]);
 
   const ratingPercentages = useMemo(() => {
     const total = Math.max(1, reviewsTotal);
@@ -471,7 +486,11 @@ export default function PlaceDetailScreen() {
         </View>
       ) : error || !place ? (
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.icon }}>{error ?? 'No encontrado'}</ThemedText>
+          <ThemedText style={{ color: colors.icon, textAlign: 'center', paddingHorizontal: 24 }}>
+            {networkReachable === false
+              ? 'Sin conexión. No hay una copia guardada de este lugar. Conectate y abrilo una vez para guardarlo en el dispositivo.'
+              : error ?? 'No encontrado'}
+          </ThemedText>
         </View>
       ) : (
         <>
@@ -488,6 +507,22 @@ export default function PlaceDetailScreen() {
               contentContainerStyle={{ paddingBottom: detailListBottomPad }}
               renderItem={() => (
                 <View>
+                  {placeFromOffline ? (
+                    <View
+                      style={{
+                        marginHorizontal: 16,
+                        marginBottom: 8,
+                        marginTop: 4,
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        borderRadius: 12,
+                        backgroundColor: isDark ? '#2a2a2c' : '#eef2fb',
+                      }}>
+                      <ThemedText style={{ fontSize: 13, color: colors.text, opacity: 0.92 }}>
+                        Sin conexión: copia guardada en el dispositivo.
+                      </ThemedText>
+                    </View>
+                  ) : null}
             <View style={[styles.galleryWrap, { marginTop: galleryMarginTop }]}>
               <View
                 style={[
@@ -588,33 +623,37 @@ export default function PlaceDetailScreen() {
                   <Ionicons name="chevron-back" size={22} color="#000" />
                 </TouchableOpacity>
                 <View style={styles.floatRightGroup}>
-                  <TouchableOpacity
-                    style={[styles.floatBtn, { backgroundColor: '#fff' }]}
-                    onPress={() => Share.share({ message: `Mirá este lugar: ${place.name ?? place.slug}` })}
-                    hitSlop={12}>
-                    <Ionicons name="share-outline" size={20} color="#000" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.floatBtn,
-                      { backgroundColor: '#fff' },
-                      placeFavorited && styles.floatBtnLiked,
-                    ]}
-                    onPress={async () => {
-                      if (!token) {
-                        redirectToLogin(pathname || '/(tabs)');
-                        return;
-                      }
-                      if (!placeId) return;
-                      await togglePlaceFavorite(placeId, token, !placeFavorited);
-                    }}
-                    hitSlop={12}>
-                    <Ionicons
-                      name={placeFavorited ? 'heart' : 'heart-outline'}
-                      size={20}
-                      color={placeFavorited ? '#ff3b30' : '#000'}
-                    />
-                  </TouchableOpacity>
+                  {isOnline ? (
+                    <TouchableOpacity
+                      style={[styles.floatBtn, { backgroundColor: '#fff' }]}
+                      onPress={() => Share.share({ message: `Mirá este lugar: ${place.name ?? place.slug}` })}
+                      hitSlop={12}>
+                      <Ionicons name="share-outline" size={20} color="#000" />
+                    </TouchableOpacity>
+                  ) : null}
+                  {isOnline ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.floatBtn,
+                        { backgroundColor: '#fff' },
+                        placeFavorited && styles.floatBtnLiked,
+                      ]}
+                      onPress={async () => {
+                        if (!token) {
+                          redirectToLogin(pathname || '/(tabs)');
+                          return;
+                        }
+                        if (!placeId) return;
+                        await togglePlaceFavorite(placeId, token, !placeFavorited);
+                      }}
+                      hitSlop={12}>
+                      <Ionicons
+                        name={placeFavorited ? 'heart' : 'heart-outline'}
+                        size={20}
+                        color={placeFavorited ? '#ff3b30' : '#000'}
+                      />
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               </View>
             </View>
@@ -626,7 +665,7 @@ export default function PlaceDetailScreen() {
                   {formatPlaceCategoryLabel(place.category)}
                   {place.region ? ` · ${place.region}` : ''}
                 </ThemedText>
-                {reviewsTotal > 0 ? (
+                {isOnline && reviewsTotal > 0 ? (
                   <View style={styles.titleRatingRow}>
                     <Ionicons name="star" size={14} color="#000" />
                     <ThemedText style={[styles.titleRatingValue, { color: '#000' }]}>
@@ -659,8 +698,10 @@ export default function PlaceDetailScreen() {
                 <Metric
                   icon="star"
                   label="Rating"
-                  value={reviewsTotal > 0 ? reviewsAverageRating.toFixed(1) : '—'}
-                  iconColor={reviewsTotal > 0 ? '#FFB800' : colors.tint}
+                  value={
+                    isOnline && reviewsTotal > 0 ? reviewsAverageRating.toFixed(1) : '—'
+                  }
+                  iconColor={isOnline && reviewsTotal > 0 ? '#FFB800' : colors.tint}
                 />
               </View>
 
@@ -709,7 +750,7 @@ export default function PlaceDetailScreen() {
                 </View>
               ) : null}
 
-              {reviews.length > 0 ? (
+              {isOnline && reviews.length > 0 ? (
                 <View style={styles.ratingBreakdown}>
                   <View style={styles.rbLeft}>
                     <ThemedText style={[styles.rbScore, { color: colors.tint }]}>
@@ -749,6 +790,8 @@ export default function PlaceDetailScreen() {
               ) : null}
             </View>
 
+            {isOnline ? (
+            <>
             <View
               style={[
                 styles.reviewFormCard,
@@ -953,6 +996,8 @@ export default function PlaceDetailScreen() {
                 </TouchableOpacity>
               ) : null}
             </View>
+            </>
+            ) : null}
 
             <View style={{ height: 16 }} />
                 </View>
@@ -998,23 +1043,30 @@ export default function PlaceDetailScreen() {
                   paddingTop: 22,
                   paddingBottom: bottom + 2,
                   backgroundColor: isDark ? '#1c1c1e' : '#fff',
+                  gap: isOnline ? 8 : 0,
                 },
               ]}>
-              <TouchableOpacity
-                style={[styles.trailFloatBtnPrimary, { backgroundColor: colors.tint }]}
-                onPress={() => Share.share({ message: `Mirá este lugar: ${place.name ?? place.slug}` })}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Compartir lugar">
-                <Ionicons name="share-outline" size={20} color="#fff" />
-                <ThemedText style={styles.trailFloatBtnPrimaryLabel} numberOfLines={1}>
-                  Compartir
-                </ThemedText>
-              </TouchableOpacity>
+              {isOnline ? (
+                <TouchableOpacity
+                  style={[styles.trailFloatBtnPrimary, { backgroundColor: colors.tint }]}
+                  onPress={() => Share.share({ message: `Mirá este lugar: ${place.name ?? place.slug}` })}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Compartir lugar">
+                  <Ionicons name="share-outline" size={20} color="#fff" />
+                  <ThemedText style={styles.trailFloatBtnPrimaryLabel} numberOfLines={1}>
+                    Compartir
+                  </ThemedText>
+                </TouchableOpacity>
+              ) : null}
               <TouchableOpacity
                 style={[
                   styles.trailFloatBtnSecondary,
-                  { borderColor: colors.tint, opacity: hasCoords ? 1 : 0.45 },
+                  {
+                    borderColor: colors.tint,
+                    opacity: hasCoords ? 1 : 0.45,
+                    flex: isOnline ? undefined : 1,
+                  },
                 ]}
                 onPress={openMaps}
                 disabled={!hasCoords}
@@ -1040,6 +1092,7 @@ export default function PlaceDetailScreen() {
               <Ionicons name="chevron-back" size={22} color={isDark ? '#fff' : '#000'} />
             </TouchableOpacity>
             <View style={{ flex: 1 }} />
+            {isOnline ? (
             <View style={styles.topBarRight} pointerEvents="auto">
               <TouchableOpacity
                 style={styles.topBarBtn}
@@ -1063,6 +1116,7 @@ export default function PlaceDetailScreen() {
                 />
               </TouchableOpacity>
             </View>
+            ) : null}
           </Animated.View>
         </>
       )}
@@ -1112,7 +1166,7 @@ const styles = StyleSheet.create({
   },
   topBarBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   topBarRight: { flexDirection: 'row', marginRight: 10 },
-  galleryWrap: { marginHorizontal: GALLERY_HORIZONTAL_MARGIN },
+  galleryWrap: { position: 'relative', marginHorizontal: GALLERY_HORIZONTAL_MARGIN, zIndex: 1 },
   gallery: { overflow: 'hidden', borderRadius: 16 },
   heroPlaceholder: { width: '100%', alignItems: 'center', justifyContent: 'center' },
   galleryPanoBadge: {
@@ -1138,6 +1192,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 12,
     right: 12,
+    zIndex: 40,
+    elevation: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },

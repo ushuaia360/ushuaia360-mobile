@@ -24,15 +24,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="map"
+        name="downloads"
         options={{
-          href: '/(tabs)/map',
+          href: '/(tabs)/downloads',
         }}
       />
       <Tabs.Screen
         name="favorites"
         options={{
           href: '/(tabs)/favorites',
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen

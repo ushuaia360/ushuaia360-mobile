@@ -1,3 +1,4 @@
+import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
 import type { TrailPointMedia } from '@/services/api';
 
 export type GallerySlide = {
@@ -22,7 +23,8 @@ export function mediaRowsToGallerySlides(media: GallerySourceRow[] | undefined):
   return media
     .filter((m) => DISPLAY_GALLERY_MEDIA.has(m.media_type) && (m.url || m.thumbnail_url))
     .map((m) => {
-      const uri = (m.url || m.thumbnail_url) as string;
+      const raw = (m.url || m.thumbnail_url) as string;
+      const uri = resolveApiMediaUrl(raw) ?? raw;
       if (m.media_type === 'photo_360') {
         return { uri, mode: 'panorama' as const };
       }
