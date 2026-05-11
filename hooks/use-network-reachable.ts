@@ -65,18 +65,25 @@ function stopNativePollingIfNoListeners() {
 }
 
 /**
- * `true` si hay red hacia el API; `false` si el ping falla o aún no se comprobó (nativo: pesimista hasta el 1er ping).
- * Web: sigue `navigator.onLine` (puede ser optimista).
+ * - `null`: aún no hay resultado (primer ping en curso en nativo; o SSR web sin `navigator`).
+ * - `true` / `false`: último resultado conocido hacia el API (`res.ok` en el ping).
  */
 function getNativeInitialReachable(): boolean | null {
-  // Sin medición previa: asumimos sin API hasta el primer ping (evita home «online» vacío al primer arranque sin red).
   if (lastNotifiedReachable !== null) return lastNotifiedReachable;
-  return false;
+  return null;
 }
 
+function getWebInitialReachable(): boolean | null {
+  if (typeof navigator === 'undefined') return null;
+  const onLine = navigator.onLine;
+  lastNotifiedReachable = onLine;
+  return onLine;
+}
+
+/** `null` = comprobando (solo nativo, antes del primer ping); `true`/`false` = resultado hacia el API. */
 export function useNetworkReachable(): boolean | null {
   const [reachable, setReachable] = useState<boolean | null>(() =>
-    Platform.OS === 'web' ? lastNotifiedReachable : getNativeInitialReachable(),
+    Platform.OS === 'web' ? getWebInitialReachable() : getNativeInitialReachable(),
   );
 
   useEffect(() => {

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Alert,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -20,8 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GoogleGMark } from '@/components/auth/google-g-mark';
 import { useAuthStore } from '@/store/auth-store';
 import { LinearGradient } from 'expo-linear-gradient';
-
-const BG_IMAGE = 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1200';
+import { AuthHeroBackground } from '@/components/auth/auth-hero-background';
 
 export default function LoginScreen() {
   const { top, bottom } = useSafeAreaInsets();
@@ -84,7 +82,7 @@ export default function LoginScreen() {
   // ─── Step 1: pantalla de bienvenida ────────────────────────
   if (step === 'method') {
     return (
-      <ImageBackground source={{ uri: BG_IMAGE }} style={styles.bgImage} resizeMode="cover">
+      <AuthHeroBackground style={styles.bgImage}>
         <LinearGradient
           colors={['rgba(0,0,0,0.15)', 'transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.92)']}
           locations={[0, 0.28, 0.62, 1]}
@@ -147,7 +145,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </ImageBackground>
+      </AuthHeroBackground>
     );
   }
 

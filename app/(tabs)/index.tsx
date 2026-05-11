@@ -1,3 +1,4 @@
+import HomeConnectivityLoader from '@/components/home/home-connectivity-loader';
 import OfflineHomePlaceholder from '@/components/home/offline-home-placeholder';
 import ListHome from '@/components/home/list-home';
 import MapHome from '@/components/home/map-home';
@@ -8,7 +9,11 @@ export default function HomeScreen() {
   const { mode } = useHomeStore();
   const reachable = useNetworkReachable();
 
-  if (reachable !== true) {
+  if (reachable === null) {
+    return <HomeConnectivityLoader />;
+  }
+
+  if (reachable === false) {
     return <OfflineHomePlaceholder />;
   }
 

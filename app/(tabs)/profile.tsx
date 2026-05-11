@@ -95,8 +95,12 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (isInitialized && !user) {
+        redirectToLogin('/(tabs)/profile');
+        return;
+      }
       loadProfileStats();
-    }, [loadProfileStats]),
+    }, [isInitialized, user, loadProfileStats]),
   );
 
   const isVerified = useMemo(() => Boolean(user?.email_verified), [user?.email_verified]);
@@ -154,38 +158,7 @@ export default function ProfileScreen() {
   }
 
   if (!user) {
-    return (
-      <ThemedView style={styles.container}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-          contentContainerStyle={[styles.scroll, { paddingTop: top + 48, flexGrow: 1 }]}>
-          <View
-            style={[styles.card, { backgroundColor: cardBg, alignItems: 'center', paddingVertical: 28 }]}>
-            <Ionicons name="cloud-offline-outline" size={52} color={textSub} />
-            <ThemedText style={[styles.title, { marginTop: 20, fontSize: 22, textAlign: 'center' }]}>
-              Perfil
-            </ThemedText>
-            <ThemedText
-              style={[styles.userLocation, { textAlign: 'center', marginTop: 12, lineHeight: 20, paddingHorizontal: 8 }]}>
-              Iniciá sesión cuando tengas conexión para ver tu cuenta. Podés usar el mapa y el contenido guardado sin red.
-            </ThemedText>
-            <TouchableOpacity
-              style={[styles.guestLoginBtn, { backgroundColor: colors.tint }]}
-              activeOpacity={0.88}
-              onPress={() => router.push('/login')}>
-              <ThemedText style={styles.guestLoginBtnText}>Ir a iniciar sesión</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.guestSecondaryBtn, { borderColor: colors.tint }]}
-              activeOpacity={0.88}
-              onPress={() => router.push('/(tabs)/downloads')}>
-              <ThemedText style={[styles.guestSecondaryBtnText, { color: colors.tint }]}>Mis descargas</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </ThemedView>
-    );
+    return <ThemedView style={styles.container} />;
   }
 
   const goToFavorites = () => {
@@ -455,27 +428,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: { fontSize: 32, fontWeight: '600' },
-  guestLoginBtn: {
-    marginTop: 24,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 14,
-    alignSelf: 'stretch',
-    marginHorizontal: 8,
-    alignItems: 'center',
-  },
-  guestLoginBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  guestSecondaryBtn: {
-    marginTop: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    alignSelf: 'stretch',
-    marginHorizontal: 8,
-    alignItems: 'center',
-  },
-  guestSecondaryBtnText: { fontSize: 16, fontWeight: '600' },
   bellBtn: {
     width: 42,
     height: 42,
