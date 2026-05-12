@@ -10,11 +10,13 @@ import {
 } from "@/constants/search-layout";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { fetchSearchSuggestions, type SearchSuggestion } from "@/services/api";
 import { useHomeStore } from "@/store/home-store";
 import { useTrailsStore } from "@/store/trails-store";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Modal,
   StyleSheet,
   TextInput,
@@ -34,21 +36,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SUGGESTED = [
-  { name: "Laguna Esmeralda", icon: "walk-outline", stats: [{ icon: "map-outline", value: "14 km" }, { icon: "time-outline", value: "5h 30m" }, { icon: "trending-up-outline", value: "520 m" }] },
-  { name: "Glaciar Martial", icon: "walk-outline", stats: [{ icon: "map-outline", value: "6.2 km" }, { icon: "time-outline", value: "2h 45m" }, { icon: "trending-up-outline", value: "340 m" }] },
-  { name: "Cerro Guanaco", icon: "walk-outline", stats: [{ icon: "map-outline", value: "20 km" }, { icon: "time-outline", value: "8h" }, { icon: "trending-up-outline", value: "970 m" }] },
-  { name: "Paso Garibaldi", icon: "camera-outline", stats: [{ icon: "heart-outline", value: "1.2k likes" }, { icon: "eye-outline", value: "8.4k visitas" }, { icon: "star-outline", value: "4.8" }] },
-  { name: "Bahía Lapataia", icon: "camera-outline", stats: [{ icon: "heart-outline", value: "3.1k likes" }, { icon: "eye-outline", value: "21k visitas" }, { icon: "star-outline", value: "4.9" }] },
-  { name: "Cerro Castor", icon: "walk-outline", stats: [{ icon: "map-outline", value: "9 km" }, { icon: "time-outline", value: "3h 30m" }, { icon: "trending-up-outline", value: "410 m" }] },
-  { name: "Laguna Negra", icon: "walk-outline", stats: [{ icon: "map-outline", value: "11 km" }, { icon: "time-outline", value: "4h" }, { icon: "trending-up-outline", value: "280 m" }] },
-  { name: "Mirador del Beagle", icon: "camera-outline", stats: [{ icon: "heart-outline", value: "2.4k likes" }, { icon: "eye-outline", value: "15k visitas" }, { icon: "star-outline", value: "4.7" }] },
-  { name: "Sendero de la Costa", icon: "walk-outline", stats: [{ icon: "map-outline", value: "7.5 km" }, { icon: "time-outline", value: "3h" }, { icon: "trending-up-outline", value: "120 m" }] },
-  { name: "Lago Fagnano", icon: "camera-outline", stats: [{ icon: "heart-outline", value: "4.2k likes" }, { icon: "eye-outline", value: "32k visitas" }, { icon: "star-outline", value: "4.9" }] },
-  { name: "Cerro Vinciguerra", icon: "walk-outline", stats: [{ icon: "map-outline", value: "16 km" }, { icon: "time-outline", value: "7h" }, { icon: "trending-up-outline", value: "890 m" }] },
-  { name: "Valle de Andorra", icon: "walk-outline", stats: [{ icon: "map-outline", value: "12 km" }, { icon: "time-outline", value: "4h 30m" }, { icon: "trending-up-outline", value: "460 m" }] },
-  { name: "Puerto Williams", icon: "camera-outline", stats: [{ icon: "heart-outline", value: "1.8k likes" }, { icon: "eye-outline", value: "11k visitas" }, { icon: "star-outline", value: "4.6" }] },
-];
+type SuggestionStat = { icon: string; value: string };
+type SuggestionRowModel = { key: string; name: string; icon: string; stats: SuggestionStat[]; queryValue: string };
 
 const EXPAND_THRESHOLD = 40;
 
@@ -60,7 +49,7 @@ const SuggestedRow = React.memo(function SuggestedRow({
   statColor,
   onPress,
 }: {
-  item: (typeof SUGGESTED)[number];
+  item: SuggestionRowModel;
   iconColor: string;
   iconBg: string;
   statColor: string;
@@ -69,7 +58,7 @@ const SuggestedRow = React.memo(function SuggestedRow({
   return (
     <TouchableOpacity
       style={memoStyles.row}
-      onPress={() => onPress(item.name)}
+      onPress={() => onPress(item.queryValue)}
       activeOpacity={0.75}
     >
       <View style={[memoStyles.iconWrap, { backgroundColor: iconBg }]}>
@@ -122,6 +111,9 @@ export default function SearchPanel() {
   const { searchOpen, setSearchOpen, setMode, setBottomSheetIndex } = useHomeStore();
   const inputRef = useRef<TextInput>(null);
   const [mounted, setMounted] = useState(false);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const fetchSeq = useRef(0);
 
   const targetTop = top + CARD_PADDING_TOP;
 
@@ -193,6 +185,30 @@ export default function SearchPanel() {
     if (mounted) open();
   }, [mounted]);
 
+  const loadSuggestions = useCallback(async (q: string) => {
+    const seq = ++fetchSeq.current;
+    setSuggestionsLoading(true);
+    try {
+      const res = await fetchSearchSuggestions(q, { limit: q.trim() ? 12 : 5 });
+      if (fetchSeq.current === seq) setSuggestions(res);
+    } catch {
+      if (fetchSeq.current === seq) setSuggestions([]);
+    } finally {
+      if (fetchSeq.current === seq) setSuggestionsLoading(false);
+    }
+  }, []);
+
+  // Cargar sugerencias por defecto al abrir, y typeahead al tipear (debounce).
+  useEffect(() => {
+    if (!mounted) return;
+    const q = searchQuery.trim();
+    const handle = setTimeout(() => {
+      // Input vacío: mostrar pocas sugeridas; con texto: dejar más para autocomplete.
+      void loadSuggestions(q ? q : "");
+    }, q ? 220 : 0);
+    return () => clearTimeout(handle);
+  }, [mounted, searchQuery, loadSuggestions]);
+
   // Animated styles
   const cardStyle     = useAnimatedStyle(() => ({
     top: targetTop,
@@ -222,22 +238,54 @@ export default function SearchPanel() {
     close(() => { setSearchOpen(false); setMode("list"); });
   }, []);
 
+  const toSuggestionRow = useCallback((s: SearchSuggestion): SuggestionRowModel => {
+    if (s.type === "trail") {
+      const d = s.distance_km != null ? `${s.distance_km} km` : "-";
+      const dur = s.duration_minutes != null ? `${Math.round(s.duration_minutes / 60)}h` : "-";
+      const eg = s.elevation_gain != null ? `${s.elevation_gain} m` : "-";
+      return {
+        key: `trail:${s.id}`,
+        name: s.name,
+        icon: "walk-outline",
+        queryValue: s.name,
+        stats: [
+          { icon: "map-outline", value: d },
+          { icon: "time-outline", value: dur },
+          { icon: "trending-up-outline", value: eg },
+        ],
+      };
+    }
+    const region = (s.region || "").trim() || "-";
+    const category = (s.category || "").trim() || "-";
+    const country = (s.country || "").trim() || "-";
+    return {
+      key: `place:${s.id}`,
+      name: s.name,
+      icon: "camera-outline",
+      queryValue: s.name,
+      stats: [
+        { icon: "location-outline", value: region },
+        { icon: "pricetag-outline", value: category },
+        { icon: "flag-outline", value: country },
+      ],
+    };
+  }, []);
+
   // Pre-compute stable colors for memoized rows
   const iconBg = colors.tint + "18";
-  const suggestedRows = useMemo(
-    () =>
-      SUGGESTED.map((s) => (
-        <SuggestedRow
-          key={s.name}
-          item={s}
-          iconColor={colors.tint}
-          iconBg={iconBg}
-          statColor={colors.icon}
-          onPress={handleSelectRecent}
-        />
-      )),
-    [colors.tint, colors.icon, iconBg, handleSelectRecent],
-  );
+  const suggestedRows = useMemo(() => {
+    if (suggestionsLoading) return [];
+    return suggestions.map((s) => (
+      <SuggestedRow
+        key={s.id ? `${s.type}:${s.id}` : s.name}
+        item={toSuggestionRow(s)}
+        iconColor={colors.tint}
+        iconBg={iconBg}
+        statColor={colors.icon}
+        onPress={handleSelectRecent}
+      />
+    ));
+  }, [suggestions, suggestionsLoading, toSuggestionRow, colors.tint, colors.icon, iconBg, handleSelectRecent]);
 
   // Scroll expand — runs entirely on UI thread via worklets
   const expanded = useSharedValue(false);
@@ -353,7 +401,19 @@ export default function SearchPanel() {
             )}
             <View style={[styles.divider, { backgroundColor: dividerColor }]} />
             <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>Sugeridas</ThemedText>
-            {suggestedRows}
+            {suggestionsLoading ? (
+              <View style={styles.emptySmall}>
+                <ActivityIndicator size="small" color={colors.icon} />
+              </View>
+            ) : suggestedRows.length === 0 ? (
+              <View style={styles.emptySmall}>
+                <ThemedText style={[styles.emptyText, { color: colors.icon }]}>
+                  Sin sugerencias
+                </ThemedText>
+              </View>
+            ) : (
+              suggestedRows
+            )}
           </Animated.ScrollView>
           <Animated.View
             style={[styles.fadeOverlay, fadeStyle, { backgroundColor: isDark ? "rgba(28,28,30,0.5)" : "rgba(255,255,255,0.5)" }]}

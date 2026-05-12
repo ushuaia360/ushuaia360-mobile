@@ -21,9 +21,8 @@ interface TabItem {
 
 const tabs: TabItem[] = [
   { name: 'index', icon: 'home-outline', iconFilled: 'home' },
-  { name: 'search', icon: 'search-outline', iconFilled: 'search' },
-  { name: 'downloads', icon: 'download-outline', iconFilled: 'download' },
   { name: 'favorites', icon: 'heart-outline', iconFilled: 'heart' },
+  { name: 'downloads', icon: 'download-outline', iconFilled: 'download' },
   { name: 'profile', icon: 'person-outline', iconFilled: 'person' },
 ];
 

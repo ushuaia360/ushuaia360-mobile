@@ -18,9 +18,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="favorites"
         options={{
-          href: '/(tabs)/search',
+          href: '/(tabs)/favorites',
         }}
       />
       <Tabs.Screen
@@ -30,9 +30,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="favorites"
+        name="search"
         options={{
-          href: '/(tabs)/favorites',
+          href: null, // Oculta del tab bar (se usa la búsqueda del Home)
         }}
       />
       <Tabs.Screen

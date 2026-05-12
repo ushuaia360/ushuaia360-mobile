@@ -161,7 +161,7 @@ export const useTrailsStore = create<TrailsStore>((set, get) => ({
     const q = query.trim();
     if (!q) return;
     set((state) => ({
-      recentSearches: [q, ...state.recentSearches.filter((r) => r !== q)].slice(0, 5),
+      recentSearches: [q, ...state.recentSearches.filter((r) => r !== q)].slice(0, 3),
     }));
   },
 

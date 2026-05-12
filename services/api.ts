@@ -91,6 +91,43 @@ export async function apiRequest<T>(
   return data;
 }
 
+export type SearchSuggestionType = 'trail' | 'place';
+
+export type SearchSuggestion = {
+  type: SearchSuggestionType;
+  id: string;
+  slug?: string | null;
+  name: string;
+  region?: string | null;
+  category?: string | null;
+  country?: string | null;
+  thumbnail_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distance_km?: number | null;
+  duration_minutes?: number | null;
+  elevation_gain?: number | null;
+};
+
+export async function fetchSearchSuggestions(
+  query: string,
+  {
+    limit = 10,
+    types = ['trail', 'place'],
+  }: { limit?: number; types?: SearchSuggestionType[] } = {},
+): Promise<SearchSuggestion[]> {
+  const q = String(query ?? '').trim();
+  const safeLimit = Math.min(Math.max(limit || 10, 1), 20);
+  const safeTypes = (types ?? []).filter((t) => t === 'trail' || t === 'place');
+  const typesParam = safeTypes.length ? safeTypes.join(',') : 'trail,place';
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  params.set('limit', String(safeLimit));
+  params.set('types', typesParam);
+  const res = await apiRequest<{ suggestions?: SearchSuggestion[] }>(`/search/suggest?${params.toString()}`);
+  return Array.isArray(res?.suggestions) ? res.suggestions : [];
+}
+
 /**
  * Petición mínima para leer la cabecera `Date` y estimar offset servidor–dispositivo.
  */
