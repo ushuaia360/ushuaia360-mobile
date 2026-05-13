@@ -62,6 +62,9 @@ export default function RootLayout() {
           <Stack.Screen name="login" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="register" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           <Stack.Screen name="verify" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="personal-info" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen name="privacy-security" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen name="delete-account" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="forgot-password" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="reset-password" options={{ headerShown: false, presentation: 'modal' }} />
         </Stack>

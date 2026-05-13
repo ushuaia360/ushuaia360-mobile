@@ -2,14 +2,14 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTrailsStore } from "@/store/trails-store";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useRef } from "react";
+// import { useEffect } from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+// import Animated, {
+//   Easing,
+//   useAnimatedStyle,
+//   useSharedValue,
+//   withTiming,
+// } from "react-native-reanimated";
 
 interface Props {
   onPress?: () => void;
@@ -21,30 +21,30 @@ export default function SearchBar({ onPress, isActive }: Props) {
   const colors = Colors[colorScheme ?? "light"];
   const { searchQuery, setSearchQuery } = useTrailsStore();
 
-  const filterWidth = useSharedValue(46);
-  const filterOpacity = useSharedValue(1);
-  const filterMarginLeft = useSharedValue(10);
+  // const filterWidth = useSharedValue(46);
+  // const filterOpacity = useSharedValue(1);
+  // const filterMarginLeft = useSharedValue(10);
 
-  const filterStyle = useAnimatedStyle(() => ({
-    width: filterWidth.value,
-    opacity: filterOpacity.value,
-    marginLeft: filterMarginLeft.value,
-    overflow: "hidden",
-  }));
+  // const filterStyle = useAnimatedStyle(() => ({
+  //   width: filterWidth.value,
+  //   opacity: filterOpacity.value,
+  //   marginLeft: filterMarginLeft.value,
+  //   overflow: "hidden",
+  // }));
 
-  const ANIM_CONFIG = { duration: 350, easing: Easing.out(Easing.exp) };
+  // const ANIM_CONFIG = { duration: 350, easing: Easing.out(Easing.exp) };
 
-  useEffect(() => {
-    if (isActive) {
-      filterOpacity.value = withTiming(0, { duration: 200 });
-      filterWidth.value = withTiming(0, ANIM_CONFIG);
-      filterMarginLeft.value = withTiming(0, ANIM_CONFIG);
-    } else {
-      filterOpacity.value = withTiming(1, { duration: 250 });
-      filterWidth.value = withTiming(46, ANIM_CONFIG);
-      filterMarginLeft.value = withTiming(10, ANIM_CONFIG);
-    }
-  }, [isActive]);
+  // useEffect(() => {
+  //   if (isActive) {
+  //     filterOpacity.value = withTiming(0, { duration: 200 });
+  //     filterWidth.value = withTiming(0, ANIM_CONFIG);
+  //     filterMarginLeft.value = withTiming(0, ANIM_CONFIG);
+  //   } else {
+  //     filterOpacity.value = withTiming(1, { duration: 250 });
+  //     filterWidth.value = withTiming(46, ANIM_CONFIG);
+  //     filterMarginLeft.value = withTiming(10, ANIM_CONFIG);
+  //   }
+  // }, [isActive]);
 
   return (
     <View style={styles.container}>
@@ -66,9 +66,10 @@ export default function SearchBar({ onPress, isActive }: Props) {
           pointerEvents="none"
         />
       </TouchableOpacity>
-      <Animated.View style={[styles.filterBtn, filterStyle]}>
+      {/* Filtros ocultos temporalmente */}
+      {/* <Animated.View style={[styles.filterBtn, filterStyle]}>
         <Ionicons name="options-outline" size={20} color="#212121" />
-      </Animated.View>
+      </Animated.View> */}
     </View>
   );
 }

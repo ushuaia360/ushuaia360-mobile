@@ -20,6 +20,7 @@ const SETTINGS = [
   { icon: 'notifications-outline', label: 'Notificaciones' },
   { icon: 'lock-closed-outline',   label: 'Privacidad y seguridad' },
   { icon: 'help-circle-outline',   label: 'Centro de ayuda' },
+  { icon: 'trash-outline',         label: 'Eliminar cuenta', danger: true },
   { icon: 'log-out-outline',       label: 'Cerrar sesión', danger: true },
 ];
 
@@ -76,7 +77,6 @@ export default function ProfileScreen() {
 
   const { user, token, logout, isInitialized } = useAuthStore();
   const skelBg = isDark ? '#2c2c2e' : '#e8e8ed';
-  const [personalInfoOpen, setPersonalInfoOpen] = useState(false);
   const [profileStats, setProfileStats] = useState<ProfileStatsResponse | null>(null);
 
   const loadProfileStats = useCallback(async () => {
@@ -186,93 +186,6 @@ export default function ProfileScreen() {
       },
     ]);
   };
-
-  if (personalInfoOpen) {
-    const premiumLabel = user?.is_premium ? 'Premium' : 'No premium';
-    const emailForWrap = (user?.email ?? '').replace(/[@.]/g, (ch) => `${ch}\u200B`);
-    return (
-      <ThemedView style={styles.container}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-          contentContainerStyle={[styles.scroll, { paddingTop: top + 12 }]}>
-          <View style={[styles.personalHeader, { backgroundColor: cardBg }]}>
-            <TouchableOpacity
-              style={styles.backButton}
-              activeOpacity={0.7}
-              onPress={() => setPersonalInfoOpen(false)}>
-              <Ionicons name="chevron-back" size={20} color={textSub} />
-            </TouchableOpacity>
-            <ThemedText style={[styles.personalTitle, { color: colors.text }]}>
-              Información personal
-            </ThemedText>
-          </View>
-
-          <View style={[styles.personalCard, { backgroundColor: cardBg }]}>
-            <View style={styles.personalAvatarRow}>
-              <View style={styles.personalAvatarWrap}>
-                <Image
-                  source={{ uri: user?.avatar_url ?? DEFAULT_AVATAR }}
-                  style={styles.personalAvatar}
-                  contentFit="cover"
-                  transition={200}
-                  cachePolicy="memory-disk"
-                />
-              </View>
-            </View>
-
-            <View style={styles.fieldList}>
-              <View style={[styles.fieldRow, { alignItems: 'flex-start' }]}>
-                <ThemedText style={styles.fieldLabel}>Email</ThemedText>
-                <ThemedText style={[styles.fieldValue, { flex: 1, textAlign: 'right' }]}>
-                  {emailForWrap}
-                </ThemedText>
-              </View>
-
-              <View style={styles.fieldRow}>
-                <ThemedText style={styles.fieldLabel}>Verificado</ThemedText>
-                <View style={styles.valueBadgeWrap}>
-                  <Ionicons
-                    name={isVerified ? 'checkmark-circle' : 'close-circle'}
-                    size={16}
-                    color={isVerified ? '#34c759' : '#ff3b30'}
-                  />
-                  <ThemedText
-                    style={[
-                      styles.valueBadgeText,
-                      { color: isVerified ? '#34c759' : '#ff3b30' },
-                    ]}>
-                    {isVerified ? 'Sí' : 'No'}
-                  </ThemedText>
-                </View>
-              </View>
-
-              <View style={styles.fieldRow}>
-                <ThemedText style={styles.fieldLabel}>Nombre completo</ThemedText>
-                <ThemedText style={[styles.fieldValue, { flex: 1, textAlign: 'right' }]}>
-                  {user?.full_name ?? ''}
-                </ThemedText>
-              </View>
-
-              <View style={styles.fieldRow}>
-                <ThemedText style={styles.fieldLabel}>Plan</ThemedText>
-                <View style={styles.valueBadgeWrap}>
-                  <Ionicons
-                    name={user?.is_premium ? 'star' : 'star-outline'}
-                    size={16}
-                    color={user?.is_premium ? colors.tint : textSub}
-                  />
-                  <ThemedText style={[styles.valueBadgeText, { color: user?.is_premium ? colors.tint : textSub }]}>
-                    {premiumLabel}
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </ThemedView>
-    );
-  }
 
   return (
     <ThemedView style={styles.container}>
@@ -396,8 +309,12 @@ export default function ProfileScreen() {
                   label === 'Cerrar sesión'
                     ? handleLogout
                     : label === 'Información personal'
-                      ? () => setPersonalInfoOpen(true)
-                      : undefined
+                      ? () => router.push('/personal-info')
+                      : label === 'Privacidad y seguridad'
+                        ? () => router.push('/privacy-security')
+                        : label === 'Eliminar cuenta'
+                          ? () => router.push('/delete-account')
+                          : undefined
                 }>
                 <View style={styles.settingIconWrap}>
                   <Ionicons name={icon as any} size={24} color={danger ? '#ff3b30' : colors.text} />
@@ -573,76 +490,6 @@ const styles = StyleSheet.create({
   },
   settingLabel: { flex: 1, fontSize: 15 },
   rowDivider: { height: 1, marginLeft: 66 },
-
-  // Personal info
-  personalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 12,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  personalTitle: { fontSize: 18, fontWeight: '700' },
-  personalCard: {
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 20,
-    elevation: 4,
-    gap: 14,
-  },
-  personalAvatarRow: { alignItems: 'center' },
-  personalAvatarWrap: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  personalAvatar: {
-    width: 96,
-    height: 96,
-  },
-  fieldList: { gap: 18 },
-  fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingVertical: 6,
-  },
-  fieldLabel: {
-    fontSize: 15,
-    opacity: 0.7,
-    flex: 1,
-    fontWeight: '600',
-  },
-  fieldValue: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  valueBadgeWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-  },
-  valueBadgeText: { fontSize: 15, fontWeight: '800' },
 
   skelBlock: {
     borderRadius: 6,

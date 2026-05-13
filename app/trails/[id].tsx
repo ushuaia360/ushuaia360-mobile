@@ -1,4 +1,5 @@
 import PanoramaWebView from '@/components/panorama-webview';
+import ReportToast from '@/components/report-toast';
 import ReviewSelectedPhotosStrip from '@/components/review-selected-photos-strip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -429,6 +430,7 @@ export default function TrailDetailScreen() {
     uris: string[];
     index: number;
   } | null>(null);
+  const [reportToastVisible, setReportToastVisible] = useState(false);
   const poiSheetRef = useRef<BottomSheet>(null);
   const poiSnapPoints = useMemo(() => ['40%', '78%'], []);
 
@@ -1129,6 +1131,14 @@ export default function TrailDetailScreen() {
                                 color={trailFavorited ? '#ff3b30' : '#000'}
                               />
                             </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.floatBtn, { backgroundColor: '#fff' }]}
+                              hitSlop={12}
+                              accessibilityRole="button"
+                              accessibilityLabel="Reportar sendero"
+                              onPress={() => setReportToastVisible(true)}>
+                              <Ionicons name="flag-outline" size={20} color="#000" />
+                            </TouchableOpacity>
                           </>
                         ) : null}
                       </View>
@@ -1472,9 +1482,18 @@ export default function TrailDetailScreen() {
                               <ThemedText style={styles.reviewUser}>
                                 {review.name ?? 'Usuario'}
                               </ThemedText>
-                              <ThemedText style={[styles.reviewDate, { color: colors.icon }]}>
-                                {relativeDate(new Date(review.created_at))}
-                              </ThemedText>
+                              <View style={styles.reviewHeaderRight}>
+                                <ThemedText style={[styles.reviewDate, { color: colors.icon }]}>
+                                  {relativeDate(new Date(review.created_at))}
+                                </ThemedText>
+                                <TouchableOpacity
+                                  hitSlop={10}
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Reportar reseña"
+                                  onPress={() => setReportToastVisible(true)}>
+                                  <Ionicons name="flag-outline" size={14} color={colors.icon} />
+                                </TouchableOpacity>
+                              </View>
                             </View>
                             <View style={styles.reviewStars}>
                               {[1, 2, 3, 4, 5].map((i) => (
@@ -1874,12 +1893,24 @@ export default function TrailDetailScreen() {
                     color={trailFavorited ? '#ff3b30' : isDark ? '#fff' : '#000'}
                   />
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.topBarBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reportar sendero"
+                  onPress={() => setReportToastVisible(true)}>
+                  <Ionicons name="flag-outline" size={20} color={isDark ? '#fff' : '#000'} />
+                </TouchableOpacity>
               </View>
               ) : null}
             </Animated.View>
           )}
         </>
       )}
+
+      <ReportToast
+        visible={reportToastVisible}
+        onHide={() => setReportToastVisible(false)}
+      />
     </ThemedView>
   );
 }
@@ -2225,6 +2256,7 @@ const styles = StyleSheet.create({
   reviewAvatarPlaceholder: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   reviewBody: { flex: 1, gap: 4 },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  reviewHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   reviewUser: { fontSize: 14, fontWeight: '600' },
   reviewDate: { fontSize: 12 },
   reviewStars: { flexDirection: 'row', gap: 2 },

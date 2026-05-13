@@ -82,3 +82,66 @@ Key components in `components/home/`:
 - **Offline download manager**: `expo-file-system` + `@react-native-async-storage/async-storage` (already installed).
 - **Auth**: wire up the stubbed login/register flows to a backend.
 - **Trail detail screen**: new route `app/trail/[id].tsx`.
+
+---
+
+## Backend (`/Users/facu/work/ushuaia360-backend`)
+
+Python async API built with **Quart** (async Flask), running on port **5050**.
+
+### Stack
+- **Quart 0.19** + **quart-cors** — async ASGI web framework
+- **asyncpg** — async PostgreSQL driver (Supabase)
+- **PyJWT** + **bcrypt/passlib** — authentication
+- **Resend** — transactional email (verification, password reset)
+- **python-dotenv** — `.env` config
+
+### Commands
+```bash
+cd /Users/facu/work/ushuaia360-backend
+python app.py          # Start dev server (port 5050)
+```
+
+### API base URL
+All endpoints are prefixed with `/api/v1`.
+
+### Auth flows
+- **Web admin**: `POST /api/v1/auth/login` → sets `HttpOnly` cookie `token` (JWT). Only `is_admin` users can log in here.
+- **Mobile app**: `POST /api/v1/auth/login-app` → returns `{ token }` in JSON body. JWT stored client-side and sent as `Authorization: Bearer <token>`.
+- **Registration**: `POST /api/v1/auth/register` → sends email verification link via Resend. User must verify email before logging in.
+- JWT expiry: 14 days (`JWT_EXPIRATION_SECONDS`). Tokens are HS256, payload contains `user_id` (UUID string).
+
+### Auth decorators (in `routes/trails.py`, reused across routes)
+- `@require_auth` — injects `user_id` kwarg from JWT (cookie or `Authorization` header)
+- `@require_admin` — same, but additionally checks `users.is_admin = true` in DB
+
+### Route map
+
+| Blueprint | Prefix | Key endpoints |
+|-----------|--------|---------------|
+| `auth_bp` | `/api/v1/auth` | `POST /register`, `POST /login`, `POST /login-app`, `GET /me`, `GET /me-app`, `POST /verify-email`, `POST /forgot-password`, `POST /change-password`, `POST /logout` |
+| `trails_bp` | `/api/v1` | CRUD `/trails`, `/trails/<id>/routes`, `/trails/<id>/routes/<id>/segments`, `/trails/<id>/points`, `/trails/<id>/media`, `/trails/<id>/reviews` |
+| `places_bp` | `/api/v1` | Tourist places |
+| `favorites_bp` | `/api/v1` | User favorites |
+| `map_bp` | `/api/v1` | Map markers |
+| `trail_history_bp` | `/api/v1` | `/me/trail-history/*` |
+| `search_bp` | `/api/v1` | Autocomplete search |
+| `uploads_bp` | `/api/v1` | Review photo uploads → Supabase `reviews` bucket |
+| `dashboard_bp` | `/api/v1` | Admin stats |
+| `users_bp` | `/api/v1` | User management |
+
+### Data model (key tables)
+- **`users`**: `id` (UUID), `email`, `password_hash`, `full_name`, `avatar_url`, `language`, `is_admin`, `is_premium`, `premium_until`, `email_verified`
+- **`trails`**: `id`, `slug`, `name`, `description`, `difficulty` (`easy/medium/hard`), `route_type` (`circular/lineal/ida_vuelta`), `region`, `distance_km`, `elevation_gain/loss`, `max/min_altitude`, `duration_minutes`, `map_point` (JSONB `{latitude, longitude}`), `is_featured`, `is_premium`, `status_id`
+- **`trail_routes`**: versioned GPS traces for a trail (`is_active` = current version)
+- **`route_segments`**: `path` stored as JSONB `[[lat, lon], ...]` (Leaflet order)
+- **`trail_points`**: waypoints — types: `inicio/fin/mirador/peligro/agua/descanso/refugio/cruce/campamento/cascada/vista/informacion`. `location` stored as JSONB `{latitude, longitude, elevation}`
+- **`trail_media`**: `media_type` = `image | photo_360 | photo_180 | video`. Linked to trail or trail_point
+- **`trail_reviews`**: `rating` (1–5), `comment`, `image_urls` (text[])
+- **`favorites`**, **`trail_history`**, **`places`**
+
+### Important implementation notes
+- `map_point`, `location`, and `path` are stored as **JSONB** (not PostGIS geography), serialized manually on insert/update.
+- Route segment `path` is saved as `[lat, lon]` pairs (Leaflet convention), but GeoJSON input (`LineString`) is normalized from `[lng, lat]` on the way in.
+- Mobile app endpoints (`/login-app`, `/me-app`) accept `Authorization: Bearer <token>` header; web endpoints use cookies.
+- Migrations are in `db/migrations/`.
