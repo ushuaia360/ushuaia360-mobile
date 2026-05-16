@@ -42,6 +42,12 @@
     "plugins": [
       "expo-router",
       "expo-dev-client",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Ushuaia360 usa tu ubicación para mostrarte en el mapa mientras hacés un sendero."
+        }
+      ],
       "expo-document-picker",
       [
         "expo-image-picker",
