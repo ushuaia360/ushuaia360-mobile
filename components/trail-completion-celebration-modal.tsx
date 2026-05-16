@@ -7,6 +7,7 @@ import { pickReviewImagesToAppend } from '@/lib/review-image-picker';
 import { createTrailReview, uploadReviewImages } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Modal,
@@ -32,6 +33,7 @@ export default function TrailCompletionCelebrationModal({
   trailName,
   onClose,
 }: Props) {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -57,17 +59,17 @@ export default function TrailCompletionCelebrationModal({
 
   const handleSubmit = useCallback(async () => {
     if (!token) {
-      setError('Necesitás iniciar sesión para enviar una reseña.');
+      setError(t('celebration.noAuthError'));
       return;
     }
     if (!trailId) return;
     const text = comment.trim();
     if (rating < 1 || rating > 5) {
-      setError('Seleccioná una calificación entre 1 y 5.');
+      setError(t('celebration.validationRating'));
       return;
     }
     if (!text) {
-      setError('Escribí un comentario para enviar la reseña.');
+      setError(t('celebration.validationComment'));
       return;
     }
 
@@ -85,7 +87,7 @@ export default function TrailCompletionCelebrationModal({
       });
       setSubmitted(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al enviar la reseña');
+      setError(e instanceof Error ? e.message : t('celebration.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -105,22 +107,23 @@ export default function TrailCompletionCelebrationModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={backdropPress}>
       <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={backdropPress} accessibilityLabel="Cerrar" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={backdropPress} accessibilityLabel={t('common.close')} />
         <View style={[styles.card, { backgroundColor: cardBg }]} accessibilityViewIsModal>
           <View style={[styles.iconWrap, { backgroundColor: colors.tint + '22' }]}>
             <Ionicons name="trophy" size={44} color={colors.tint} />
           </View>
 
-          <ThemedText style={styles.title}>¡Felicitaciones!</ThemedText>
+          <ThemedText style={styles.title}>{t('celebration.title')}</ThemedText>
           <ThemedText style={[styles.subtitle, { color: sub }]}>
-            Completaste {trailName.trim() ? `«${trailName.trim()}»` : 'el sendero'}.{'\n'}
-            El recorrido fue guardado en tu historial.
+            {trailName.trim()
+              ? t('celebration.subtitle', { name: trailName.trim() })
+              : t('celebration.subtitleDefault')}
           </ThemedText>
 
           {submitted ? (
             <>
               <ThemedText style={[styles.thanks, { color: colors.text }]}>
-                ¡Gracias por tu reseña!
+                {t('celebration.thanks')}
               </ThemedText>
               <Pressable
                 style={({ pressed }) => [
@@ -129,12 +132,12 @@ export default function TrailCompletionCelebrationModal({
                   { backgroundColor: colors.tint, marginTop: 8 },
                 ]}
                 onPress={onClose}>
-                <ThemedText style={styles.ctaLabel}>Listo</ThemedText>
+                <ThemedText style={styles.ctaLabel}>{t('celebration.done')}</ThemedText>
               </Pressable>
             </>
           ) : (
             <>
-              <ThemedText style={[styles.reviewLabel, { color: colors.text }]}>Dejá una reseña</ThemedText>
+              <ThemedText style={[styles.reviewLabel, { color: colors.text }]}>{t('celebration.reviewLabel')}</ThemedText>
               <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map((i) => (
                   <TouchableOpacity
@@ -143,7 +146,7 @@ export default function TrailCompletionCelebrationModal({
                     activeOpacity={0.75}
                     disabled={!token || submitting}
                     accessibilityRole="button"
-                    accessibilityLabel={`Calificar con ${i} estrella${i > 1 ? 's' : ''}`}
+                    accessibilityLabel={t('celebration.starLabel', { count: i })}
                     accessibilityState={{ selected: i <= rating }}>
                     <Ionicons
                       name="star"
@@ -164,7 +167,7 @@ export default function TrailCompletionCelebrationModal({
                 ]}>
                 <TextInput
                   style={[styles.reviewInputFlex, { color: colors.text }]}
-                  placeholder="Contá cómo fue tu experiencia…"
+                  placeholder={t('celebration.reviewPlaceholder')}
                   placeholderTextColor={isDark ? '#636366' : '#8e8e93'}
                   multiline
                   editable={!!token && !submitting}
@@ -180,7 +183,7 @@ export default function TrailCompletionCelebrationModal({
                     style={styles.reviewAttachBtn}
                     hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
                     accessibilityRole="button"
-                    accessibilityLabel="Adjuntar fotos">
+                    accessibilityLabel={t('celebration.attachPhotos')}>
                     <Ionicons
                       name="image-outline"
                       size={24}
@@ -202,7 +205,7 @@ export default function TrailCompletionCelebrationModal({
               {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
               {!token ? (
                 <ThemedText style={[styles.hint, { color: sub }]}>
-                  Iniciá sesión para publicar reseñas.
+                  {t('celebration.noAuth')}
                 </ThemedText>
               ) : null}
 
@@ -217,7 +220,7 @@ export default function TrailCompletionCelebrationModal({
                 {submitting ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <ThemedText style={styles.ctaLabel}>Enviar reseña</ThemedText>
+                  <ThemedText style={styles.ctaLabel}>{t('celebration.submit')}</ThemedText>
                 )}
               </Pressable>
 
@@ -226,7 +229,7 @@ export default function TrailCompletionCelebrationModal({
                 onPress={onClose}
                 disabled={submitting}
                 hitSlop={8}>
-                <ThemedText style={[styles.skipLabel, { color: sub }]}>Ahora no</ThemedText>
+                <ThemedText style={[styles.skipLabel, { color: sub }]}>{t('celebration.skipBtn')}</ThemedText>
               </Pressable>
             </>
           )}

@@ -32,6 +32,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { Stack, router, useLocalSearchParams, usePathname } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BackHandler,
   Dimensions,
@@ -77,16 +78,18 @@ const EMPTY_RATING_COUNTS: RatingCounts = {
   five_star: 0,
 };
 
-function relativeDate(date: Date): string {
+type TFunc = (key: string, opts?: Record<string, unknown>) => string;
+
+function relativeDate(date: Date, t: TFunc): string {
   const DAY = 86400000;
   const days = Math.floor((Date.now() - date.getTime()) / DAY);
-  if (days < 7) return days <= 1 ? 'Hace 1 día' : `Hace ${days} días`;
+  if (days < 7) return days <= 1 ? t('relativeDate.day') : t('relativeDate.days', { count: days });
   const weeks = Math.floor(days / 7);
-  if (weeks < 4) return weeks === 1 ? 'Hace 1 semana' : `Hace ${weeks} semanas`;
+  if (weeks < 4) return weeks === 1 ? t('relativeDate.week') : t('relativeDate.weeks', { count: weeks });
   const months = Math.floor(days / 30);
-  if (months < 12) return months === 1 ? 'Hace 1 mes' : `Hace ${months} meses`;
+  if (months < 12) return months === 1 ? t('relativeDate.month') : t('relativeDate.months', { count: months });
   const years = Math.floor(days / 365);
-  return years === 1 ? 'Hace 1 año' : `Hace ${years} años`;
+  return years === 1 ? t('relativeDate.year') : t('relativeDate.years', { count: years });
 }
 
 function descriptionNeedsExpandToggle(text: string): boolean {
@@ -107,6 +110,7 @@ function ExpandableDescription({
   tint: string;
   collapsedLines?: number;
 }) {
+  const { t } = useTranslation();
   const trimmed = text.trim();
   const [expanded, setExpanded] = useState(false);
   const needsToggle = descriptionNeedsExpandToggle(trimmed);
@@ -121,9 +125,9 @@ function ExpandableDescription({
           onPress={() => setExpanded((v) => !v)}
           style={({ pressed }) => [descStyles.expandableDescBtn, { opacity: pressed ? 0.7 : 1 }]}
           accessibilityRole="button"
-          accessibilityLabel={expanded ? 'Ver menos' : 'Ver más'}>
+          accessibilityLabel={expanded ? t('common.viewLess') : t('common.viewMore')}>
           <ThemedText style={[descStyles.expandableDescBtnLabel, { color: tint }]}>
-            {expanded ? 'Ver menos' : 'Ver más'}
+            {expanded ? t('common.viewLess') : t('common.viewMore')}
           </ThemedText>
         </Pressable>
       ) : null}
@@ -155,6 +159,7 @@ function Metric({ icon, label, value, iconColor }: MetricProps) {
 }
 
 export default function PlaceDetailScreen() {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -220,7 +225,7 @@ export default function PlaceDetailScreen() {
         setPlaceFromOffline(true);
         setError(null);
       } else {
-        setError('No se pudo cargar el lugar');
+        setError(t('placeDetail.loadError'));
         setPlace(null);
         setPlaceFromOffline(false);
       }
@@ -299,7 +304,7 @@ export default function PlaceDetailScreen() {
         five_star: data.rating_counts?.five_star ?? 0,
       });
     } catch (err) {
-      setReviewsError(err instanceof Error ? err.message : 'Error al cargar las reseñas');
+      setReviewsError(err instanceof Error ? err.message : t('placeDetail.reviewsLoadError'));
       setReviews([]);
       setReviewsAverageRating(0);
       setReviewsRatingCounts(EMPTY_RATING_COUNTS);
@@ -332,11 +337,11 @@ export default function PlaceDetailScreen() {
     }
     const comment = reviewComment.trim();
     if (reviewRating < 1 || reviewRating > 5) {
-      setReviewsSubmitError('Seleccioná una calificación entre 1 y 5.');
+      setReviewsSubmitError(t('placeDetail.reviewValidationRating'));
       return;
     }
     if (!comment) {
-      setReviewsSubmitError('Escribí un comentario para enviar la reseña.');
+      setReviewsSubmitError(t('placeDetail.reviewValidationComment'));
       return;
     }
     setReviewsSubmitting(true);
@@ -356,7 +361,7 @@ export default function PlaceDetailScreen() {
       setReviewRating(5);
       setReviewPhotoUris([]);
     } catch (err) {
-      setReviewsSubmitError(err instanceof Error ? err.message : 'Error al enviar la reseña');
+      setReviewsSubmitError(err instanceof Error ? err.message : t('placeDetail.reviewSubmitError'));
     } finally {
       setReviewsSubmitting(false);
     }
@@ -380,7 +385,7 @@ export default function PlaceDetailScreen() {
       setReviewsOffset(nextOffset);
       setReviewsTotal(data.total);
     } catch (err) {
-      setReviewsError(err instanceof Error ? err.message : 'Error al cargar más reseñas');
+      setReviewsError(err instanceof Error ? err.message : t('placeDetail.reviewLoadMoreError'));
     } finally {
       setReviewsLoading(false);
     }
@@ -488,8 +493,8 @@ export default function PlaceDetailScreen() {
         <View style={styles.center}>
           <ThemedText style={{ color: colors.icon, textAlign: 'center', paddingHorizontal: 24 }}>
             {networkReachable === false
-              ? 'Sin conexión. No hay una copia guardada de este lugar. Conectate y abrilo una vez para guardarlo en el dispositivo.'
-              : error ?? 'No encontrado'}
+              ? t('placeDetail.offlineNoCache')
+              : error ?? t('common.error')}
           </ThemedText>
         </View>
       ) : (
@@ -519,7 +524,7 @@ export default function PlaceDetailScreen() {
                         backgroundColor: isDark ? '#2a2a2c' : '#eef2fb',
                       }}>
                       <ThemedText style={{ fontSize: 13, color: colors.text, opacity: 0.92 }}>
-                        Sin conexión: copia guardada en el dispositivo.
+                        {t('map.offline')}
                       </ThemedText>
                     </View>
                   ) : null}
@@ -808,7 +813,7 @@ export default function PlaceDetailScreen() {
                     onPress={() => setReviewRating(i)}
                     activeOpacity={0.75}
                     accessibilityRole="button"
-                    accessibilityLabel={`Calificar con ${i} estrella${i > 1 ? 's' : ''}`}>
+                    accessibilityLabel={t('celebration.starLabel', { count: i })}>
                     <Ionicons
                       name="star"
                       size={24}
@@ -829,7 +834,7 @@ export default function PlaceDetailScreen() {
                   value={reviewComment}
                   onChangeText={setReviewComment}
                   multiline
-                  placeholder="Contá tu experiencia en este lugar..."
+                  placeholder={t('celebration.reviewPlaceholder')}
                   placeholderTextColor={colors.icon}
                   style={[styles.reviewTextInputFlex, { color: colors.text }]}
                   textAlignVertical="top"
@@ -844,7 +849,7 @@ export default function PlaceDetailScreen() {
                     style={styles.reviewAttachBtn}
                     hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
                     accessibilityRole="button"
-                    accessibilityLabel="Adjuntar fotos a la reseña">
+                    accessibilityLabel={t('celebration.attachPhotos')}>
                     <Ionicons
                       name="image-outline"
                       size={24}
@@ -878,7 +883,7 @@ export default function PlaceDetailScreen() {
                 onPress={handleSubmitReview}
                 activeOpacity={0.85}>
                 <ThemedText style={styles.reviewSubmitBtnText}>
-                  {reviewsSubmitting ? 'Enviando...' : 'Enviar reseña'}
+                  {reviewsSubmitting ? t('common.sending') : t('celebration.submit')}
                 </ThemedText>
               </TouchableOpacity>
             </View>
@@ -929,9 +934,9 @@ export default function PlaceDetailScreen() {
                       </View>
                       <View style={styles.reviewBody}>
                         <View style={styles.reviewHeader}>
-                          <ThemedText style={styles.reviewUser}>{review.name ?? 'Usuario'}</ThemedText>
+                          <ThemedText style={styles.reviewUser}>{review.name ?? t('common.user')}</ThemedText>
                           <ThemedText style={[styles.reviewDate, { color: colors.icon }]}>
-                            {relativeDate(new Date(review.created_at))}
+                            {relativeDate(new Date(review.created_at), t)}
                           </ThemedText>
                         </View>
                         <View style={styles.reviewStars}>
@@ -991,7 +996,7 @@ export default function PlaceDetailScreen() {
                   activeOpacity={0.8}
                   disabled={reviewsLoading}>
                   <ThemedText style={[styles.loadMoreButtonText, { color: colors.tint }]}>
-                    {reviewsLoading ? 'Cargando...' : `Ver más reseñas (${reviews.length}/${reviewsTotal})`}
+                    {reviewsLoading ? t('common.loading') : t('placeDetail.viewMoreReviews', { loaded: reviews.length, total: reviewsTotal })}
                   </ThemedText>
                 </TouchableOpacity>
               ) : null}

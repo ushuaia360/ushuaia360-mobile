@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Modal,
   ScrollView,
@@ -152,6 +153,7 @@ interface Props {
 }
 
 export default function SearchModal({ visible, onClose }: Props) {
+  const { t } = useTranslation();
   const { top, bottom } = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const colorScheme = useColorScheme();
@@ -294,7 +296,7 @@ export default function SearchModal({ visible, onClose }: Props) {
               <TextInput
                 ref={inputRef}
                 style={[styles.input, { color: isDark ? "#fff" : "#212121" }]}
-                placeholder="Buscar senderos..."
+                placeholder={t('search.modal.placeholder')}
                 placeholderTextColor={colors.icon}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -345,19 +347,18 @@ export default function SearchModal({ visible, onClose }: Props) {
                 }
               }}
             >
-              {/* Búsquedas recientes */}
               <View
                 style={[styles.divider, { backgroundColor: dividerColor }]}
               />
               <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>
-                Búsquedas recientes
+                {t('search.modal.recent')}
               </ThemedText>
               {recentSearches.length === 0 ? (
                 <View style={styles.emptySmall}>
                   <ThemedText
                     style={[styles.emptyText, { color: colors.icon }]}
                   >
-                    No tienes búsquedas recientes
+                    {t('search.modal.noRecent')}
                   </ThemedText>
                 </View>
               ) : (
@@ -385,12 +386,11 @@ export default function SearchModal({ visible, onClose }: Props) {
                 ))
               )}
 
-              {/* Sugeridas */}
               <View
                 style={[styles.divider, { backgroundColor: dividerColor }]}
               />
               <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>
-                Sugeridas
+                {t('search.modal.suggested')}
               </ThemedText>
               {SUGGESTED.map((s) => (
                 <TouchableOpacity
@@ -470,9 +470,9 @@ export default function SearchModal({ visible, onClose }: Props) {
               <Ionicons name="location-outline" size={18} color={colors.tint} />
             </View>
             <View style={styles.rowText}>
-              <ThemedText style={styles.rowTitle}>Puntos cercanos</ThemedText>
+              <ThemedText style={styles.rowTitle}>{t('search.modal.nearby')}</ThemedText>
               <ThemedText style={[styles.rowSub, { color: colors.icon }]}>
-                Senderos y lugares cerca tuyo
+                {t('search.modal.nearbySubtitle')}
               </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.icon} />
@@ -489,7 +489,7 @@ export default function SearchModal({ visible, onClose }: Props) {
           onPress={handleClose}
           activeOpacity={0.7}
         >
-          <ThemedText style={styles.cancelText}>Cancelar</ThemedText>
+          <ThemedText style={styles.cancelText}>{t('search.modal.cancel')}</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.searchBtn, { backgroundColor: colors.tint }]}
@@ -497,7 +497,7 @@ export default function SearchModal({ visible, onClose }: Props) {
           activeOpacity={0.85}
         >
           <Ionicons name="search" size={16} color="#fff" />
-          <ThemedText style={styles.searchBtnText}>Buscar</ThemedText>
+          <ThemedText style={styles.searchBtnText}>{t('search.modal.search')}</ThemedText>
         </TouchableOpacity>
       </Animated.View>
     </Modal>

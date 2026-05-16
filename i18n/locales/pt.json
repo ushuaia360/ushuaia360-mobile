@@ -1,0 +1,456 @@
+{
+  "common": {
+    "cancel": "Cancelar",
+    "ok": "OK",
+    "error": "Erro",
+    "back": "Voltar",
+    "loading": "Carregando...",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "soon": "Em breve",
+    "comingSoon": "Em breve",
+    "or": "ou",
+    "optional": "(opcional)",
+    "noConnection": "Sem conexão",
+    "viewMore": "Ver mais",
+    "viewLess": "Ver menos",
+    "user": "Usuário",
+    "sending": "Enviando...",
+    "done": "Pronto",
+    "understood": "Entendido",
+    "trail": "Trilha",
+    "place": "Lugar",
+    "close": "Fechar"
+  },
+  "auth": {
+    "continueWithEmail": "Continuar com e-mail",
+    "continueWithGoogle": "Continuar com Google",
+    "continueWithApple": "Continuar com Apple",
+    "signIn": "Entrar",
+    "signUp": "Cadastrar-se",
+    "signingIn": "Entrando...",
+    "emailPlaceholder": "E-mail",
+    "passwordPlaceholder": "Senha",
+    "forgotPassword": "Esqueceu sua senha?",
+    "emailSubtitle": "Entre com seu endereço de e-mail",
+    "soonGoogle": "O acesso com Google estará disponível em breve.",
+    "soonApple": "O acesso com Apple estará disponível em breve.",
+    "fillAllFields": "Por favor, preencha todos os campos",
+    "loginError": "Erro ao entrar",
+    "emailNotVerified": "E-mail não verificado",
+    "emailNotVerifiedBody": "Verifique sua caixa de entrada e confirme sua conta antes de entrar.",
+    "resendEmail": "Reenviar e-mail",
+    "resendSuccess": "Se a conta existir, enviamos um novo link.",
+    "resendError": "Não foi possível reenviar o e-mail",
+    "recoverPassword": "Recuperar senha",
+    "recoverPasswordBody": "Digite seu e-mail acima e enviaremos um link de recuperação.",
+    "register": {
+      "title": "Criar conta",
+      "subtitle": "Cadastre-se com seu e-mail",
+      "namePlaceholder": "Seu nome completo",
+      "emailPlaceholder": "voce@email.com",
+      "confirmPasswordPlaceholder": "Repita sua senha",
+      "creating": "Criando conta...",
+      "create": "Criar conta",
+      "success": "Cadastro realizado",
+      "successBody": "Verifique seu e-mail para confirmar sua conta antes de entrar.",
+      "goToLogin": "Ir para entrar",
+      "registerError": "Erro ao cadastrar",
+      "passwordRequirements": "A senha não atende aos requisitos",
+      "passwordMismatch": "As senhas não coincidem",
+      "soonGoogle": "O cadastro com Google estará disponível em breve.",
+      "soonApple": "O cadastro com Apple estará disponível em breve.",
+      "req": {
+        "length": "Mínimo 8 caracteres",
+        "uppercase": "Uma letra maiúscula",
+        "number": "Um número",
+        "special": "Um caractere especial"
+      }
+    },
+    "forgotPasswordScreen": {
+      "title": "Recuperar senha",
+      "subtitle": "Enviaremos um link por e-mail para você escolher uma nova senha.",
+      "sending": "Enviando…",
+      "send": "Enviar link",
+      "success": "Se o e-mail existir, enviamos um link.",
+      "sendError": "Não foi possível enviar o e-mail",
+      "enterEmail": "Digite seu endereço de e-mail"
+    },
+    "resetPassword": {
+      "title": "Nova senha",
+      "subtitle": "Escolha uma senha segura para sua conta.",
+      "newPassword": "Nova senha",
+      "repeatPassword": "Repita a senha",
+      "saving": "Salvando…",
+      "save": "Salvar senha",
+      "invalidLink": "Link inválido ou expirado. Solicite um novo e-mail a partir do login.",
+      "tooShort": "A senha deve ter pelo menos 8 caracteres",
+      "mismatch": "As senhas não coincidem",
+      "success": "Sua senha foi atualizada.",
+      "goToLogin": "Entrar",
+      "updateError": "Não foi possível atualizar a senha"
+    },
+    "verify": {
+      "verifying": "Verificando…",
+      "verified": "Conta verificada",
+      "error": "Algo deu errado",
+      "invalidLink": "Este link não é válido.",
+      "defaultSuccess": "Sua conta foi verificada.",
+      "defaultError": "Não conseguimos verificar sua conta.",
+      "goToLogin": "Ir para entrar"
+    }
+  },
+  "tabs": {
+    "home": "Início",
+    "favorites": "Favoritos",
+    "downloads": "Downloads",
+    "profile": "Perfil"
+  },
+  "home": {
+    "trailCount": "{{count}} trilhas",
+    "noTrails": "Nenhuma trilha encontrada",
+    "noConnectionList": "Sem conexão. Não foi possível carregar a lista; tente o mapa com o último download salvo.",
+    "viewMap": "Ver Mapa",
+    "searchPlaceholder": "Buscar..."
+  },
+  "map": {
+    "title": "Mapa",
+    "subtitle": "Explore Ushuaia no mapa",
+    "comingSoon": "Mapa interativo em breve...",
+    "offline": "Sem conexão: você está vendo o último download do mapa.",
+    "offlineNoCache": "Sem conexão. Com dados, abra o mapa uma vez para salvar trilhas e lugares.",
+    "zoomIn": "Aproximar mapa",
+    "zoomOut": "Afastar mapa",
+    "satellite": "Mudar para vista satélite",
+    "street": "Mudar para vista de mapa",
+    "centerLocation": "Centralizar mapa na minha localização"
+  },
+  "search": {
+    "title": "Busca",
+    "subtitle": "Encontre trilhas e lugares",
+    "placeholder": "Buscar...",
+    "noResults": "Sem resultados",
+    "trail": "Trilha",
+    "place": "Lugar",
+    "modal": {
+      "placeholder": "Buscar trilhas...",
+      "recent": "Buscas recentes",
+      "noRecent": "Sem buscas recentes",
+      "suggested": "Sugeridas",
+      "nearby": "Pontos próximos",
+      "nearbySubtitle": "Trilhas e lugares perto de você",
+      "cancel": "Cancelar",
+      "search": "Buscar"
+    }
+  },
+  "trails": {
+    "title": "Trilhas",
+    "subtitle": "Explore as melhores trilhas de Ushuaia",
+    "comingSoon": "Lista de trilhas em breve..."
+  },
+  "offline": {
+    "title": "Sem conexão",
+    "body": "Não foi possível contatar o servidor. Você pode abrir trilhas que baixou anteriormente para usá-las sem internet.",
+    "viewDownloads": "Ver downloads"
+  },
+  "downloads": {
+    "title": "Downloads",
+    "trailsSaved_one": "1 trilha salva",
+    "trailsSaved_other": "{{count}} trilhas salvas",
+    "empty": "Salve trilhas usando o botão de download na página da trilha",
+    "sectionTrails": "Trilhas",
+    "nothingDownloaded": "Nada baixado ainda",
+    "emptyBody": "Na página de uma trilha, toque no ícone de download quando tiver conexão. Pontos turísticos não podem ser salvos para uso offline.",
+    "defaultTrailName": "Trilha",
+    "removeTitle": "Remover download",
+    "removeBody": "Excluir «{{name}}» do dispositivo?",
+    "remove": "Remover",
+    "back": "Voltar"
+  },
+  "favorites": {
+    "title": "Favoritos",
+    "savedTrails": "Trilhas que você salvou",
+    "trail_one": "1 trilha",
+    "trail_other": "{{count}} trilhas",
+    "empty": "Nenhum favorito ainda. Toque no coração em uma trilha para salvá-la.",
+    "back": "Voltar"
+  },
+  "completedTrails": {
+    "title": "Concluídas",
+    "completedTrails": "Trilhas que você terminou",
+    "trail_one": "1 trilha",
+    "trail_other": "{{count}} trilhas",
+    "empty": "Você ainda não concluiu nenhuma trilha. Termine um percurso para vê-lo aqui.",
+    "back": "Voltar"
+  },
+  "profile": {
+    "loadingProfile": "Carregando dados do perfil",
+    "defaultUser": "Usuário",
+    "stats": {
+      "trails": "Trilhas",
+      "reviews": "Avaliações",
+      "favorites": "Favoritos"
+    },
+    "premium": {
+      "title": "Seja Premium",
+      "subtitle": "Desbloqueie trilhas, mapas e mais"
+    },
+    "grid": {
+      "completed": "Concluídas",
+      "favorites": "Favoritos"
+    },
+    "offline": {
+      "title": "Modo offline",
+      "subtitle": "Baixe trilhas para usar sem internet"
+    },
+    "settings": {
+      "personalInfo": "Informações pessoais",
+      "notifications": "Notificações",
+      "privacySecurity": "Privacidade e segurança",
+      "helpCenter": "Central de ajuda",
+      "deleteAccount": "Excluir conta",
+      "logout": "Sair"
+    },
+    "logoutTitle": "Sair",
+    "logoutBody": "Tem certeza que deseja sair?",
+    "accessibility": {
+      "completedTrails": "Ver trilhas concluídas",
+      "favorites": "Ver favoritos",
+      "premium": "Seja premium",
+      "offline": "Abrir downloads offline"
+    }
+  },
+  "personalInfo": {
+    "title": "Informações pessoais",
+    "fullName": "Nome completo",
+    "email": "E-mail",
+    "account": "Conta",
+    "verified": "Verificada",
+    "unverified": "Não verificada",
+    "plan": "Plano",
+    "free": "Gratuito",
+    "premium": "Premium",
+    "language": "Idioma",
+    "pending": "Pendente"
+  },
+  "privacySecurity": {
+    "title": "Privacidade e segurança",
+    "security": "SEGURANÇA",
+    "privacy": "PRIVACIDADE",
+    "changePassword": "Alterar senha",
+    "changePasswordSub": "Atualize sua senha de acesso",
+    "twoFactor": "Verificação em duas etapas",
+    "twoFactorSub": "Em breve",
+    "privacyPolicy": "Política de privacidade",
+    "privacyPolicySub": "Como usamos seus dados",
+    "terms": "Termos e condições",
+    "termsSub": "Condições de uso do aplicativo"
+  },
+  "deleteAccount": {
+    "title": "Excluir conta",
+    "warningTitle": "Ação irreversível",
+    "warningBody": "Ao excluir sua conta, você perderá permanentemente seu histórico de trilhas, avaliações, favoritos e todos os seus dados pessoais.",
+    "reasonLabel": "MOTIVO",
+    "moreInfo": "Conte-nos mais (opcional)",
+    "feedbackPlaceholder": "Sua opinião nos ajuda a melhorar...",
+    "submitBtn": "Solicitar exclusão",
+    "confirmTitle": "Excluir conta",
+    "confirmBody": "Tem certeza? Esta ação é permanente e não pode ser desfeita. Todos os seus dados, histórico e favoritos serão excluídos.",
+    "confirmBtn": "Excluir",
+    "footerNote": "Sua solicitação será processada em até 30 dias. Você pode cancelá-la fazendo login antes de ser concluída.",
+    "reasons": {
+      "noLongerUse": "Não uso mais o aplicativo",
+      "technical": "Problemas técnicos",
+      "privacy": "Preocupações com privacidade",
+      "preferNotSay": "Prefiro não dizer"
+    }
+  },
+  "premium": {
+    "title": "Seja Premium",
+    "popular": "Popular",
+    "processing": "Processando...",
+    "restore": "Restaurar compras",
+    "legal": "Cancele quando quiser · Preços em USD",
+    "noOfferingTitle": "Indisponível",
+    "noOfferingBody": "Plano não encontrado na loja. Tente novamente mais tarde.",
+    "welcomeTitle": "Bem-vindo ao Pro!",
+    "welcomeBody": "Sua assinatura está ativa.",
+    "continue": "Continuar",
+    "purchaseError": "Não foi possível concluir a compra. Tente novamente.",
+    "restoredTitle": "Compra restaurada!",
+    "restoredBody": "Seu plano Pro está ativo.",
+    "noPurchasesTitle": "Sem compras anteriores",
+    "noPurchasesBody": "Não encontramos compras anteriores.",
+    "restoreError": "Não foi possível restaurar. Tente novamente.",
+    "tiers": {
+      "explorer": {
+        "name": "Explorador",
+        "price": "Grátis",
+        "period": "para sempre",
+        "cta": "Plano atual",
+        "features": {
+          "offline": "Trilhas e pontos turísticos offline",
+          "wallpapers": "Wallpapers exclusivos de Ushuaia",
+          "support": "Suporte 24/7"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "period": "por mês",
+        "cta": "Começar Pro",
+        "features": {
+          "offline": "Trilhas e pontos turísticos offline",
+          "wallpapers": "Wallpapers exclusivos de Ushuaia",
+          "support": "Suporte 24/7"
+        }
+      }
+    },
+    "selectPlan": "Selecionar plano {{name}}"
+  },
+  "languagePicker": {
+    "title": "Idioma",
+    "es": "Español",
+    "en": "English",
+    "pt": "Português"
+  },
+  "trailsSheet": {
+    "title": "Trilhas para você",
+    "titleNearby": "Também perto de você",
+    "subtitle_one": "{{count}} trilha em destaque",
+    "subtitle_other": "{{count}} trilhas em destaque",
+    "subtitleNearby_one": "{{count}} recomendada na área",
+    "subtitleNearby_other": "{{count}} recomendadas na área",
+    "viewAll": "Ver todas",
+    "exploreAll": "Explorar todas as trilhas"
+  },
+  "relativeDate": {
+    "day": "Há 1 dia",
+    "days": "Há {{count}} dias",
+    "week": "Há 1 semana",
+    "weeks": "Há {{count}} semanas",
+    "month": "Há 1 mês",
+    "months": "Há {{count}} meses",
+    "year": "Há 1 ano",
+    "years": "Há {{count}} anos"
+  },
+  "trailDetail": {
+    "waypoints": {
+      "inicio": "Início",
+      "fin": "Fim",
+      "mirador": "Mirante",
+      "peligro": "Atenção",
+      "agua": "Água",
+      "descanso": "Descanso",
+      "refugio": "Refúgio",
+      "cruce": "Entroncamento",
+      "campamento": "Acampamento",
+      "cascada": "Cachoeira",
+      "vista": "Vista",
+      "informacion": "Informação"
+    },
+    "defaultPoiName": "Ponto de interesse",
+    "premiumTitle": "Em breve: Premium",
+    "premiumBody": "O download offline estará disponível para contas Premium.",
+    "removeDownloadTitle": "Remover download",
+    "removeDownloadBody": "Excluir esta trilha dos seus downloads? Você não poderá abri-la offline.",
+    "removeDownloadBtn": "Remover",
+    "downloadDoneTitle": "Pronto",
+    "downloadDoneBody": "Trilha baixada. Encontre-a na aba Downloads.",
+    "downloadErrorTitle": "Erro",
+    "downloadErrorBody": "Não foi possível baixar. Verifique sua conexão e tente novamente.",
+    "reviewsLoadError": "Erro ao carregar avaliações",
+    "startError": "Não foi possível iniciar o percurso. Tente novamente.",
+    "multipleSessionsTitle": "Outros percursos em andamento",
+    "multipleSessionsConfirm": "Sim, iniciar este",
+    "resumeAction": "Retomar percurso",
+    "startAction": "Iniciar percurso",
+    "reviewValidationRating": "Selecione uma avaliação entre 1 e 5.",
+    "reviewValidationComment": "Escreva um comentário para enviar sua avaliação.",
+    "reviewSubmitError": "Erro ao enviar avaliação",
+    "reviewLoadMoreError": "Erro ao carregar mais avaliações",
+    "viewMoreReviews": "Ver mais avaliações ({{loaded}}/{{total}})",
+    "downloaded": "Baixado",
+    "downloadAction": "Baixar trilha",
+    "downloadManageLabel": "Gerenciar download da trilha",
+    "submitReview": "Enviar avaliação"
+  },
+  "placeDetail": {
+    "loadError": "Não foi possível carregar o lugar",
+    "offlineNoCache": "Sem conexão. Não há uma cópia salva deste lugar. Conecte-se e abra-o uma vez para salvá-lo no dispositivo.",
+    "reviewsLoadError": "Erro ao carregar avaliações",
+    "reviewValidationRating": "Selecione uma avaliação entre 1 e 5.",
+    "reviewValidationComment": "Escreva um comentário para enviar sua avaliação.",
+    "reviewSubmitError": "Erro ao enviar avaliação",
+    "reviewLoadMoreError": "Erro ao carregar mais avaliações",
+    "viewMoreReviews": "Ver mais avaliações ({{loaded}}/{{total}})"
+  },
+  "trailRecorrido": {
+    "noSession": "Nenhum percurso ativo.",
+    "sessionTitle": "Sessão",
+    "noAuthMessage": "Você precisa fazer login para salvar o percurso.",
+    "noConnectionMessage": "Seu percurso foi marcado para envio quando a conexão retornar.",
+    "saveError": "Não foi possível salvar a conclusão. Tente novamente.",
+    "navigating": "Navegando",
+    "paused": "Pausado",
+    "minimize": "Minimizar percurso",
+    "pause": "Pausar percurso",
+    "resume": "Retomar",
+    "finish": "Finalizar",
+    "finishTitle": "Finalizar percurso",
+    "finishMessage": "Marcar esta trilha como concluída? Será salva no seu histórico.",
+    "understood": "Entendido"
+  },
+  "mapCard": {
+    "trail": "Trilha",
+    "place": "Lugar",
+    "closeDetail": "Fechar detalhe do mapa",
+    "viewTrail": "Ver trilha completa",
+    "viewPlace": "Ver ficha do lugar",
+    "difficulty": {
+      "easy": "Fácil",
+      "medium": "Média",
+      "hard": "Difícil"
+    },
+    "routeType": {
+      "circular": "Circular",
+      "lineal": "Linear",
+      "ida_vuelta": "Ida e volta"
+    }
+  },
+  "resumeBar": {
+    "inProgress": "Percurso em andamento",
+    "multipleInProgress": "Percursos em andamento",
+    "defaultTrail": "Trilha",
+    "more_one": "1 inacabado a mais",
+    "more_other": "{{count}} inacabados a mais",
+    "resume": "Retomar",
+    "pickToResume": "Escolher percurso para retomar",
+    "resumeTrail": "Retomar trilha {{name}}",
+    "closeList": "Fechar lista de percursos",
+    "chooseTrail": "Escolha um percurso",
+    "active": "Ativo"
+  },
+  "reportToast": {
+    "message": "Denúncia enviada",
+    "subtitle": "Obrigado por nos ajudar a melhorar a comunidade."
+  },
+  "celebration": {
+    "title": "Parabéns!",
+    "subtitle": "Você completou «{{name}}».\nO percurso foi salvo no seu histórico.",
+    "subtitleDefault": "Você completou a trilha.\nO percurso foi salvo no seu histórico.",
+    "thanks": "Obrigado pela sua avaliação!",
+    "done": "Pronto",
+    "reviewLabel": "Deixe uma avaliação",
+    "reviewPlaceholder": "Conte como foi sua experiência…",
+    "attachPhotos": "Anexar fotos",
+    "noAuth": "Faça login para publicar avaliações.",
+    "submit": "Enviar avaliação",
+    "skipBtn": "Agora não",
+    "noAuthError": "Você precisa fazer login para enviar uma avaliação.",
+    "validationRating": "Selecione uma avaliação entre 1 e 5.",
+    "validationComment": "Escreva um comentário para enviar sua avaliação.",
+    "submitError": "Erro ao enviar avaliação",
+    "starLabel_one": "Avaliar com 1 estrela",
+    "starLabel_other": "Avaliar com {{count}} estrelas"
+  }
+}

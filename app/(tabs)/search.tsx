@@ -8,6 +8,7 @@ import { fetchSearchSuggestions, type SearchSuggestion } from '@/services/api';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
@@ -19,6 +20,7 @@ import {
 } from 'react-native';
 
 export default function SearchScreen() {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const [query, setQuery] = useState('');
@@ -69,17 +71,15 @@ export default function SearchScreen() {
     <ThemedView style={styles.container}>
       <ScrollView>
         <View style={styles.header}>
-          <ThemedText type="title">Búsqueda</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Encuentra senderos y lugares
-          </ThemedText>
+          <ThemedText type="title">{t('search.title')}</ThemedText>
+          <ThemedText style={styles.subtitle}>{t('search.subtitle')}</ThemedText>
         </View>
         <View style={styles.content}>
           <View style={[styles.searchBar, { backgroundColor: colorScheme === 'dark' ? '#2a2a2a' : '#f5f5f5' }]}>
             <IconSymbol name="search-outline" size={20} color={colors.icon} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Buscar..."
+              placeholder={t('search.placeholder')}
               placeholderTextColor={colors.tabIconDefault}
               value={query}
               onChangeText={setQuery}
@@ -103,8 +103,8 @@ export default function SearchScreen() {
                   const icon = item.type === 'trail' ? 'walk-outline' : 'location-outline';
                   const subtitle =
                     item.type === 'trail'
-                      ? item.region || 'Sendero'
-                      : [item.region, item.category].filter(Boolean).join(' · ') || 'Lugar';
+                      ? item.region || t('search.trail')
+                      : [item.region, item.category].filter(Boolean).join(' · ') || t('search.place');
 
                   return (
                     <TouchableOpacity
@@ -142,7 +142,7 @@ export default function SearchScreen() {
                 ListEmptyComponent={
                   loading ? null : (
                     <View style={styles.emptyWrap}>
-                      <ThemedText style={{ color: colors.tabIconDefault }}>Sin resultados</ThemedText>
+                      <ThemedText style={{ color: colors.tabIconDefault }}>{t('search.noResults')}</ThemedText>
                     </View>
                   )
                 }
@@ -156,9 +156,7 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     paddingTop: 60,
     paddingBottom: 20,
@@ -168,9 +166,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     opacity: 0.7,
   },
-  content: {
-    padding: 20,
-  },
+  content: { padding: 20 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -183,9 +179,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
   },
-  suggestionsWrap: {
-    marginTop: 12,
-  },
+  suggestionsWrap: { marginTop: 12 },
   suggestionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -212,13 +206,8 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  suggestionTitle: {
-    fontSize: 15,
-  },
-  suggestionSubtitle: {
-    fontSize: 12,
-    opacity: 0.9,
-  },
+  suggestionTitle: { fontSize: 15 },
+  suggestionSubtitle: { fontSize: 12, opacity: 0.9 },
   emptyWrap: {
     paddingVertical: 14,
     paddingHorizontal: 6,

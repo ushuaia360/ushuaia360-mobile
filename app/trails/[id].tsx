@@ -58,6 +58,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Stack, router, useLocalSearchParams, usePathname } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   BackHandler,
@@ -88,16 +89,18 @@ const GALLERY_HERO_HEIGHT_RATIO = 0.88;
 /** Espacio reservado para la fila de botones sobre la tab bar */
 const TRAIL_FLOAT_ACTIONS_ROW_PAD = 88;
 
-function relativeDate(date: Date): string {
+type TFunc = (key: string, opts?: Record<string, unknown>) => string;
+
+function relativeDate(date: Date, t: TFunc): string {
   const DAY = 86400000;
   const days = Math.floor((Date.now() - date.getTime()) / DAY);
-  if (days < 7) return days <= 1 ? 'Hace 1 día' : `Hace ${days} días`;
+  if (days < 7) return days <= 1 ? t('relativeDate.day') : t('relativeDate.days', { count: days });
   const weeks = Math.floor(days / 7);
-  if (weeks < 4) return weeks === 1 ? 'Hace 1 semana' : `Hace ${weeks} semanas`;
+  if (weeks < 4) return weeks === 1 ? t('relativeDate.week') : t('relativeDate.weeks', { count: weeks });
   const months = Math.floor(days / 30);
-  if (months < 12) return months === 1 ? 'Hace 1 mes' : `Hace ${months} meses`;
+  if (months < 12) return months === 1 ? t('relativeDate.month') : t('relativeDate.months', { count: months });
   const years = Math.floor(days / 365);
-  return years === 1 ? 'Hace 1 año' : `Hace ${years} años`;
+  return years === 1 ? t('relativeDate.year') : t('relativeDate.years', { count: years });
 }
 
 function AnimatedDot({ active }: { active: boolean }) {
@@ -136,20 +139,10 @@ const DIFFICULTY_COLOR: Record<string, string> = {
   Difícil: '#ff3b30',
 };
 
-const POI_TYPE_LABEL: Record<string, string> = {
-  inicio: 'Inicio',
-  fin: 'Fin',
-  mirador: 'Mirador',
-  peligro: 'Precaución',
-  agua: 'Agua',
-  descanso: 'Descanso',
-  refugio: 'Refugio',
-  cruce: 'Cruce',
-  campamento: 'Campamento',
-  cascada: 'Cascada',
-  vista: 'Vista',
-  informacion: 'Información',
-};
+const POI_TYPE_KEYS = new Set([
+  'inicio', 'fin', 'mirador', 'peligro', 'agua', 'descanso',
+  'refugio', 'cruce', 'campamento', 'cascada', 'vista', 'informacion',
+]);
 
 const mapFullscreenEntering = new Keyframe({
   0: { opacity: 0, transform: [{ scale: 0.94 }] },
@@ -182,6 +175,7 @@ function ExpandableDescription({
   tint: string;
   collapsedLines?: number;
 }) {
+  const { t } = useTranslation();
   const trimmed = text.trim();
   const [expanded, setExpanded] = useState(false);
   const needsToggle = descriptionNeedsExpandToggle(trimmed);
@@ -198,9 +192,9 @@ function ExpandableDescription({
           onPress={() => setExpanded((v) => !v)}
           style={({ pressed }) => [styles.expandableDescBtn, { opacity: pressed ? 0.7 : 1 }]}
           accessibilityRole="button"
-          accessibilityLabel={expanded ? 'Ver menos' : 'Ver más'}>
+          accessibilityLabel={expanded ? t('common.viewLess') : t('common.viewMore')}>
           <ThemedText style={[styles.expandableDescBtnLabel, { color: tint }]}>
-            {expanded ? 'Ver menos' : 'Ver más'}
+            {expanded ? t('common.viewLess') : t('common.viewMore')}
           </ThemedText>
         </Pressable>
       ) : null}
@@ -217,7 +211,8 @@ interface TrailPoiListCardProps {
 }
 
 function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailPoiListCardProps) {
-  const title = p.name?.trim() || 'Punto de interés';
+  const { t } = useTranslation();
+  const title = p.name?.trim() || t('trailDetail.defaultPoiName');
   const mediaItems = filterDisplayableMedia(p.media);
   const [hero, ...restMedia] = mediaItems;
   const poiGallerySlides = useMemo(() => trailPointMediaToGallerySlides(p.media), [p.media]);
@@ -387,6 +382,7 @@ function Metric({ icon, label, value, iconColor }: MetricProps) {
 }
 
 export default function TrailDetailScreen() {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -487,19 +483,19 @@ export default function TrailDetailScreen() {
     if (!trailId) return;
     if (!canDownloadForOffline(user)) {
       appAlert(
-        'Próximamente Premium',
-        'La descarga para uso sin conexión estará disponible para cuentas Premium.',
+        t('trailDetail.premiumTitle'),
+        t('trailDetail.premiumBody'),
       );
       return;
     }
     if (trailManualDownload) {
       appAlert(
-        'Quitar descarga',
-        '¿Eliminar este sendero de tus descargas? No podrás abrirlo sin conexión.',
+        t('trailDetail.removeDownloadTitle'),
+        t('trailDetail.removeDownloadBody'),
         [
-          { text: 'Cancelar', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Quitar',
+            text: t('trailDetail.removeDownloadBtn'),
             style: 'destructive',
             onPress: async () => {
               await removeManualTrailDownload(trailId);
@@ -521,9 +517,9 @@ export default function TrailDetailScreen() {
       await addManualTrailDownload(withLocalMedia);
       setTrailDetail(withLocalMedia);
       setTrailManualDownload(true);
-      appAlert('Listo', 'Sendero descargado. Lo encontrás en la pestaña Descargas.');
+      appAlert(t('trailDetail.downloadDoneTitle'), t('trailDetail.downloadDoneBody'));
     } catch {
-      appAlert('Error', 'No se pudo descargar. Comprobá tu conexión e intentá de nuevo.');
+      appAlert(t('trailDetail.downloadErrorTitle'), t('trailDetail.downloadErrorBody'));
     } finally {
       setTrailDownloadBusy(false);
     }
@@ -570,7 +566,7 @@ export default function TrailDetailScreen() {
         five_star: data.rating_counts?.five_star ?? 0,
       });
     } catch (err) {
-      setReviewsError(err instanceof Error ? err.message : 'Error al cargar las reseñas');
+      setReviewsError(err instanceof Error ? err.message : t('trailDetail.reviewsLoadError'));
       setReviews([]);
       setReviewsAverageRating(0);
       setReviewsRatingCounts(EMPTY_RATING_COUNTS);
@@ -685,7 +681,7 @@ export default function TrailDetailScreen() {
       return {
         historyEntryId,
         trailId: trailId!,
-        trailName: (trailDetail?.name ?? trail?.name ?? 'Sendero').trim() || 'Sendero',
+        trailName: (trailDetail?.name ?? trail?.name ?? t('common.trail')).trim() || t('common.trail'),
         thumbnailUrl: thumb,
         startedAtISO: normalizeSessionStartedAtToISO(startedAt),
         lineCoordinates,
@@ -739,8 +735,8 @@ export default function TrailDetailScreen() {
         return;
       }
       const msg =
-        e instanceof Error ? e.message : 'No pudimos iniciar el recorrido. Intentá de nuevo.';
-      appAlert('Error', msg);
+        e instanceof Error ? e.message : t('trailDetail.startError');
+      appAlert(t('common.error'), msg);
     }
   }, [trailId, trailDetail, token, buildSessionSnapshot, setActiveSession]);
 
@@ -756,12 +752,12 @@ export default function TrailDetailScreen() {
     }
     if (storedSessions.length > 0) {
       appAlert(
-        'Otros recorridos en curso',
-        `Tenés ${storedSessions.length} ${storedSessions.length === 1 ? 'recorrido' : 'recorridos'} sin terminar. ¿También empezás este? Los otros siguen guardados.`,
+        t('trailDetail.multipleSessionsTitle'),
+        `${t('trailDetail.multipleSessionsTitle')}: ${storedSessions.length}`,
         [
-          { text: 'Cancelar', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Sí, empezar este',
+            text: t('trailDetail.multipleSessionsConfirm'),
             onPress: () => {
               void startNewTrailFlow();
             },
@@ -781,7 +777,7 @@ export default function TrailDetailScreen() {
     startNewTrailFlow,
   ]);
 
-  const primaryTrailActionLabel = sessionForThisTrail ? 'Resumir recorrido' : 'Iniciar recorrido';
+  const primaryTrailActionLabel = sessionForThisTrail ? t('trailDetail.resumeAction') : t('trailDetail.startAction');
   const primaryTrailActionDisabled = !sessionForThisTrail && !trailDetail;
 
   const sortedTrailPoints = useMemo(() => {
@@ -823,11 +819,11 @@ export default function TrailDetailScreen() {
     }
     const comment = reviewComment.trim();
     if (reviewRating < 1 || reviewRating > 5) {
-      setReviewsSubmitError('Seleccioná una calificación entre 1 y 5.');
+      setReviewsSubmitError(t('trailDetail.reviewValidationRating'));
       return;
     }
     if (!comment) {
-      setReviewsSubmitError('Escribí un comentario para enviar la reseña.');
+      setReviewsSubmitError(t('trailDetail.reviewValidationComment'));
       return;
     }
 
@@ -848,7 +844,7 @@ export default function TrailDetailScreen() {
       setReviewRating(5);
       setReviewPhotoUris([]);
     } catch (err) {
-      setReviewsSubmitError(err instanceof Error ? err.message : 'Error al enviar la reseña');
+      setReviewsSubmitError(err instanceof Error ? err.message : t('trailDetail.reviewSubmitError'));
     } finally {
       setReviewsSubmitting(false);
     }
@@ -872,7 +868,7 @@ export default function TrailDetailScreen() {
       setReviewsOffset(nextOffset);
       setReviewsTotal(data.total);
     } catch (err) {
-      setReviewsError(err instanceof Error ? err.message : 'Error al cargar más reseñas');
+      setReviewsError(err instanceof Error ? err.message : t('trailDetail.reviewLoadMoreError'));
     } finally {
       setReviewsLoading(false);
     }
@@ -1350,7 +1346,7 @@ export default function TrailDetailScreen() {
                           onPress={() => setReviewRating(i)}
                           activeOpacity={0.75}
                           accessibilityRole="button"
-                          accessibilityLabel={`Calificar con ${i} estrella${i > 1 ? 's' : ''}`}>
+                          accessibilityLabel={t('celebration.starLabel', { count: i })}>
                           <Ionicons
                             name="star"
                             size={24}
@@ -1371,7 +1367,7 @@ export default function TrailDetailScreen() {
                         value={reviewComment}
                         onChangeText={setReviewComment}
                         multiline
-                        placeholder="Contá tu experiencia en este sendero..."
+                        placeholder={t('celebration.reviewPlaceholder')}
                         placeholderTextColor={colors.icon}
                         style={[styles.reviewTextInputFlex, { color: colors.text }]}
                         textAlignVertical="top"
@@ -1387,7 +1383,7 @@ export default function TrailDetailScreen() {
                           style={styles.reviewAttachBtn}
                           hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
                           accessibilityRole="button"
-                          accessibilityLabel="Adjuntar fotos a la reseña">
+                          accessibilityLabel={t('celebration.attachPhotos')}>
                           <Ionicons
                             name="image-outline"
                             size={24}
@@ -1421,7 +1417,7 @@ export default function TrailDetailScreen() {
                       onPress={handleSubmitReview}
                       activeOpacity={0.85}>
                       <ThemedText style={styles.reviewSubmitBtnText}>
-                        {reviewsSubmitting ? 'Enviando...' : 'Enviar reseña'}
+                        {reviewsSubmitting ? t('common.sending') : t('trailDetail.submitReview')}
                       </ThemedText>
                     </TouchableOpacity>
                   </View>
@@ -1480,11 +1476,11 @@ export default function TrailDetailScreen() {
                           <View style={styles.reviewBody}>
                             <View style={styles.reviewHeader}>
                               <ThemedText style={styles.reviewUser}>
-                                {review.name ?? 'Usuario'}
+                                {review.name ?? t('common.user')}
                               </ThemedText>
                               <View style={styles.reviewHeaderRight}>
                                 <ThemedText style={[styles.reviewDate, { color: colors.icon }]}>
-                                  {relativeDate(new Date(review.created_at))}
+                                  {relativeDate(new Date(review.created_at), t)}
                                 </ThemedText>
                                 <TouchableOpacity
                                   hitSlop={10}
@@ -1554,8 +1550,8 @@ export default function TrailDetailScreen() {
                         disabled={reviewsLoading}>
                         <ThemedText style={[styles.loadMoreButtonText, { color: colors.tint }]}>
                           {reviewsLoading
-                            ? 'Cargando...'
-                            : `Ver más reseñas (${reviews.length}/${reviewsTotal})`}
+                            ? t('common.loading')
+                            : t('trailDetail.viewMoreReviews', { loaded: reviews.length, total: reviewsTotal })}
                         </ThemedText>
                       </TouchableOpacity>
                     )}
@@ -1641,8 +1637,10 @@ export default function TrailDetailScreen() {
                           ) : (
                             (trailDetail?.points ?? []).map((p, index) => {
                               const loc = normalizeTrailPointLocation(p.location ?? null);
-                              const title = p.name?.trim() || 'Punto de interés';
-                              const typeLabel = p.type ? POI_TYPE_LABEL[p.type] ?? p.type : null;
+                              const title = p.name?.trim() || t('trailDetail.defaultPoiName');
+                              const typeLabel = p.type
+                                ? (POI_TYPE_KEYS.has(p.type) ? t(`trailDetail.waypoints.${p.type}`) : p.type)
+                                : null;
                               return (
                                 <Pressable
                                   key={p.id}
@@ -1749,7 +1747,9 @@ export default function TrailDetailScreen() {
                                     { backgroundColor: colors.tint + '1A', borderColor: colors.tint },
                                   ]}>
                                   <ThemedText style={[styles.poiTypePillText, { color: colors.tint }]}>
-                                    {POI_TYPE_LABEL[selectedPoi.type] ?? selectedPoi.type}
+                                    {POI_TYPE_KEYS.has(selectedPoi.type)
+                                      ? t(`trailDetail.waypoints.${selectedPoi.type}`)
+                                      : selectedPoi.type}
                                   </ThemedText>
                                 </View>
                               ) : null}
@@ -1824,7 +1824,7 @@ export default function TrailDetailScreen() {
                     activeOpacity={0.85}
                     accessibilityRole="button"
                     accessibilityLabel={
-                      trailManualDownload ? 'Gestión de descarga del sendero' : 'Descargar sendero'
+                      trailManualDownload ? t('trailDetail.downloadManageLabel') : t('trailDetail.downloadAction')
                     }>
                     {trailDownloadBusy ? (
                       <ActivityIndicator size="small" color={colors.tint} />
@@ -1836,7 +1836,7 @@ export default function TrailDetailScreen() {
                       />
                     )}
                     <ThemedText style={styles.trailFloatBtnSecondaryLabel} numberOfLines={1}>
-                      {trailManualDownload ? 'Descargado' : 'Descargar sendero'}
+                      {trailManualDownload ? t('trailDetail.downloaded') : t('trailDetail.downloadAction')}
                     </ThemedText>
                   </TouchableOpacity>
                 </View>

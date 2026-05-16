@@ -1,25 +1,20 @@
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function TrailsScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const { t } = useTranslation();
 
   return (
     <ThemedView style={styles.container}>
       <ScrollView>
         <View style={styles.header}>
-          <ThemedText type="title">Senderos</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Explora los mejores senderos de Ushuaia
-          </ThemedText>
+          <ThemedText type="title">{t('trails.title')}</ThemedText>
+          <ThemedText style={styles.subtitle}>{t('trails.subtitle')}</ThemedText>
         </View>
         <View style={styles.content}>
-          <ThemedText>Lista de senderos próximamente...</ThemedText>
+          <ThemedText>{t('trails.comingSoon')}</ThemedText>
         </View>
       </ScrollView>
     </ThemedView>
@@ -27,9 +22,7 @@ export default function TrailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     paddingTop: 60,
     paddingBottom: 20,

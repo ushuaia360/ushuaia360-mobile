@@ -7,6 +7,7 @@ import { useTrailsStore } from "@/store/trails-store";
 import type { MapMarker } from "@/services/api";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import MapMarkerBottomCard from "./map-marker-bottom-card";
 import TrailFeaturedCard from "./trail-featured-card";
@@ -22,6 +23,7 @@ export default function TrailsBottomSheet({
   selectedMapMarker,
   onClearMapMarker,
 }: Props) {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const isDark = colorScheme === "dark";
@@ -104,12 +106,12 @@ export default function TrailsBottomSheet({
         <View style={styles.header}>
           <View>
             <ThemedText style={styles.title}>
-              {selectedMapMarker ? "También cerca tuyo" : "Senderos para ti"}
+              {selectedMapMarker ? t("trailsSheet.titleNearby") : t("trailsSheet.title")}
             </ThemedText>
             <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
               {selectedMapMarker
-                ? `${featuredTrails.length} recomendados en la zona`
-                : `${featuredTrails.length} senderos destacados`}
+                ? t("trailsSheet.subtitleNearby", { count: featuredTrails.length })
+                : t("trailsSheet.subtitle", { count: featuredTrails.length })}
             </ThemedText>
           </View>
           <TouchableOpacity
@@ -117,7 +119,7 @@ export default function TrailsBottomSheet({
             onPress={() => { fetchTrails(true); setMode("list"); }}
             activeOpacity={0.8}
           >
-            <ThemedText style={[styles.viewAllText, { color: "#fff" }]}>Ver todos</ThemedText>
+            <ThemedText style={[styles.viewAllText, { color: "#fff" }]}>{t("trailsSheet.viewAll")}</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -151,7 +153,7 @@ export default function TrailsBottomSheet({
           activeOpacity={0.85}
         >
           <ThemedText style={[styles.ctaText, { color: colors.tint }]}>
-            Explorar todos los senderos
+            {t("trailsSheet.exploreAll")}
           </ThemedText>
         </TouchableOpacity>
       </BottomSheetScrollView>

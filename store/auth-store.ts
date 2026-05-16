@@ -53,6 +53,9 @@ interface AuthStore {
   /** POST /auth/change-password (flujo recuperación) */
   resetPassword: (resetToken: string, newPassword: string) => Promise<{ message: string }>;
 
+  /** Recarga el usuario desde el servidor (para reflejar cambios de premium) */
+  refreshUser: () => Promise<void>;
+
   /** Elimina token y limpia el estado */
   logout: () => Promise<void>;
 }
@@ -167,6 +170,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       method: 'POST',
       body: { reset_token: resetToken, new_password: newPassword },
     });
+  },
+
+  refreshUser: async () => {
+    const token = get().token;
+    if (!token) return;
+    try {
+      const data = await apiRequest<{ user: User }>('/auth/me-app', { token });
+      await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(data.user));
+      set({ user: data.user });
+    } catch {
+      // ignorar errores de red; el usuario no cambia
+    }
   },
 
   logout: async () => {

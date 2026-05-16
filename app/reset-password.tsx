@@ -12,6 +12,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -19,6 +20,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function ResetPasswordScreen() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -39,24 +41,24 @@ export default function ResetPasswordScreen() {
 
   const submit = async () => {
     if (!token) {
-      Alert.alert('Error', 'Enlace inválido o expirado. Pedí un nuevo email desde iniciar sesión.');
+      Alert.alert(t('common.error'), t('auth.resetPassword.invalidLink'));
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
+      Alert.alert(t('common.error'), t('auth.resetPassword.tooShort'));
       return;
     }
     if (password !== confirm) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
+      Alert.alert(t('common.error'), t('auth.resetPassword.mismatch'));
       return;
     }
     try {
       await resetPassword(token, password);
-      Alert.alert('Listo', 'Tu contraseña fue actualizada.', [
-        { text: 'Iniciar sesión', onPress: () => router.replace('/login') },
+      Alert.alert(t('common.ok'), t('auth.resetPassword.success'), [
+        { text: t('auth.resetPassword.goToLogin'), onPress: () => router.replace('/login') },
       ]);
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo actualizar la contraseña');
+      Alert.alert(t('common.error'), err instanceof Error ? err.message : t('auth.resetPassword.updateError'));
     }
   };
 
@@ -76,16 +78,16 @@ export default function ResetPasswordScreen() {
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
 
-          <ThemedText style={[styles.title, { color: colors.text }]}>Nueva contraseña</ThemedText>
+          <ThemedText style={[styles.title, { color: colors.text }]}>{t('auth.resetPassword.title')}</ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-            Elegí una contraseña segura para tu cuenta.
+            {t('auth.resetPassword.subtitle')}
           </ThemedText>
 
           <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
             <Ionicons name="lock-closed-outline" size={18} color={colors.icon} />
             <TextInput
               style={[styles.fieldInput, { color: colors.text }]}
-              placeholder="Nueva contraseña"
+              placeholder={t('auth.resetPassword.newPassword')}
               placeholderTextColor={colors.tabIconDefault}
               value={password}
               onChangeText={setPassword}
@@ -105,7 +107,7 @@ export default function ResetPasswordScreen() {
             <Ionicons name="lock-closed-outline" size={18} color={colors.icon} />
             <TextInput
               style={[styles.fieldInput, { color: colors.text }]}
-              placeholder="Repetí la contraseña"
+              placeholder={t('auth.resetPassword.repeatPassword')}
               placeholderTextColor={colors.tabIconDefault}
               value={confirm}
               onChangeText={setConfirm}
@@ -127,7 +129,7 @@ export default function ResetPasswordScreen() {
             disabled={isLoading}
             activeOpacity={0.85}>
             <ThemedText style={styles.submitText}>
-              {isLoading ? 'Guardando…' : 'Guardar contraseña'}
+              {isLoading ? t('auth.resetPassword.saving') : t('auth.resetPassword.save')}
             </ThemedText>
           </TouchableOpacity>
         </ScrollView>

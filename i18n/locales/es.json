@@ -1,0 +1,456 @@
+{
+  "common": {
+    "cancel": "Cancelar",
+    "ok": "OK",
+    "error": "Error",
+    "back": "Volver",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "soon": "Próximamente",
+    "comingSoon": "Pronto",
+    "or": "o",
+    "optional": "(opcional)",
+    "noConnection": "Sin conexión",
+    "viewMore": "Ver más",
+    "viewLess": "Ver menos",
+    "user": "Usuario",
+    "sending": "Enviando...",
+    "done": "Listo",
+    "understood": "Entendido",
+    "trail": "Sendero",
+    "place": "Lugar",
+    "close": "Cerrar"
+  },
+  "auth": {
+    "continueWithEmail": "Continuar con correo",
+    "continueWithGoogle": "Continuar con Google",
+    "continueWithApple": "Continuar con Apple",
+    "signIn": "Iniciar sesión",
+    "signUp": "Registrarse",
+    "signingIn": "Iniciando sesión...",
+    "emailPlaceholder": "Correo electrónico",
+    "passwordPlaceholder": "Contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "emailSubtitle": "Ingresá con tu correo electrónico",
+    "soonGoogle": "El acceso con Google estará disponible pronto.",
+    "soonApple": "El acceso con Apple estará disponible pronto.",
+    "fillAllFields": "Por favor completá todos los campos",
+    "loginError": "Error al iniciar sesión",
+    "emailNotVerified": "Email no verificado",
+    "emailNotVerifiedBody": "Revisá tu bandeja de entrada y verificá tu cuenta antes de ingresar.",
+    "resendEmail": "Reenviar email",
+    "resendSuccess": "Si la cuenta existe, te enviamos un nuevo enlace.",
+    "resendError": "No se pudo reenviar el email",
+    "recoverPassword": "Recuperar contraseña",
+    "recoverPasswordBody": "Ingresá tu correo en el campo de arriba y te enviaremos un enlace de recuperación.",
+    "register": {
+      "title": "Crear cuenta",
+      "subtitle": "Registrate con tu correo electrónico",
+      "namePlaceholder": "Tu nombre completo",
+      "emailPlaceholder": "tu@correo.com",
+      "confirmPasswordPlaceholder": "Repetí tu contraseña",
+      "creating": "Creando cuenta...",
+      "create": "Crear cuenta",
+      "success": "Registro exitoso",
+      "successBody": "Revisá tu correo para verificar tu cuenta antes de ingresar.",
+      "goToLogin": "Ir a iniciar sesión",
+      "registerError": "Error al registrarse",
+      "passwordRequirements": "La contraseña no cumple los requisitos",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "soonGoogle": "El registro con Google estará disponible pronto.",
+      "soonApple": "El registro con Apple estará disponible pronto.",
+      "req": {
+        "length": "Mínimo 8 caracteres",
+        "uppercase": "Una letra mayúscula",
+        "number": "Un número",
+        "special": "Un carácter especial"
+      }
+    },
+    "forgotPasswordScreen": {
+      "title": "Recuperar contraseña",
+      "subtitle": "Te enviamos un enlace por email para elegir una nueva contraseña.",
+      "sending": "Enviando…",
+      "send": "Enviar enlace",
+      "success": "Si el email existe, te enviamos un enlace.",
+      "sendError": "No se pudo enviar el email",
+      "enterEmail": "Ingresá tu correo electrónico"
+    },
+    "resetPassword": {
+      "title": "Nueva contraseña",
+      "subtitle": "Elegí una contraseña segura para tu cuenta.",
+      "newPassword": "Nueva contraseña",
+      "repeatPassword": "Repetí la contraseña",
+      "saving": "Guardando…",
+      "save": "Guardar contraseña",
+      "invalidLink": "Enlace inválido o expirado. Pedí un nuevo email desde iniciar sesión.",
+      "tooShort": "La contraseña debe tener al menos 8 caracteres",
+      "mismatch": "Las contraseñas no coinciden",
+      "success": "Tu contraseña fue actualizada.",
+      "goToLogin": "Iniciar sesión",
+      "updateError": "No se pudo actualizar la contraseña"
+    },
+    "verify": {
+      "verifying": "Verificando…",
+      "verified": "Cuenta verificada",
+      "error": "Algo salió mal",
+      "invalidLink": "Este enlace no es válido.",
+      "defaultSuccess": "Tu cuenta fue verificada.",
+      "defaultError": "No pudimos verificar tu cuenta.",
+      "goToLogin": "Ir a iniciar sesión"
+    }
+  },
+  "tabs": {
+    "home": "Inicio",
+    "favorites": "Favoritos",
+    "downloads": "Descargas",
+    "profile": "Perfil"
+  },
+  "home": {
+    "trailCount": "{{count}} senderos",
+    "noTrails": "No se encontraron senderos",
+    "noConnectionList": "Sin conexión. No pudimos cargar el listado; probá el mapa con la última descarga guardada.",
+    "viewMap": "Ver Mapa",
+    "searchPlaceholder": "Buscar..."
+  },
+  "map": {
+    "title": "Mapa",
+    "subtitle": "Explora Ushuaia en el mapa",
+    "comingSoon": "Mapa interactivo próximamente...",
+    "offline": "Sin conexión: estás viendo la última descarga del mapa.",
+    "offlineNoCache": "Sin conexión. Con datos, abrí el mapa una vez para guardar senderos y lugares.",
+    "zoomIn": "Acercar mapa",
+    "zoomOut": "Alejar mapa",
+    "satellite": "Cambiar a vista satelital",
+    "street": "Cambiar a vista de mapa",
+    "centerLocation": "Centrar el mapa en mi ubicación"
+  },
+  "search": {
+    "title": "Búsqueda",
+    "subtitle": "Encuentra senderos y lugares",
+    "placeholder": "Buscar...",
+    "noResults": "Sin resultados",
+    "trail": "Sendero",
+    "place": "Lugar",
+    "modal": {
+      "placeholder": "Buscar senderos...",
+      "recent": "Búsquedas recientes",
+      "noRecent": "No tienes búsquedas recientes",
+      "suggested": "Sugeridas",
+      "nearby": "Puntos cercanos",
+      "nearbySubtitle": "Senderos y lugares cerca tuyo",
+      "cancel": "Cancelar",
+      "search": "Buscar"
+    }
+  },
+  "trails": {
+    "title": "Senderos",
+    "subtitle": "Explora los mejores senderos de Ushuaia",
+    "comingSoon": "Lista de senderos próximamente..."
+  },
+  "offline": {
+    "title": "No tenés conexión",
+    "body": "No pudimos contactar al servidor. Podés abrir senderos que hayas descargado antes para usarlos sin red.",
+    "viewDownloads": "Ver descargas"
+  },
+  "downloads": {
+    "title": "Descargas",
+    "trailsSaved_one": "1 sendero guardado",
+    "trailsSaved_other": "{{count}} senderos guardados",
+    "empty": "Guardá senderos desde el botón de descarga en la ficha del recorrido",
+    "sectionTrails": "Senderos",
+    "nothingDownloaded": "Nada descargado todavía",
+    "emptyBody": "En la ficha de un sendero, tocá el ícono de descarga cuando tengas conexión. Los puntos turísticos no se pueden guardar para uso sin conexión.",
+    "defaultTrailName": "Sendero",
+    "removeTitle": "Quitar descarga",
+    "removeBody": "¿Eliminar «{{name}}» del dispositivo?",
+    "remove": "Quitar",
+    "back": "Volver"
+  },
+  "favorites": {
+    "title": "Favoritos",
+    "savedTrails": "Senderos que guardaste",
+    "trail_one": "1 sendero",
+    "trail_other": "{{count}} senderos",
+    "empty": "No tenés favoritos todavía. Tocá el corazón en un sendero para guardarlo.",
+    "back": "Volver"
+  },
+  "completedTrails": {
+    "title": "Completados",
+    "completedTrails": "Senderos que terminaste",
+    "trail_one": "1 sendero",
+    "trail_other": "{{count}} senderos",
+    "empty": "Todavía no completaste ningún sendero. Terminá un recorrido para verlo acá.",
+    "back": "Volver"
+  },
+  "profile": {
+    "loadingProfile": "Cargando datos del perfil",
+    "defaultUser": "Usuario",
+    "stats": {
+      "trails": "Senderos",
+      "reviews": "Reseñas",
+      "favorites": "Favoritos"
+    },
+    "premium": {
+      "title": "Hazte Premium",
+      "subtitle": "Desbloqueá senderos, mapas y más"
+    },
+    "grid": {
+      "completed": "Completados",
+      "favorites": "Favoritos"
+    },
+    "offline": {
+      "title": "Modo sin conexión",
+      "subtitle": "Descargá senderos para usarlos sin internet"
+    },
+    "settings": {
+      "personalInfo": "Información personal",
+      "notifications": "Notificaciones",
+      "privacySecurity": "Privacidad y seguridad",
+      "helpCenter": "Centro de ayuda",
+      "deleteAccount": "Eliminar cuenta",
+      "logout": "Cerrar sesión"
+    },
+    "logoutTitle": "Cerrar sesión",
+    "logoutBody": "¿Estás seguro que querés salir?",
+    "accessibility": {
+      "completedTrails": "Ver senderos completados",
+      "favorites": "Ver favoritos",
+      "premium": "Hazte premium",
+      "offline": "Abrir descargas offline"
+    }
+  },
+  "personalInfo": {
+    "title": "Información personal",
+    "fullName": "Nombre completo",
+    "email": "Email",
+    "account": "Cuenta",
+    "verified": "Verificada",
+    "unverified": "Sin verificar",
+    "plan": "Plan",
+    "free": "Gratuito",
+    "premium": "Premium",
+    "language": "Idioma",
+    "pending": "Pendiente"
+  },
+  "privacySecurity": {
+    "title": "Privacidad y seguridad",
+    "security": "SEGURIDAD",
+    "privacy": "PRIVACIDAD",
+    "changePassword": "Cambiar contraseña",
+    "changePasswordSub": "Actualizá tu contraseña de acceso",
+    "twoFactor": "Verificación en dos pasos",
+    "twoFactorSub": "Próximamente",
+    "privacyPolicy": "Política de privacidad",
+    "privacyPolicySub": "Cómo usamos tus datos",
+    "terms": "Términos y condiciones",
+    "termsSub": "Condiciones de uso de la app"
+  },
+  "deleteAccount": {
+    "title": "Eliminar cuenta",
+    "warningTitle": "Acción irreversible",
+    "warningBody": "Al eliminar tu cuenta perderás permanentemente tu historial de senderos, reseñas, favoritos y todos tus datos personales.",
+    "reasonLabel": "MOTIVO",
+    "moreInfo": "Contanos más (opcional)",
+    "feedbackPlaceholder": "Tu opinión nos ayuda a mejorar...",
+    "submitBtn": "Solicitar eliminación",
+    "confirmTitle": "Eliminar cuenta",
+    "confirmBody": "¿Estás seguro? Esta acción es permanente y no se puede deshacer. Todos tus datos, historial y favoritos serán eliminados.",
+    "confirmBtn": "Eliminar",
+    "footerNote": "Tu solicitud será procesada en un plazo de 30 días. Podés cancelarla iniciando sesión antes de que se complete.",
+    "reasons": {
+      "noLongerUse": "Ya no uso la app",
+      "technical": "Problemas técnicos",
+      "privacy": "Preocupaciones de privacidad",
+      "preferNotSay": "Prefiero no decirlo"
+    }
+  },
+  "premium": {
+    "title": "Hazte Premium",
+    "popular": "Popular",
+    "processing": "Procesando...",
+    "restore": "Restaurar compras",
+    "legal": "Cancelá en cualquier momento · Precios en USD",
+    "noOfferingTitle": "No disponible",
+    "noOfferingBody": "No se encontró el plan en la tienda. Intentá de nuevo más tarde.",
+    "welcomeTitle": "¡Bienvenido a Pro!",
+    "welcomeBody": "Tu suscripción está activa.",
+    "continue": "Continuar",
+    "purchaseError": "No se pudo completar la compra. Intentá de nuevo.",
+    "restoredTitle": "¡Compra restaurada!",
+    "restoredBody": "Tu plan Pro está activo.",
+    "noPurchasesTitle": "Sin compras previas",
+    "noPurchasesBody": "No encontramos compras anteriores.",
+    "restoreError": "No se pudo restaurar. Intentá de nuevo.",
+    "tiers": {
+      "explorer": {
+        "name": "Explorador",
+        "price": "Gratis",
+        "period": "para siempre",
+        "cta": "Plan actual",
+        "features": {
+          "offline": "Senderos y puntos turísticos sin conexión",
+          "wallpapers": "Wallpapers exclusivos de Ushuaia",
+          "support": "Soporte 24/7"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "period": "por mes",
+        "cta": "Comenzar Pro",
+        "features": {
+          "offline": "Senderos y puntos turísticos sin conexión",
+          "wallpapers": "Wallpapers exclusivos de Ushuaia",
+          "support": "Soporte 24/7"
+        }
+      }
+    },
+    "selectPlan": "Seleccionar plan {{name}}"
+  },
+  "languagePicker": {
+    "title": "Idioma",
+    "es": "Español",
+    "en": "English",
+    "pt": "Português"
+  },
+  "trailsSheet": {
+    "title": "Senderos para ti",
+    "titleNearby": "También cerca tuyo",
+    "subtitle_one": "{{count}} sendero destacado",
+    "subtitle_other": "{{count}} senderos destacados",
+    "subtitleNearby_one": "{{count}} recomendado en la zona",
+    "subtitleNearby_other": "{{count}} recomendados en la zona",
+    "viewAll": "Ver todos",
+    "exploreAll": "Explorar todos los senderos"
+  },
+  "relativeDate": {
+    "day": "Hace 1 día",
+    "days": "Hace {{count}} días",
+    "week": "Hace 1 semana",
+    "weeks": "Hace {{count}} semanas",
+    "month": "Hace 1 mes",
+    "months": "Hace {{count}} meses",
+    "year": "Hace 1 año",
+    "years": "Hace {{count}} años"
+  },
+  "trailDetail": {
+    "waypoints": {
+      "inicio": "Inicio",
+      "fin": "Fin",
+      "mirador": "Mirador",
+      "peligro": "Precaución",
+      "agua": "Agua",
+      "descanso": "Descanso",
+      "refugio": "Refugio",
+      "cruce": "Cruce",
+      "campamento": "Campamento",
+      "cascada": "Cascada",
+      "vista": "Vista",
+      "informacion": "Información"
+    },
+    "defaultPoiName": "Punto de interés",
+    "premiumTitle": "Próximamente Premium",
+    "premiumBody": "La descarga para uso sin conexión estará disponible para cuentas Premium.",
+    "removeDownloadTitle": "Quitar descarga",
+    "removeDownloadBody": "¿Eliminar este sendero de tus descargas? No podrás abrirlo sin conexión.",
+    "removeDownloadBtn": "Quitar",
+    "downloadDoneTitle": "Listo",
+    "downloadDoneBody": "Sendero descargado. Lo encontrás en la pestaña Descargas.",
+    "downloadErrorTitle": "Error",
+    "downloadErrorBody": "No se pudo descargar. Comprobá tu conexión e intentá de nuevo.",
+    "reviewsLoadError": "Error al cargar las reseñas",
+    "startError": "No pudimos iniciar el recorrido. Intentá de nuevo.",
+    "multipleSessionsTitle": "Otros recorridos en curso",
+    "multipleSessionsConfirm": "Sí, empezar este",
+    "resumeAction": "Resumir recorrido",
+    "startAction": "Iniciar recorrido",
+    "reviewValidationRating": "Seleccioná una calificación entre 1 y 5.",
+    "reviewValidationComment": "Escribí un comentario para enviar la reseña.",
+    "reviewSubmitError": "Error al enviar la reseña",
+    "reviewLoadMoreError": "Error al cargar más reseñas",
+    "viewMoreReviews": "Ver más reseñas ({{loaded}}/{{total}})",
+    "downloaded": "Descargado",
+    "downloadAction": "Descargar sendero",
+    "downloadManageLabel": "Gestión de descarga del sendero",
+    "submitReview": "Enviar reseña"
+  },
+  "placeDetail": {
+    "loadError": "No se pudo cargar el lugar",
+    "offlineNoCache": "Sin conexión. No hay una copia guardada de este lugar. Conectate y abrilo una vez para guardarlo en el dispositivo.",
+    "reviewsLoadError": "Error al cargar las reseñas",
+    "reviewValidationRating": "Seleccioná una calificación entre 1 y 5.",
+    "reviewValidationComment": "Escribí un comentario para enviar la reseña.",
+    "reviewSubmitError": "Error al enviar la reseña",
+    "reviewLoadMoreError": "Error al cargar más reseñas",
+    "viewMoreReviews": "Ver más reseñas ({{loaded}}/{{total}})"
+  },
+  "trailRecorrido": {
+    "noSession": "No hay un recorrido activo.",
+    "sessionTitle": "Sesión",
+    "noAuthMessage": "Tenés que iniciar sesión para guardar el recorrido.",
+    "noConnectionMessage": "Tu recorrido quedó marcado para subirse cuando vuelva la conexión.",
+    "saveError": "No pudimos guardar la finalización. Intentá de nuevo.",
+    "navigating": "Navegando",
+    "paused": "En pausa",
+    "minimize": "Minimizar recorrido",
+    "pause": "Pausar recorrido",
+    "resume": "Reanudar",
+    "finish": "Finalizar",
+    "finishTitle": "Finalizar recorrido",
+    "finishMessage": "¿Marcar este sendero como completado? Se guardará en tu historial.",
+    "understood": "Entendido"
+  },
+  "mapCard": {
+    "trail": "Sendero",
+    "place": "Lugar",
+    "closeDetail": "Cerrar detalle del mapa",
+    "viewTrail": "Ver sendero completo",
+    "viewPlace": "Ver ficha del lugar",
+    "difficulty": {
+      "easy": "Fácil",
+      "medium": "Media",
+      "hard": "Difícil"
+    },
+    "routeType": {
+      "circular": "Circular",
+      "lineal": "Lineal",
+      "ida_vuelta": "Ida y vuelta"
+    }
+  },
+  "resumeBar": {
+    "inProgress": "Recorrido en curso",
+    "multipleInProgress": "Recorridos en curso",
+    "defaultTrail": "Sendero",
+    "more_one": "1 sin terminar más",
+    "more_other": "{{count}} sin terminar más",
+    "resume": "Resumir",
+    "pickToResume": "Elegir recorrido para resumir",
+    "resumeTrail": "Resumir sendero {{name}}",
+    "closeList": "Cerrar lista de recorridos",
+    "chooseTrail": "Elegí un recorrido",
+    "active": "Activo"
+  },
+  "reportToast": {
+    "message": "Reporte enviado",
+    "subtitle": "Gracias por ayudarnos a mejorar la comunidad."
+  },
+  "celebration": {
+    "title": "¡Felicitaciones!",
+    "subtitle": "Completaste «{{name}}».\nEl recorrido fue guardado en tu historial.",
+    "subtitleDefault": "Completaste el sendero.\nEl recorrido fue guardado en tu historial.",
+    "thanks": "¡Gracias por tu reseña!",
+    "done": "Listo",
+    "reviewLabel": "Dejá una reseña",
+    "reviewPlaceholder": "Contá cómo fue tu experiencia…",
+    "attachPhotos": "Adjuntar fotos",
+    "noAuth": "Iniciá sesión para publicar reseñas.",
+    "submit": "Enviar reseña",
+    "skipBtn": "Ahora no",
+    "noAuthError": "Necesitás iniciar sesión para enviar una reseña.",
+    "validationRating": "Seleccioná una calificación entre 1 y 5.",
+    "validationComment": "Escribí un comentario para enviar la reseña.",
+    "submitError": "Error al enviar la reseña",
+    "starLabel_one": "Calificar con 1 estrella",
+    "starLabel_other": "Calificar con {{count}} estrellas"
+  }
+}

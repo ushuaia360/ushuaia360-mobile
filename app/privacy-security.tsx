@@ -5,10 +5,12 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PrivacySecurityScreen() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -39,11 +41,11 @@ export default function PrivacySecurityScreen() {
             style={styles.headerBack}
             activeOpacity={0.65}
             accessibilityRole="button"
-            accessibilityLabel="Volver">
+            accessibilityLabel={t('common.back')}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerTitles}>
-            <ThemedText style={styles.headerTitle}>Privacidad y seguridad</ThemedText>
+            <ThemedText style={styles.headerTitle}>{t('privacySecurity.title')}</ThemedText>
           </View>
           <View style={[styles.headerIconWrap, { backgroundColor: colors.tint + '18' }]}>
             <Ionicons name="lock-closed-outline" size={22} color={colors.tint} />
@@ -57,21 +59,21 @@ export default function PrivacySecurityScreen() {
 
         {/* Seguridad */}
         <View style={[styles.sectionCard, { backgroundColor: cardBg }]}>
-          <ThemedText style={[styles.sectionLabel, { color: textSub }]}>SEGURIDAD</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: textSub }]}>{t('privacySecurity.security')}</ThemedText>
 
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.7}
             onPress={() => router.push('/forgot-password')}
             accessibilityRole="button"
-            accessibilityLabel="Cambiar contraseña">
+            accessibilityLabel={t('privacySecurity.changePassword')}>
             <View style={[styles.rowIcon, { backgroundColor: '#ff9500' + '18' }]}>
               <Ionicons name="lock-closed-outline" size={18} color="#ff9500" />
             </View>
             <View style={styles.rowContent}>
-              <ThemedText style={styles.rowLabel}>Cambiar contraseña</ThemedText>
+              <ThemedText style={styles.rowLabel}>{t('privacySecurity.changePassword')}</ThemedText>
               <ThemedText style={[styles.rowSub, { color: textSub }]}>
-                Actualizá tu contraseña de acceso
+                {t('privacySecurity.changePasswordSub')}
               </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={16} color={textSub} />
@@ -83,38 +85,37 @@ export default function PrivacySecurityScreen() {
             style={styles.row}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Autenticación en dos pasos">
+            accessibilityLabel={t('privacySecurity.twoFactor')}>
             <View style={[styles.rowIcon, { backgroundColor: colors.tint + '18' }]}>
               <Ionicons name="phone-portrait-outline" size={18} color={colors.tint} />
             </View>
             <View style={styles.rowContent}>
-              <ThemedText style={styles.rowLabel}>Verificación en dos pasos</ThemedText>
+              <ThemedText style={styles.rowLabel}>{t('privacySecurity.twoFactor')}</ThemedText>
               <ThemedText style={[styles.rowSub, { color: textSub }]}>
-                Próximamente
+                {t('privacySecurity.twoFactorSub')}
               </ThemedText>
             </View>
             <View style={[styles.comingSoonBadge, { backgroundColor: textSub + '18' }]}>
-              <ThemedText style={[styles.comingSoonText, { color: textSub }]}>Pronto</ThemedText>
+              <ThemedText style={[styles.comingSoonText, { color: textSub }]}>{t('common.comingSoon')}</ThemedText>
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* Privacidad */}
         <View style={[styles.sectionCard, { backgroundColor: cardBg }]}>
-          <ThemedText style={[styles.sectionLabel, { color: textSub }]}>PRIVACIDAD</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: textSub }]}>{t('privacySecurity.privacy')}</ThemedText>
 
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Política de privacidad">
+            accessibilityLabel={t('privacySecurity.privacyPolicy')}>
             <View style={[styles.rowIcon, { backgroundColor: colors.tint + '18' }]}>
               <Ionicons name="document-text-outline" size={18} color={colors.tint} />
             </View>
             <View style={styles.rowContent}>
-              <ThemedText style={styles.rowLabel}>Política de privacidad</ThemedText>
+              <ThemedText style={styles.rowLabel}>{t('privacySecurity.privacyPolicy')}</ThemedText>
               <ThemedText style={[styles.rowSub, { color: textSub }]}>
-                Cómo usamos tus datos
+                {t('privacySecurity.privacyPolicySub')}
               </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={16} color={textSub} />
@@ -126,14 +127,14 @@ export default function PrivacySecurityScreen() {
             style={styles.row}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Términos y condiciones">
+            accessibilityLabel={t('privacySecurity.terms')}>
             <View style={[styles.rowIcon, { backgroundColor: colors.tint + '18' }]}>
               <Ionicons name="shield-checkmark-outline" size={18} color={colors.tint} />
             </View>
             <View style={styles.rowContent}>
-              <ThemedText style={styles.rowLabel}>Términos y condiciones</ThemedText>
+              <ThemedText style={styles.rowLabel}>{t('privacySecurity.terms')}</ThemedText>
               <ThemedText style={[styles.rowSub, { color: textSub }]}>
-                Condiciones de uso de la app
+                {t('privacySecurity.termsSub')}
               </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={16} color={textSub} />

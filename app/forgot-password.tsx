@@ -12,6 +12,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -19,6 +20,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -33,16 +35,16 @@ export default function ForgotPasswordScreen() {
   const submit = async () => {
     const e = email.trim();
     if (!e) {
-      Alert.alert('Error', 'Ingresá tu correo electrónico');
+      Alert.alert(t('common.error'), t('auth.forgotPasswordScreen.enterEmail'));
       return;
     }
     try {
       const res = await forgotPassword(e);
-      Alert.alert('Listo', res.message || 'Si el email existe, te enviamos un enlace.', [
-        { text: 'OK', onPress: () => router.replace('/login') },
+      Alert.alert(t('common.ok'), res.message || t('auth.forgotPasswordScreen.success'), [
+        { text: t('common.ok'), onPress: () => router.replace('/login') },
       ]);
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo enviar el email');
+      Alert.alert(t('common.error'), err instanceof Error ? err.message : t('auth.forgotPasswordScreen.sendError'));
     }
   };
 
@@ -62,16 +64,16 @@ export default function ForgotPasswordScreen() {
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
 
-          <ThemedText style={[styles.title, { color: colors.text }]}>Recuperar contraseña</ThemedText>
+          <ThemedText style={[styles.title, { color: colors.text }]}>{t('auth.forgotPasswordScreen.title')}</ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-            Te enviamos un enlace por email para elegir una nueva contraseña.
+            {t('auth.forgotPasswordScreen.subtitle')}
           </ThemedText>
 
           <View style={[styles.field, { backgroundColor: inputBg, borderColor }]}>
             <Ionicons name="mail-outline" size={18} color={colors.icon} />
             <TextInput
               style={[styles.fieldInput, { color: colors.text }]}
-              placeholder="Correo electrónico"
+              placeholder={t('auth.emailPlaceholder')}
               placeholderTextColor={colors.tabIconDefault}
               value={email}
               onChangeText={setEmail}
@@ -87,7 +89,7 @@ export default function ForgotPasswordScreen() {
             disabled={isLoading}
             activeOpacity={0.85}>
             <ThemedText style={styles.submitText}>
-              {isLoading ? 'Enviando…' : 'Enviar enlace'}
+              {isLoading ? t('auth.forgotPasswordScreen.sending') : t('auth.forgotPasswordScreen.send')}
             </ThemedText>
           </TouchableOpacity>
         </ScrollView>

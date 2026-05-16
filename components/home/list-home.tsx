@@ -7,10 +7,12 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import { useHomeStore } from '@/store/home-store';
+import { useLanguageStore } from '@/store/language-store';
 import { useTrailsStore } from '@/store/trails-store';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ResumeActiveTrailBar from './resume-active-trail-bar';
 import SearchBar from './search-bar';
@@ -63,6 +65,7 @@ function SkeletonList() {
 // ── ListHome ──────────────────────────────────────────────────────────────────
 
 export default function ListHome() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -79,7 +82,23 @@ export default function ListHome() {
     searchQuery,
   } = useTrailsStore();
   const { setMode, searchOpen, setSearchOpen } = useHomeStore();
+  const { language, setLanguage } = useLanguageStore();
   const networkReachable = useNetworkReachable();
+
+  const LANG_FLAG: Record<string, string> = { es: '🇦🇷', en: '🇺🇸', pt: '🇧🇷' };
+
+  const openLanguagePicker = useCallback(() => {
+    Alert.alert(
+      t('languagePicker.title'),
+      undefined,
+      [
+        { text: `${language === 'es' ? '✓ ' : ''}🇦🇷  ${t('languagePicker.es')}`, onPress: () => setLanguage('es') },
+        { text: `${language === 'en' ? '✓ ' : ''}🇺🇸  ${t('languagePicker.en')}`, onPress: () => setLanguage('en') },
+        { text: `${language === 'pt' ? '✓ ' : ''}🇧🇷  ${t('languagePicker.pt')}`, onPress: () => setLanguage('pt') },
+        { text: t('common.cancel'), style: 'cancel' },
+      ],
+    );
+  }, [t, language, setLanguage]);
 
   // Carga inicial
   useEffect(() => {
@@ -127,10 +146,25 @@ export default function ListHome() {
           borderBottomColor: isDark ? '#2a2a2a' : '#EDF0F5',
         },
       ]}>
-        <SearchBar onPress={() => setSearchOpen(true)} isActive={searchOpen} />
+        <SearchBar
+          onPress={() => setSearchOpen(true)}
+          isActive={searchOpen}
+          rightSlot={
+            <TouchableOpacity
+              style={[styles.langBtn, { backgroundColor: isDark ? '#2c2c2e' : '#fff' }]}
+              onPress={openLanguagePicker}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={t('languagePicker.title')}>
+              <ThemedText style={styles.langBtnText}>
+                {LANG_FLAG[language] ?? language.toUpperCase()}
+              </ThemedText>
+            </TouchableOpacity>
+          }
+        />
         {total > 0 && (
           <ThemedText style={[styles.countText, { color: colors.icon }]}>
-            {total} senderos
+            {t('home.trailCount', { count: total })}
           </ThemedText>
         )}
       </View>
@@ -164,8 +198,8 @@ export default function ListHome() {
               <IconSymbol name="search-outline" size={40} color={isDark ? '#444' : '#ccc'} />
               <ThemedText style={[styles.emptyText, { color: colors.icon }]}>
                 {networkReachable === false
-                  ? 'Sin conexión. No pudimos cargar el listado; probá el mapa con la última descarga guardada.'
-                  : 'No se encontraron senderos'}
+                  ? t('home.noConnectionList')
+                  : t('home.noTrails')}
               </ThemedText>
             </View>
           }
@@ -178,7 +212,7 @@ export default function ListHome() {
         onPress={() => setMode('map')}
         activeOpacity={0.85}>
         <IconSymbol name="map" size={17} color={colors.tint} />
-        <ThemedText style={[styles.mapFabText, { color: colors.tint }]}>Ver Mapa</ThemedText>
+        <ThemedText style={[styles.mapFabText, { color: colors.tint }]}>{t('home.viewMap')}</ThemedText>
       </TouchableOpacity>
     </ThemedView>
   );
@@ -264,6 +298,22 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: { fontSize: 15 },
+  // ── Language pill ──
+  langBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  langBtnText: {
+    fontSize: 22,
+  },
   // ── FAB ──
   mapFab: {
     position: 'absolute',

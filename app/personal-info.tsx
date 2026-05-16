@@ -2,29 +2,28 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { LANGUAGE_LABELS } from '@/i18n';
 import { useAuthStore } from '@/store/auth-store';
+import { useLanguageStore } from '@/store/language-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200';
 
-const LANG_LABELS: Record<string, string> = {
-  es: 'Español',
-  en: 'English',
-  pt: 'Português',
-};
-
 export default function PersonalInfoScreen() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
   const user = useAuthStore((s) => s.user);
+  const { language } = useLanguageStore();
 
   const cardBg = isDark ? '#1c1c1e' : '#fff';
   const divider = isDark ? '#2a2a2a' : '#f0f0f0';
@@ -40,7 +39,7 @@ export default function PersonalInfoScreen() {
   const isVerified = Boolean(user?.email_verified);
   const isPremium = Boolean(user?.is_premium);
   const emailDisplay = (user?.email ?? '').replace(/[@.]/g, (ch) => `${ch}​`);
-  const langLabel = LANG_LABELS[user?.language ?? ''] ?? user?.language ?? '—';
+  const langLabel = LANGUAGE_LABELS[language];
 
   return (
     <ThemedView style={styles.container}>
@@ -56,11 +55,11 @@ export default function PersonalInfoScreen() {
             style={styles.headerBack}
             activeOpacity={0.65}
             accessibilityRole="button"
-            accessibilityLabel="Volver">
+            accessibilityLabel={t('common.back')}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerTitles}>
-            <ThemedText style={styles.headerTitle}>Información personal</ThemedText>
+            <ThemedText style={styles.headerTitle}>{t('personalInfo.title')}</ThemedText>
           </View>
           <View style={[styles.headerIconWrap, { backgroundColor: colors.tint + '18' }]}>
             <Ionicons name="person-outline" size={22} color={colors.tint} />
@@ -102,7 +101,7 @@ export default function PersonalInfoScreen() {
               <Ionicons name="person-outline" size={18} color={colors.tint} />
             </View>
             <View style={styles.fieldContent}>
-              <ThemedText style={[styles.fieldLabel, { color: textSub }]}>Nombre completo</ThemedText>
+              <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.fullName')}</ThemedText>
               <ThemedText style={styles.fieldValue}>{user?.full_name ?? '—'}</ThemedText>
             </View>
           </View>
@@ -114,7 +113,7 @@ export default function PersonalInfoScreen() {
               <Ionicons name="mail-outline" size={18} color={colors.tint} />
             </View>
             <View style={styles.fieldContent}>
-              <ThemedText style={[styles.fieldLabel, { color: textSub }]}>Email</ThemedText>
+              <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.email')}</ThemedText>
               <ThemedText style={styles.fieldValue}>{emailDisplay}</ThemedText>
             </View>
           </View>
@@ -131,9 +130,9 @@ export default function PersonalInfoScreen() {
             </View>
             <View style={[styles.fieldContent, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
               <View>
-                <ThemedText style={[styles.fieldLabel, { color: textSub }]}>Cuenta</ThemedText>
+                <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.account')}</ThemedText>
                 <ThemedText style={styles.fieldValue}>
-                  {isVerified ? 'Verificada' : 'Sin verificar'}
+                  {isVerified ? t('personalInfo.verified') : t('personalInfo.unverified')}
                 </ThemedText>
               </View>
               <View style={[styles.badge, { backgroundColor: (isVerified ? '#34c759' : '#ff3b30') + '18' }]}>
@@ -143,7 +142,7 @@ export default function PersonalInfoScreen() {
                   color={isVerified ? '#34c759' : '#ff3b30'}
                 />
                 <ThemedText style={[styles.badgeText, { color: isVerified ? '#34c759' : '#ff3b30' }]}>
-                  {isVerified ? 'OK' : 'Pendiente'}
+                  {isVerified ? 'OK' : t('personalInfo.pending')}
                 </ThemedText>
               </View>
             </View>
@@ -161,9 +160,9 @@ export default function PersonalInfoScreen() {
             </View>
             <View style={[styles.fieldContent, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
               <View>
-                <ThemedText style={[styles.fieldLabel, { color: textSub }]}>Plan</ThemedText>
+                <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.plan')}</ThemedText>
                 <ThemedText style={styles.fieldValue}>
-                  {isPremium ? 'Premium' : 'Gratuito'}
+                  {isPremium ? t('personalInfo.premium') : t('personalInfo.free')}
                 </ThemedText>
               </View>
               <View style={[styles.badge, { backgroundColor: (isPremium ? colors.tint : textSub) + '15' }]}>
@@ -173,7 +172,7 @@ export default function PersonalInfoScreen() {
                   color={isPremium ? colors.tint : textSub}
                 />
                 <ThemedText style={[styles.badgeText, { color: isPremium ? colors.tint : textSub }]}>
-                  {isPremium ? 'Premium' : 'Free'}
+                  {isPremium ? t('personalInfo.premium') : 'Free'}
                 </ThemedText>
               </View>
             </View>
@@ -186,7 +185,7 @@ export default function PersonalInfoScreen() {
               <Ionicons name="language-outline" size={18} color={colors.tint} />
             </View>
             <View style={styles.fieldContent}>
-              <ThemedText style={[styles.fieldLabel, { color: textSub }]}>Idioma</ThemedText>
+              <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.language')}</ThemedText>
               <ThemedText style={styles.fieldValue}>{langLabel}</ThemedText>
             </View>
           </View>

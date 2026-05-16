@@ -1,0 +1,456 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "ok": "OK",
+    "error": "Error",
+    "back": "Back",
+    "loading": "Loading...",
+    "save": "Save",
+    "delete": "Delete",
+    "soon": "Coming soon",
+    "comingSoon": "Soon",
+    "or": "or",
+    "optional": "(optional)",
+    "noConnection": "No connection",
+    "viewMore": "View more",
+    "viewLess": "View less",
+    "user": "User",
+    "sending": "Sending...",
+    "done": "Done",
+    "understood": "Got it",
+    "trail": "Trail",
+    "place": "Place",
+    "close": "Close"
+  },
+  "auth": {
+    "continueWithEmail": "Continue with email",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signingIn": "Signing in...",
+    "emailPlaceholder": "Email address",
+    "passwordPlaceholder": "Password",
+    "forgotPassword": "Forgot your password?",
+    "emailSubtitle": "Sign in with your email address",
+    "soonGoogle": "Google sign-in will be available soon.",
+    "soonApple": "Apple sign-in will be available soon.",
+    "fillAllFields": "Please fill in all fields",
+    "loginError": "Sign in failed",
+    "emailNotVerified": "Email not verified",
+    "emailNotVerifiedBody": "Check your inbox and verify your account before signing in.",
+    "resendEmail": "Resend email",
+    "resendSuccess": "If the account exists, we've sent a new link.",
+    "resendError": "Could not resend email",
+    "recoverPassword": "Recover password",
+    "recoverPasswordBody": "Enter your email above and we'll send you a recovery link.",
+    "register": {
+      "title": "Create account",
+      "subtitle": "Sign up with your email address",
+      "namePlaceholder": "Your full name",
+      "emailPlaceholder": "you@email.com",
+      "confirmPasswordPlaceholder": "Repeat your password",
+      "creating": "Creating account...",
+      "create": "Create account",
+      "success": "Registration successful",
+      "successBody": "Check your email to verify your account before signing in.",
+      "goToLogin": "Go to sign in",
+      "registerError": "Registration failed",
+      "passwordRequirements": "Password does not meet the requirements",
+      "passwordMismatch": "Passwords do not match",
+      "soonGoogle": "Google sign-up will be available soon.",
+      "soonApple": "Apple sign-up will be available soon.",
+      "req": {
+        "length": "At least 8 characters",
+        "uppercase": "One uppercase letter",
+        "number": "One number",
+        "special": "One special character"
+      }
+    },
+    "forgotPasswordScreen": {
+      "title": "Recover password",
+      "subtitle": "We'll send you an email link to choose a new password.",
+      "sending": "Sending…",
+      "send": "Send link",
+      "success": "If the email exists, we've sent a link.",
+      "sendError": "Could not send email",
+      "enterEmail": "Enter your email address"
+    },
+    "resetPassword": {
+      "title": "New password",
+      "subtitle": "Choose a secure password for your account.",
+      "newPassword": "New password",
+      "repeatPassword": "Repeat password",
+      "saving": "Saving…",
+      "save": "Save password",
+      "invalidLink": "Invalid or expired link. Request a new email from sign in.",
+      "tooShort": "Password must be at least 8 characters",
+      "mismatch": "Passwords do not match",
+      "success": "Your password has been updated.",
+      "goToLogin": "Sign in",
+      "updateError": "Could not update password"
+    },
+    "verify": {
+      "verifying": "Verifying…",
+      "verified": "Account verified",
+      "error": "Something went wrong",
+      "invalidLink": "This link is not valid.",
+      "defaultSuccess": "Your account has been verified.",
+      "defaultError": "We couldn't verify your account.",
+      "goToLogin": "Go to sign in"
+    }
+  },
+  "tabs": {
+    "home": "Home",
+    "favorites": "Favorites",
+    "downloads": "Downloads",
+    "profile": "Profile"
+  },
+  "home": {
+    "trailCount": "{{count}} trails",
+    "noTrails": "No trails found",
+    "noConnectionList": "No connection. Couldn't load the list; try the map with the last saved download.",
+    "viewMap": "View Map",
+    "searchPlaceholder": "Search..."
+  },
+  "map": {
+    "title": "Map",
+    "subtitle": "Explore Ushuaia on the map",
+    "comingSoon": "Interactive map coming soon...",
+    "offline": "Offline: you're viewing the last map download.",
+    "offlineNoCache": "No connection. With data, open the map once to save trails and places.",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "satellite": "Switch to satellite view",
+    "street": "Switch to map view",
+    "centerLocation": "Center map on my location"
+  },
+  "search": {
+    "title": "Search",
+    "subtitle": "Find trails and places",
+    "placeholder": "Search...",
+    "noResults": "No results",
+    "trail": "Trail",
+    "place": "Place",
+    "modal": {
+      "placeholder": "Search trails...",
+      "recent": "Recent searches",
+      "noRecent": "No recent searches",
+      "suggested": "Suggested",
+      "nearby": "Nearby points",
+      "nearbySubtitle": "Trails and places near you",
+      "cancel": "Cancel",
+      "search": "Search"
+    }
+  },
+  "trails": {
+    "title": "Trails",
+    "subtitle": "Explore the best trails in Ushuaia",
+    "comingSoon": "Trail list coming soon..."
+  },
+  "offline": {
+    "title": "No connection",
+    "body": "Couldn't reach the server. You can open trails you've previously downloaded to use them offline.",
+    "viewDownloads": "View downloads"
+  },
+  "downloads": {
+    "title": "Downloads",
+    "trailsSaved_one": "1 trail saved",
+    "trailsSaved_other": "{{count}} trails saved",
+    "empty": "Save trails using the download button on a trail's page",
+    "sectionTrails": "Trails",
+    "nothingDownloaded": "Nothing downloaded yet",
+    "emptyBody": "On a trail's page, tap the download icon when you have a connection. Points of interest cannot be saved for offline use.",
+    "defaultTrailName": "Trail",
+    "removeTitle": "Remove download",
+    "removeBody": "Delete «{{name}}» from your device?",
+    "remove": "Remove",
+    "back": "Back"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "savedTrails": "Trails you saved",
+    "trail_one": "1 trail",
+    "trail_other": "{{count}} trails",
+    "empty": "No favorites yet. Tap the heart on a trail to save it.",
+    "back": "Back"
+  },
+  "completedTrails": {
+    "title": "Completed",
+    "completedTrails": "Trails you finished",
+    "trail_one": "1 trail",
+    "trail_other": "{{count}} trails",
+    "empty": "You haven't completed any trails yet. Finish a route to see it here.",
+    "back": "Back"
+  },
+  "profile": {
+    "loadingProfile": "Loading profile data",
+    "defaultUser": "User",
+    "stats": {
+      "trails": "Trails",
+      "reviews": "Reviews",
+      "favorites": "Favorites"
+    },
+    "premium": {
+      "title": "Go Premium",
+      "subtitle": "Unlock trails, maps and more"
+    },
+    "grid": {
+      "completed": "Completed",
+      "favorites": "Favorites"
+    },
+    "offline": {
+      "title": "Offline mode",
+      "subtitle": "Download trails to use them without internet"
+    },
+    "settings": {
+      "personalInfo": "Personal information",
+      "notifications": "Notifications",
+      "privacySecurity": "Privacy & security",
+      "helpCenter": "Help center",
+      "deleteAccount": "Delete account",
+      "logout": "Sign out"
+    },
+    "logoutTitle": "Sign out",
+    "logoutBody": "Are you sure you want to sign out?",
+    "accessibility": {
+      "completedTrails": "View completed trails",
+      "favorites": "View favorites",
+      "premium": "Go premium",
+      "offline": "Open offline downloads"
+    }
+  },
+  "personalInfo": {
+    "title": "Personal information",
+    "fullName": "Full name",
+    "email": "Email",
+    "account": "Account",
+    "verified": "Verified",
+    "unverified": "Unverified",
+    "plan": "Plan",
+    "free": "Free",
+    "premium": "Premium",
+    "language": "Language",
+    "pending": "Pending"
+  },
+  "privacySecurity": {
+    "title": "Privacy & security",
+    "security": "SECURITY",
+    "privacy": "PRIVACY",
+    "changePassword": "Change password",
+    "changePasswordSub": "Update your access password",
+    "twoFactor": "Two-step verification",
+    "twoFactorSub": "Coming soon",
+    "privacyPolicy": "Privacy policy",
+    "privacyPolicySub": "How we use your data",
+    "terms": "Terms and conditions",
+    "termsSub": "App terms of use"
+  },
+  "deleteAccount": {
+    "title": "Delete account",
+    "warningTitle": "Irreversible action",
+    "warningBody": "Deleting your account will permanently erase your trail history, reviews, favorites and all personal data.",
+    "reasonLabel": "REASON",
+    "moreInfo": "Tell us more (optional)",
+    "feedbackPlaceholder": "Your feedback helps us improve...",
+    "submitBtn": "Request deletion",
+    "confirmTitle": "Delete account",
+    "confirmBody": "Are you sure? This action is permanent and cannot be undone. All your data, history and favorites will be deleted.",
+    "confirmBtn": "Delete",
+    "footerNote": "Your request will be processed within 30 days. You can cancel it by signing in before it's completed.",
+    "reasons": {
+      "noLongerUse": "I no longer use the app",
+      "technical": "Technical issues",
+      "privacy": "Privacy concerns",
+      "preferNotSay": "Prefer not to say"
+    }
+  },
+  "premium": {
+    "title": "Go Premium",
+    "popular": "Popular",
+    "processing": "Processing...",
+    "restore": "Restore purchases",
+    "legal": "Cancel anytime · Prices in USD",
+    "noOfferingTitle": "Not available",
+    "noOfferingBody": "Plan not found in the store. Please try again later.",
+    "welcomeTitle": "Welcome to Pro!",
+    "welcomeBody": "Your subscription is active.",
+    "continue": "Continue",
+    "purchaseError": "Could not complete the purchase. Please try again.",
+    "restoredTitle": "Purchase restored!",
+    "restoredBody": "Your Pro plan is active.",
+    "noPurchasesTitle": "No previous purchases",
+    "noPurchasesBody": "We couldn't find any previous purchases.",
+    "restoreError": "Could not restore. Please try again.",
+    "tiers": {
+      "explorer": {
+        "name": "Explorer",
+        "price": "Free",
+        "period": "forever",
+        "cta": "Current plan",
+        "features": {
+          "offline": "Trails and points of interest offline",
+          "wallpapers": "Exclusive Ushuaia wallpapers",
+          "support": "24/7 support"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "period": "per month",
+        "cta": "Start Pro",
+        "features": {
+          "offline": "Trails and points of interest offline",
+          "wallpapers": "Exclusive Ushuaia wallpapers",
+          "support": "24/7 support"
+        }
+      }
+    },
+    "selectPlan": "Select plan {{name}}"
+  },
+  "languagePicker": {
+    "title": "Language",
+    "es": "Español",
+    "en": "English",
+    "pt": "Português"
+  },
+  "trailsSheet": {
+    "title": "Trails for you",
+    "titleNearby": "Also near you",
+    "subtitle_one": "{{count}} featured trail",
+    "subtitle_other": "{{count}} featured trails",
+    "subtitleNearby_one": "{{count}} recommended nearby",
+    "subtitleNearby_other": "{{count}} recommended nearby",
+    "viewAll": "View all",
+    "exploreAll": "Explore all trails"
+  },
+  "relativeDate": {
+    "day": "1 day ago",
+    "days": "{{count}} days ago",
+    "week": "1 week ago",
+    "weeks": "{{count}} weeks ago",
+    "month": "1 month ago",
+    "months": "{{count}} months ago",
+    "year": "1 year ago",
+    "years": "{{count}} years ago"
+  },
+  "trailDetail": {
+    "waypoints": {
+      "inicio": "Start",
+      "fin": "End",
+      "mirador": "Viewpoint",
+      "peligro": "Caution",
+      "agua": "Water",
+      "descanso": "Rest",
+      "refugio": "Shelter",
+      "cruce": "Junction",
+      "campamento": "Campsite",
+      "cascada": "Waterfall",
+      "vista": "View",
+      "informacion": "Information"
+    },
+    "defaultPoiName": "Point of interest",
+    "premiumTitle": "Coming soon: Premium",
+    "premiumBody": "Offline download will be available for Premium accounts.",
+    "removeDownloadTitle": "Remove download",
+    "removeDownloadBody": "Delete this trail from your downloads? You won't be able to open it offline.",
+    "removeDownloadBtn": "Remove",
+    "downloadDoneTitle": "Done",
+    "downloadDoneBody": "Trail downloaded. Find it in the Downloads tab.",
+    "downloadErrorTitle": "Error",
+    "downloadErrorBody": "Download failed. Check your connection and try again.",
+    "reviewsLoadError": "Error loading reviews",
+    "startError": "Couldn't start the route. Please try again.",
+    "multipleSessionsTitle": "Other routes in progress",
+    "multipleSessionsConfirm": "Yes, start this one",
+    "resumeAction": "Resume route",
+    "startAction": "Start route",
+    "reviewValidationRating": "Please select a rating between 1 and 5.",
+    "reviewValidationComment": "Write a comment to submit your review.",
+    "reviewSubmitError": "Error submitting review",
+    "reviewLoadMoreError": "Error loading more reviews",
+    "viewMoreReviews": "View more reviews ({{loaded}}/{{total}})",
+    "downloaded": "Downloaded",
+    "downloadAction": "Download trail",
+    "downloadManageLabel": "Manage trail download",
+    "submitReview": "Submit review"
+  },
+  "placeDetail": {
+    "loadError": "Could not load place",
+    "offlineNoCache": "No connection. No saved copy of this place. Connect and open it once to save it on your device.",
+    "reviewsLoadError": "Error loading reviews",
+    "reviewValidationRating": "Please select a rating between 1 and 5.",
+    "reviewValidationComment": "Write a comment to submit your review.",
+    "reviewSubmitError": "Error submitting review",
+    "reviewLoadMoreError": "Error loading more reviews",
+    "viewMoreReviews": "View more reviews ({{loaded}}/{{total}})"
+  },
+  "trailRecorrido": {
+    "noSession": "No active route.",
+    "sessionTitle": "Session",
+    "noAuthMessage": "You need to sign in to save the route.",
+    "noConnectionMessage": "Your route has been queued to upload when your connection returns.",
+    "saveError": "Couldn't save the completion. Please try again.",
+    "navigating": "Navigating",
+    "paused": "Paused",
+    "minimize": "Minimize route",
+    "pause": "Pause route",
+    "resume": "Resume",
+    "finish": "Finish",
+    "finishTitle": "Finish route",
+    "finishMessage": "Mark this trail as completed? It will be saved in your history.",
+    "understood": "Got it"
+  },
+  "mapCard": {
+    "trail": "Trail",
+    "place": "Place",
+    "closeDetail": "Close map detail",
+    "viewTrail": "View full trail",
+    "viewPlace": "View place details",
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "routeType": {
+      "circular": "Loop",
+      "lineal": "One way",
+      "ida_vuelta": "Out & back"
+    }
+  },
+  "resumeBar": {
+    "inProgress": "Route in progress",
+    "multipleInProgress": "Routes in progress",
+    "defaultTrail": "Trail",
+    "more_one": "1 more unfinished",
+    "more_other": "{{count}} more unfinished",
+    "resume": "Resume",
+    "pickToResume": "Choose route to resume",
+    "resumeTrail": "Resume trail {{name}}",
+    "closeList": "Close route list",
+    "chooseTrail": "Choose a route",
+    "active": "Active"
+  },
+  "reportToast": {
+    "message": "Report sent",
+    "subtitle": "Thank you for helping us improve the community."
+  },
+  "celebration": {
+    "title": "Congratulations!",
+    "subtitle": "You completed «{{name}}».\nThe route was saved in your history.",
+    "subtitleDefault": "You completed the trail.\nThe route was saved in your history.",
+    "thanks": "Thanks for your review!",
+    "done": "Done",
+    "reviewLabel": "Leave a review",
+    "reviewPlaceholder": "Share how your experience was…",
+    "attachPhotos": "Attach photos",
+    "noAuth": "Sign in to post reviews.",
+    "submit": "Submit review",
+    "skipBtn": "Not now",
+    "noAuthError": "You need to sign in to submit a review.",
+    "validationRating": "Please select a rating between 1 and 5.",
+    "validationComment": "Write a comment to submit your review.",
+    "submitError": "Error submitting review",
+    "starLabel_one": "Rate with 1 star",
+    "starLabel_other": "Rate with {{count}} stars"
+  }
+}

@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   FlatList,
@@ -47,6 +48,7 @@ function CompletedListSkeleton({ isDark, skelBg }: { isDark: boolean; skelBg: st
 }
 
 export default function CompletedTrailsScreen() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -59,73 +61,55 @@ export default function CompletedTrailsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadCompleted = useCallback(
-    async (isRefresh: boolean) => {
-      if (!token) return;
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
-      try {
-        const data = await fetchCompletedTrails(token);
-        setTrails(data.trails.map(mapBackendTrail));
-      } catch {
-        if (!isRefresh) setTrails([]);
-      } finally {
-        if (isRefresh) setRefreshing(false);
-        else setLoading(false);
-      }
-    },
-    [token],
-  );
+  const loadCompleted = useCallback(async (isRefresh: boolean) => {
+    if (!token) return;
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    try {
+      const data = await fetchCompletedTrails(token);
+      setTrails(data.trails.map(mapBackendTrail));
+    } catch {
+      if (!isRefresh) setTrails([]);
+    } finally {
+      if (isRefresh) setRefreshing(false);
+      else setLoading(false);
+    }
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!token) {
-        setTrails([]);
-        setLoading(false);
-        return;
-      }
+      if (!token) { setTrails([]); setLoading(false); return; }
       loadCompleted(false);
     }, [token, loadCompleted]),
   );
 
   const headerSubtitle = useMemo(() => {
     if (loading && trails.length === 0) return null;
-    if (trails.length === 0) return 'Senderos que terminaste';
-    return trails.length === 1 ? '1 sendero' : `${trails.length} senderos`;
-  }, [loading, trails.length]);
+    if (trails.length === 0) return t('completedTrails.completedTrails');
+    return t(trails.length === 1 ? 'completedTrails.trail_one' : 'completedTrails.trail_other', { count: trails.length });
+  }, [loading, trails.length, t]);
 
   const goBack = useCallback(() => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.push('/(tabs)/profile');
-    }
+    if (router.canGoBack()) router.back();
+    else router.push('/(tabs)/profile');
   }, []);
 
   const headerBg = isDark ? '#1c1c1e' : '#fff';
   const headerBorder = isDark ? '#2a2a2a' : '#EDF0F5';
 
   const header = (
-    <View
-      style={[
-        styles.header,
-        {
-          paddingTop: top + 8,
-          backgroundColor: headerBg,
-          borderBottomColor: headerBorder,
-        },
-      ]}>
+    <View style={[styles.header, { paddingTop: top + 8, backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
       <View style={styles.headerRow}>
         <TouchableOpacity
           onPress={goBack}
           style={styles.headerBack}
           activeOpacity={0.65}
           accessibilityRole="button"
-          accessibilityLabel="Volver">
+          accessibilityLabel={t('completedTrails.back')}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitles}>
-          <ThemedText style={styles.headerTitle}>Completados</ThemedText>
+          <ThemedText style={styles.headerTitle}>{t('completedTrails.title')}</ThemedText>
           {headerSubtitle != null ? (
             <ThemedText style={[styles.headerSubtitle, { color: colors.icon }]} numberOfLines={1}>
               {headerSubtitle}
@@ -151,14 +135,11 @@ export default function CompletedTrailsScreen() {
   return (
     <ThemedView style={[styles.container, { backgroundColor: isDark ? '#000' : '#fff' }]}>
       {header}
-
       {loading ? (
         <CompletedListSkeleton isDark={isDark} skelBg={skelBg} />
       ) : trails.length === 0 ? (
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.icon }}>
-            Todavía no completaste ningún sendero. Terminá un recorrido para verlo acá.
-          </ThemedText>
+          <ThemedText style={{ color: colors.icon }}>{t('completedTrails.empty')}</ThemedText>
         </View>
       ) : (
         <FlatList
@@ -166,18 +147,12 @@ export default function CompletedTrailsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => loadCompleted(true)}
-              tintColor={colors.tint}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={() => loadCompleted(true)} tintColor={colors.tint} />
           }
           renderItem={({ item }) => (
             <TrailListCard
               trail={item}
-              onPress={(t) =>
-                router.push({ pathname: '/trails/[id]', params: { id: t.id } } as never)
-              }
+              onPress={(t) => router.push({ pathname: '/trails/[id]', params: { id: t.id } } as never)}
             />
           )}
           showsVerticalScrollIndicator={false}
@@ -188,66 +163,17 @@ export default function CompletedTrailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingBottom: 14,
-    paddingHorizontal: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    minHeight: 44,
-  },
-  headerBack: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitles: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
-    paddingRight: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 2,
-    opacity: 0.92,
-  },
-  headerIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  list: {
-    paddingTop: 10,
-    paddingBottom: 24,
-  },
-  center: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  skelList: {
-    paddingTop: 10,
-    paddingBottom: 24,
-  },
+  container: { flex: 1 },
+  header: { paddingBottom: 14, paddingHorizontal: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
+  headerBack: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  headerTitles: { flex: 1, minWidth: 0, justifyContent: 'center', paddingRight: 8 },
+  headerTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
+  headerSubtitle: { fontSize: 13, fontWeight: '500', marginTop: 2, opacity: 0.92 },
+  headerIconWrap: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingTop: 10, paddingBottom: 24 },
+  center: { flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center', gap: 16 },
+  skelList: { paddingTop: 10, paddingBottom: 24 },
   skelCard: {
     borderRadius: 16,
     marginHorizontal: 16,
@@ -258,24 +184,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  skelImageWrap: {
-    marginHorizontal: 10,
-    marginTop: 10,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  skelImage: {
-    height: 200,
-    borderRadius: 10,
-  },
-  skelInfo: {
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 16,
-    gap: 8,
-  },
-  skelBar: {
-    height: 17,
-    borderRadius: 6,
-  },
+  skelImageWrap: { marginHorizontal: 10, marginTop: 10, borderRadius: 10, overflow: 'hidden' },
+  skelImage: { height: 200, borderRadius: 10 },
+  skelInfo: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 16, gap: 8 },
+  skelBar: { height: 17, borderRadius: 6 },
 });

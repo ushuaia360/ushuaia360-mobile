@@ -9,20 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 type IonName = ComponentProps<typeof Ionicons>['name'];
-
-const DIFF_LABEL: Record<string, string> = {
-  easy: 'Fácil',
-  medium: 'Media',
-  hard: 'Difícil',
-};
-
-const ROUTE_TYPE_LABEL: Record<string, string> = {
-  circular: 'Circular',
-  lineal: 'Lineal',
-  ida_vuelta: 'Ida y vuelta',
-};
 
 function formatDurationMinutes(minutes: number | null | undefined): string | null {
   if (minutes == null) return null;
@@ -32,12 +21,15 @@ function formatDurationMinutes(minutes: number | null | undefined): string | nul
   return low === high ? `${low} hs` : `${low}–${high} hs`;
 }
 
-function buildTrailStatChips(m: Extract<MapMarker, { kind: 'trail' }>): { icon: IonName; label: string }[] {
+type TFunc = (key: string) => string;
+
+function buildTrailStatChips(m: Extract<MapMarker, { kind: 'trail' }>, t: TFunc): { icon: IonName; label: string }[] {
   const chips: { icon: IonName; label: string }[] = [];
   if (m.difficulty) {
+    const diffKey = `mapCard.difficulty.${m.difficulty}`;
     chips.push({
       icon: 'pulse-outline',
-      label: DIFF_LABEL[m.difficulty] ?? m.difficulty,
+      label: t(diffKey) !== diffKey ? t(diffKey) : m.difficulty,
     });
   }
   if (m.distance_km != null) {
@@ -51,7 +43,8 @@ function buildTrailStatChips(m: Extract<MapMarker, { kind: 'trail' }>): { icon: 
       label: `${m.elevation_gain} m`,
     });
   }
-  const rt = m.route_type ? ROUTE_TYPE_LABEL[m.route_type] ?? m.route_type : null;
+  const rtKey = m.route_type ? `mapCard.routeType.${m.route_type}` : null;
+  const rt = rtKey ? (t(rtKey) !== rtKey ? t(rtKey) : m.route_type) : null;
   if (rt) chips.push({ icon: 'git-compare-outline', label: rt });
   return chips;
 }
@@ -82,13 +75,14 @@ interface Props {
 }
 
 export default function MapMarkerBottomCard({ marker, onClose }: Props) {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
   const isTrail = marker.kind === 'trail';
   const thumb = resolveApiMediaUrl(marker.thumbnail_url) ?? undefined;
-  const ctaLabel = isTrail ? 'Ver sendero completo' : 'Ver ficha del lugar';
+  const ctaLabel = isTrail ? t('mapCard.viewTrail') : t('mapCard.viewPlace');
   const placeIconVisual = !isTrail ? getPlaceCategoryVisual(marker.category, isDark) : null;
 
   const chipBg = isDark ? '#3a3a3c' : '#fff';
@@ -105,7 +99,7 @@ export default function MapMarkerBottomCard({ marker, onClose }: Props) {
     }
   };
 
-  const trailChips = isTrail ? buildTrailStatChips(marker) : [];
+  const trailChips = isTrail ? buildTrailStatChips(marker, t) : [];
 
   const placeMeta = !isTrail
     ? (() => {
@@ -133,14 +127,14 @@ export default function MapMarkerBottomCard({ marker, onClose }: Props) {
             color={isTrail ? colors.tint : placeIconVisual?.accent ?? colors.tint}
           />
           <ThemedText style={[styles.badge, { color: colors.tint }]}>
-            {isTrail ? 'Sendero' : 'Lugar'}
+            {isTrail ? t('mapCard.trail') : t('mapCard.place')}
           </ThemedText>
         </View>
         <TouchableOpacity
           onPress={onClose}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel="Cerrar detalle del mapa">
+          accessibilityLabel={t('mapCard.closeDetail')}>
           <Ionicons
             name="close-circle"
             size={26}

@@ -6,31 +6,24 @@ import { redirectToLogin } from '@/lib/needAuth';
 import { fetchProfileStats, type ProfileStatsResponse } from '@/services/api';
 import { useAuthStore } from '@/store/auth-store';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200';
 
-const SETTINGS = [
-  { icon: 'person-outline',        label: 'Información personal' },
-  { icon: 'notifications-outline', label: 'Notificaciones' },
-  { icon: 'lock-closed-outline',   label: 'Privacidad y seguridad' },
-  { icon: 'help-circle-outline',   label: 'Centro de ayuda' },
-  { icon: 'trash-outline',         label: 'Eliminar cuenta', danger: true },
-  { icon: 'log-out-outline',       label: 'Cerrar sesión', danger: true },
-];
-
 type ProfileSkelProps = { cardBg: string; skelBg: string; divider: string };
 
-/** Tarjeta superior: mismos contenedores que el perfil cargado (sin borde vertical extra). */
 function ProfileDataSectionSkeleton({ cardBg, skelBg, divider }: ProfileSkelProps) {
+  const { t } = useTranslation();
   return (
     <View
-      accessibilityLabel="Cargando datos del perfil"
+      accessibilityLabel={t('profile.loadingProfile')}
       style={[styles.card, { backgroundColor: cardBg }]}>
       <View style={styles.profileRow}>
         <View style={styles.avatarWrap}>
@@ -42,24 +35,13 @@ function ProfileDataSectionSkeleton({ cardBg, skelBg, divider }: ProfileSkelProp
           {[0, 1, 2].flatMap((i) => {
             const block = (
               <View key={`sk-stat-${i}`} style={styles.statItem}>
-                <View
-                  style={[styles.skelBlock, styles.skelBlockStats, { width: 36, height: 22, backgroundColor: skelBg }]}
-                />
-                <View
-                  style={[
-                    styles.skelBlock,
-                    styles.skelBlockStats,
-                    { marginTop: 8, width: 76, height: 13, backgroundColor: skelBg },
-                  ]}
-                />
+                <View style={[styles.skelBlock, styles.skelBlockStats, { width: 36, height: 22, backgroundColor: skelBg }]} />
+                <View style={[styles.skelBlock, styles.skelBlockStats, { marginTop: 8, width: 76, height: 13, backgroundColor: skelBg }]} />
               </View>
             );
             if (i === 0) return [block];
             return [
-              <View
-                key={`sk-div-${i}`}
-                style={[styles.statDivider, styles.statDividerSkel, { backgroundColor: divider }]}
-              />,
+              <View key={`sk-div-${i}`} style={[styles.statDivider, styles.statDividerSkel, { backgroundColor: divider }]} />,
               block,
             ];
           })}
@@ -70,6 +52,7 @@ function ProfileDataSectionSkeleton({ cardBg, skelBg, divider }: ProfileSkelProp
 }
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -85,11 +68,7 @@ export default function ProfileScreen() {
       const s = await fetchProfileStats(token);
       setProfileStats(s);
     } catch {
-      setProfileStats({
-        completed_trails_count: 0,
-        reviews_count: 0,
-        favorites_count: 0,
-      });
+      setProfileStats({ completed_trails_count: 0, reviews_count: 0, favorites_count: 0 });
     }
   }, [token]);
 
@@ -103,13 +82,20 @@ export default function ProfileScreen() {
     }, [isInitialized, user, loadProfileStats]),
   );
 
-  const isVerified = useMemo(() => Boolean(user?.email_verified), [user?.email_verified]);
-
   const statsPending = Boolean(user && profileStats === null);
 
   const cardBg = isDark ? '#1c1c1e' : '#fff';
   const divider = isDark ? '#2a2a2a' : '#f0f0f0';
   const textSub = colors.icon;
+
+  const SETTINGS = useMemo(() => [
+    { icon: 'person-outline',        label: t('profile.settings.personalInfo'),    key: 'personalInfo' },
+    { icon: 'notifications-outline', label: t('profile.settings.notifications'),   key: 'notifications' },
+    { icon: 'lock-closed-outline',   label: t('profile.settings.privacySecurity'), key: 'privacySecurity' },
+    { icon: 'help-circle-outline',   label: t('profile.settings.helpCenter'),      key: 'helpCenter' },
+    { icon: 'trash-outline',         label: t('profile.settings.deleteAccount'),   key: 'deleteAccount', danger: true },
+    { icon: 'log-out-outline',       label: t('profile.settings.logout'),          key: 'logout', danger: true },
+  ], [t]);
 
   if (!isInitialized) {
     return (
@@ -157,27 +143,17 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!user) {
-    return <ThemedView style={styles.container} />;
-  }
-
-  const goToFavorites = () => {
-    router.push('/(tabs)/favorites');
-  };
-
-  const goToCompletedTrails = () => {
-    router.push('/(tabs)/completed-trails');
-  };
+  if (!user) return <ThemedView style={styles.container} />;
 
   const senderosN = profileStats?.completed_trails_count ?? 0;
   const resenasN = profileStats?.reviews_count ?? 0;
   const favoritosN = profileStats?.favorites_count ?? 0;
 
   const handleLogout = () => {
-    Alert.alert('Cerrar sesión', '¿Estás seguro que querés salir?', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('profile.logoutTitle'), t('profile.logoutBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Cerrar sesión',
+        text: t('profile.settings.logout'),
         style: 'destructive',
         onPress: async () => {
           await logout();
@@ -187,6 +163,13 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleSettingPress = (key: string) => {
+    if (key === 'logout') return handleLogout();
+    if (key === 'personalInfo') return router.push('/personal-info');
+    if (key === 'privacySecurity') return router.push('/privacy-security');
+    if (key === 'deleteAccount') return router.push('/delete-account');
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView
@@ -194,7 +177,6 @@ export default function ProfileScreen() {
         bounces={false}
         contentContainerStyle={[styles.scroll, { paddingTop: top + 48 }]}>
 
-        {/* ── Profile card (toda la sección de datos en skeleton hasta tener stats) ── */}
         {statsPending ? (
           <ProfileDataSectionSkeleton cardBg={cardBg} skelBg={skelBg} divider={divider} />
         ) : (
@@ -209,7 +191,7 @@ export default function ProfileScreen() {
                   cachePolicy="memory-disk"
                 />
                 <ThemedText style={[styles.userName, { marginTop: 10 }]}>
-                  {user?.full_name ?? 'Usuario'}
+                  {user?.full_name ?? t('profile.defaultUser')}
                 </ThemedText>
                 <ThemedText style={[styles.userLocation, { color: textSub }]}>
                   {user?.email ?? ''}
@@ -219,103 +201,113 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   style={styles.statItem}
                   activeOpacity={0.65}
-                  onPress={goToCompletedTrails}
+                  onPress={() => router.push('/(tabs)/completed-trails')}
                   accessibilityRole="button"
-                  accessibilityLabel="Ver senderos completados">
+                  accessibilityLabel={t('profile.accessibility.completedTrails')}>
                   <ThemedText style={styles.statNum}>{senderosN}</ThemedText>
-                  <ThemedText style={[styles.statLabel, { color: textSub }]}>Senderos</ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: textSub }]}>{t('profile.stats.trails')}</ThemedText>
                 </TouchableOpacity>
                 <View style={[styles.statDivider, { backgroundColor: divider }]} />
                 <View style={styles.statItem}>
                   <ThemedText style={styles.statNum}>{resenasN}</ThemedText>
-                  <ThemedText style={[styles.statLabel, { color: textSub }]}>Reseñas</ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: textSub }]}>{t('profile.stats.reviews')}</ThemedText>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: divider }]} />
                 <TouchableOpacity
                   style={styles.statItem}
                   activeOpacity={0.65}
-                  onPress={goToFavorites}
+                  onPress={() => router.push('/(tabs)/favorites')}
                   accessibilityRole="button"
-                  accessibilityLabel="Ver favoritos">
+                  accessibilityLabel={t('profile.accessibility.favorites')}>
                   <ThemedText style={styles.statNum}>{favoritosN}</ThemedText>
-                  <ThemedText style={[styles.statLabel, { color: textSub }]}>Favoritos</ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: textSub }]}>{t('profile.stats.favorites')}</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
         )}
 
-        {/* ── Grid cards ── */}
+        {/* Premium banner */}
+        <TouchableOpacity
+          activeOpacity={0.88}
+          onPress={() => router.push('/premium')}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.accessibility.premium')}
+          style={styles.premiumBannerWrap}>
+          <LinearGradient
+            colors={['#2a1f00', '#4a3500', '#2a1f00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.premiumBanner}>
+            <View style={styles.premiumGlow} />
+            <View style={styles.premiumLeft}>
+              <View style={styles.premiumCrownWrap}>
+                <MaterialCommunityIcons name="crown" size={26} color="#F5C518" />
+              </View>
+              <View style={styles.premiumText}>
+                <ThemedText style={styles.premiumTitle}>{t('profile.premium.title')}</ThemedText>
+                <ThemedText style={styles.premiumSub}>{t('profile.premium.subtitle')}</ThemedText>
+              </View>
+            </View>
+            <View style={styles.premiumArrow}>
+              <Ionicons name="chevron-forward" size={16} color="#F5C518" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Grid cards */}
         <View style={styles.grid}>
           <TouchableOpacity
             style={[styles.gridCard, { backgroundColor: cardBg, justifyContent: 'space-between' }]}
             activeOpacity={0.85}
-            onPress={goToCompletedTrails}
+            onPress={() => router.push('/(tabs)/completed-trails')}
             accessibilityRole="button"
-            accessibilityLabel="Senderos completados">
+            accessibilityLabel={t('profile.grid.completed')}>
             <View style={[styles.completedIconWrap, { backgroundColor: '#fff', borderWidth: 2, borderColor: colors.tint, marginTop: 20 }]}>
               <Ionicons name="trail-sign-outline" size={32} color={colors.tint} />
             </View>
-            <ThemedText style={styles.gridLabel}>Completados</ThemedText>
+            <ThemedText style={styles.gridLabel}>{t('profile.grid.completed')}</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.gridCard, { backgroundColor: cardBg, justifyContent: 'space-between' }]}
             activeOpacity={0.85}
-            onPress={goToFavorites}
+            onPress={() => router.push('/(tabs)/favorites')}
             accessibilityRole="button"
-            accessibilityLabel="Favoritos">
+            accessibilityLabel={t('profile.grid.favorites')}>
             <View style={styles.favImgs}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=200' }}
-                style={styles.favImg}
-              />
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=200' }}
-                style={[styles.favImg, styles.favImgOverlap]}
-              />
+              <Image source={{ uri: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=200' }} style={styles.favImg} />
+              <Image source={{ uri: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=200' }} style={[styles.favImg, styles.favImgOverlap]} />
             </View>
-            <ThemedText style={styles.gridLabel}>Favoritos</ThemedText>
+            <ThemedText style={styles.gridLabel}>{t('profile.grid.favorites')}</ThemedText>
           </TouchableOpacity>
         </View>
 
-        {/* ── Premium CTA ── */}
+        {/* Offline CTA */}
         <TouchableOpacity
           style={[styles.ctaCard, { backgroundColor: cardBg }]}
           activeOpacity={0.88}
           onPress={() => router.push('/(tabs)/downloads')}
           accessibilityRole="button"
-          accessibilityLabel="Abrir descargas offline">
+          accessibilityLabel={t('profile.accessibility.offline')}>
           <View style={[styles.ctaIcon, { backgroundColor: colors.tint + '18' }]}>
             <Ionicons name="download-outline" size={28} color={colors.tint} />
           </View>
           <View style={styles.ctaText}>
-            <ThemedText style={styles.ctaTitle}>Modo sin conexión</ThemedText>
-            <ThemedText style={[styles.ctaSubtitle, { color: textSub }]}>
-              Descargá senderos para usarlos sin internet
-            </ThemedText>
+            <ThemedText style={styles.ctaTitle}>{t('profile.offline.title')}</ThemedText>
+            <ThemedText style={[styles.ctaSubtitle, { color: textSub }]}>{t('profile.offline.subtitle')}</ThemedText>
           </View>
           <Ionicons name="chevron-forward" size={18} color={textSub} />
         </TouchableOpacity>
 
-        {/* ── Settings ── */}
+        {/* Settings */}
         <View style={[styles.settingsCard, { backgroundColor: cardBg }]}>
-          {SETTINGS.map(({ icon, label, danger }, i) => (
-            <View key={label}>
+          {SETTINGS.map(({ icon, label, key, danger }, i) => (
+            <View key={key}>
               <TouchableOpacity
                 style={styles.settingRow}
                 activeOpacity={0.7}
-                onPress={
-                  label === 'Cerrar sesión'
-                    ? handleLogout
-                    : label === 'Información personal'
-                      ? () => router.push('/personal-info')
-                      : label === 'Privacidad y seguridad'
-                        ? () => router.push('/privacy-security')
-                        : label === 'Eliminar cuenta'
-                          ? () => router.push('/delete-account')
-                          : undefined
-                }>
+                onPress={() => handleSettingPress(key)}>
                 <View style={styles.settingIconWrap}>
                   <Ionicons name={icon as any} size={24} color={danger ? '#ff3b30' : colors.text} />
                 </View>
@@ -327,7 +319,6 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-
       </ScrollView>
     </ThemedView>
   );
@@ -336,24 +327,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  title: { fontSize: 32, fontWeight: '600' },
-  bellBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Profile card
   card: {
     borderRadius: 20,
     padding: 14,
@@ -381,35 +354,64 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
   },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: -2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    borderColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   stats: { flex: 1, minWidth: 0, gap: 8, paddingLeft: 16 },
-  /** Stats angostas en skeleton: centrar en la mitad derecha y gutter simétrico (stats ya trae paddingLeft). */
-  statsSkel: {
-    alignItems: 'center',
-    paddingRight: 16,
-  },
-  statDividerSkel: {
-    alignSelf: 'stretch',
-  },
+  statsSkel: { alignItems: 'center', paddingRight: 16 },
+  statDividerSkel: { alignSelf: 'stretch' },
   statItem: { gap: 1 },
   statNum: { fontSize: 20, fontWeight: '600' },
   statLabel: { fontSize: 13 },
   statDivider: { height: 1 },
   userName: { fontSize: 22, fontWeight: '600', marginBottom: 4 },
   userLocation: { fontSize: 14 },
-
-  // Grid
+  premiumBannerWrap: {
+    borderRadius: 18,
+    shadowColor: '#F5C518',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  premiumBanner: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(245,197,24,0.35)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    overflow: 'hidden',
+  },
+  premiumGlow: {
+    position: 'absolute',
+    top: -30,
+    right: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(245,197,24,0.12)',
+  },
+  premiumLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
+  premiumCrownWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(245,197,24,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245,197,24,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumText: { gap: 3 },
+  premiumTitle: { fontSize: 16, fontWeight: '700', color: '#F5C518' },
+  premiumSub: { fontSize: 13, color: 'rgba(245,197,24,0.65)' },
+  premiumArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(245,197,24,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   grid: { flexDirection: 'row', gap: 12 },
   gridCard: {
     flex: 1,
@@ -425,22 +427,11 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: 'center',
   },
-  newBadge: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  newText: { fontSize: 10, fontWeight: '600', color: '#fff' },
-  gridImg: { width: '100%', height: 70, borderRadius: 10 },
-  gridIconWrap: { width: '100%', height: 70, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   completedIconWrap: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   favImgs: { flexDirection: 'row', height: 70, marginTop: 20 },
   favImg: { width: 66, height: 66, borderRadius: 33, borderWidth: 2, borderColor: '#fff' },
   favImgOverlap: { width: 52, height: 52, borderRadius: 26, marginLeft: -12, marginTop: 4 },
   gridLabel: { fontSize: 17, fontWeight: '600', marginTop: 4 },
-
-  // CTA
   ctaCard: {
     borderRadius: 16,
     padding: 16,
@@ -463,8 +454,6 @@ const styles = StyleSheet.create({
   ctaText: { flex: 1, gap: 0 },
   ctaTitle: { fontSize: 16, fontWeight: '600' },
   ctaSubtitle: { fontSize: 13, marginTop: -1, lineHeight: 17 },
-
-  // Settings
   settingsCard: {
     borderRadius: 16,
     overflow: 'hidden',
@@ -490,24 +479,6 @@ const styles = StyleSheet.create({
   },
   settingLabel: { flex: 1, fontSize: 15 },
   rowDivider: { height: 1, marginLeft: 66 },
-
-  skelBlock: {
-    borderRadius: 6,
-    alignSelf: 'center',
-  },
-  /** Misma alineación que `statItem` (números / labels a la izquierda). */
-  skelBlockStats: {
-    alignSelf: 'flex-start',
-  },
-
-  // Auth
-  authRow: { flexDirection: 'row', gap: 12 },
-  authBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  authBtnText: { fontSize: 15, fontWeight: '500', color: '#fff' },
+  skelBlock: { borderRadius: 6, alignSelf: 'center' },
+  skelBlockStats: { alignSelf: 'flex-start' },
 });

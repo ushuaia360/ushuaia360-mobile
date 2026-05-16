@@ -3,6 +3,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, {
   Easing,
   runOnJS,
@@ -26,14 +27,18 @@ interface Props {
 
 export default function ReportToast({
   visible,
-  message = 'Reporte enviado',
-  subtitle = 'Gracias por ayudarnos a mejorar la comunidad.',
+  message,
+  subtitle,
   onHide,
   duration = 2200,
 }: Props) {
+  const { t } = useTranslation();
   const { bottom } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+
+  const displayMessage = message ?? t('reportToast.message');
+  const displaySubtitle = subtitle ?? t('reportToast.subtitle');
 
   const translateY = useSharedValue(120);
   const opacity = useSharedValue(0);
@@ -78,9 +83,9 @@ export default function ReportToast({
         <Ionicons name="checkmark-circle" size={28} color="#34c759" />
       </View>
       <View style={styles.textWrap}>
-        <ThemedText style={styles.message}>{message}</ThemedText>
-        {subtitle ? (
-          <ThemedText style={styles.subtitle} numberOfLines={2}>{subtitle}</ThemedText>
+        <ThemedText style={styles.message}>{displayMessage}</ThemedText>
+        {displaySubtitle ? (
+          <ThemedText style={styles.subtitle} numberOfLines={2}>{displaySubtitle}</ThemedText>
         ) : null}
       </View>
     </Animated.View>

@@ -7,6 +7,7 @@ import { USHUAIA_REGION } from '@/constants/mock-trails';
 import { CARD_PADDING_TOP, SB_INPUT_HEIGHT } from '@/constants/search-layout';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLanguageStore } from '@/store/language-store';
 import { Ionicons } from '@expo/vector-icons';
 import {
   MAP_BASE_TILE_X,
@@ -28,7 +29,9 @@ import { useHomeStore } from '@/store/home-store';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
+  Alert,
   Animated,
   PanResponder,
   Platform,
@@ -148,11 +151,14 @@ function calcTiles(
 }
 
 export default function MapHome() {
+  const { t } = useTranslation();
   const { top, bottom } = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
+  const { language, setLanguage } = useLanguageStore();
+  const LANG_FLAG: Record<string, string> = { es: '🇦🇷', en: '🇺🇸', pt: '🇧🇷' };
 
   const streetCartoBase = isDark
     ? 'https://a.basemaps.cartocdn.com/dark_all'
@@ -615,13 +621,34 @@ export default function MapHome() {
         <SearchBar
           onPress={() => setSearchOpen(true)}
           isActive={searchOpen}
+          rightSlot={
+            <TouchableOpacity
+              style={styles.langBtn}
+              onPress={() => {
+                Alert.alert(
+                  t('languagePicker.title'),
+                  undefined,
+                  [
+                    { text: `${language === 'es' ? '✓ ' : ''}🇦🇷  ${t('languagePicker.es')}`, onPress: () => setLanguage('es') },
+                    { text: `${language === 'en' ? '✓ ' : ''}🇺🇸  ${t('languagePicker.en')}`, onPress: () => setLanguage('en') },
+                    { text: `${language === 'pt' ? '✓ ' : ''}🇧🇷  ${t('languagePicker.pt')}`, onPress: () => setLanguage('pt') },
+                    { text: t('common.cancel'), style: 'cancel' },
+                  ],
+                );
+              }}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={t('languagePicker.title')}>
+              <Text style={styles.langBtnText}>{LANG_FLAG[language] ?? language.toUpperCase()}</Text>
+            </TouchableOpacity>
+          }
         />
         {networkReachable === false ? (
           <View style={[styles.offlineBanner, { borderTopColor: isDark ? '#2a2a2a' : '#ececec' }]}>
             <Text style={[styles.offlineBannerText, { color: colors.text }]} numberOfLines={2}>
               {mapMarkers.length > 0
-                ? 'Sin conexión: estás viendo la última descarga del mapa.'
-                : 'Sin conexión. Con datos, abrí el mapa una vez para guardar senderos y lugares.'}
+                ? t('map.offline')
+                : t('map.offlineNoCache')}
             </Text>
           </View>
         ) : null}
@@ -639,7 +666,7 @@ export default function MapHome() {
             style={[styles.mapCtlZoomGroup, { borderColor: mapCtlChrome.bd, backgroundColor: mapCtlChrome.bg }]}>
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Acercar mapa"
+              accessibilityLabel={t('map.zoomIn')}
               style={styles.mapCtlZoomTap}
               activeOpacity={0.7}
               onPress={handleCtlZoomIn}>
@@ -648,7 +675,7 @@ export default function MapHome() {
             <View style={[styles.mapCtlHairline, { backgroundColor: mapCtlChrome.hairline }]} />
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Alejar mapa"
+              accessibilityLabel={t('map.zoomOut')}
               style={styles.mapCtlZoomTap}
               activeOpacity={0.7}
               onPress={handleCtlZoomOut}>
@@ -658,9 +685,7 @@ export default function MapHome() {
 
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel={
-              useSatellite ? 'Cambiar a vista de mapa' : 'Cambiar a vista satelital'
-            }
+            accessibilityLabel={useSatellite ? t('map.street') : t('map.satellite')}
             style={[
               styles.mapCtlChip,
               {
@@ -676,7 +701,7 @@ export default function MapHome() {
 
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Centrar el mapa en mi ubicación"
+            accessibilityLabel={t('map.centerLocation')}
             style={[
               styles.mapCtlChip,
               {
@@ -759,6 +784,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
+  },
+  langBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  langBtnText: {
+    fontSize: 22,
   },
   offlineBanner: {
     paddingHorizontal: 16,

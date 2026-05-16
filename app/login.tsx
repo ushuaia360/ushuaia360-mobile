@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { DEFAULT_AFTER_LOGIN, sanitizeReturnPath } from '@/lib/needAuth';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -22,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AuthHeroBackground } from '@/components/auth/auth-hero-background';
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const { top, bottom } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -41,7 +43,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Por favor completá todos los campos');
+      Alert.alert(t('common.error'), t('auth.fillAllFields'));
       return;
     }
     try {
@@ -50,23 +52,23 @@ export default function LoginScreen() {
       const dest = sanitizeReturnPath(rawNext ?? DEFAULT_AFTER_LOGIN);
       router.replace(dest as Href);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      const msg = err instanceof Error ? err.message : t('auth.loginError');
       if (msg.includes('verificad')) {
         Alert.alert(
-          'Email no verificado',
-          'Revisá tu bandeja de entrada y verificá tu cuenta antes de ingresar.',
+          t('auth.emailNotVerified'),
+          t('auth.emailNotVerifiedBody'),
           [
-            { text: 'OK', style: 'cancel' },
+            { text: t('common.ok'), style: 'cancel' },
             {
-              text: 'Reenviar email',
+              text: t('auth.resendEmail'),
               onPress: async () => {
                 try {
                   const r = await resendVerification(email.trim());
-                  Alert.alert('Listo', r.message || 'Si la cuenta existe, te enviamos un nuevo enlace.');
+                  Alert.alert(t('common.ok'), r.message || t('auth.resendSuccess'));
                 } catch (reErr) {
                   Alert.alert(
-                    'Error',
-                    reErr instanceof Error ? reErr.message : 'No se pudo reenviar el email',
+                    t('common.error'),
+                    reErr instanceof Error ? reErr.message : t('auth.resendError'),
                   );
                 }
               },
@@ -74,7 +76,7 @@ export default function LoginScreen() {
           ],
         );
       } else {
-        Alert.alert('Error', msg);
+        Alert.alert(t('common.error'), msg);
       }
     }
   };
@@ -105,35 +107,35 @@ export default function LoginScreen() {
               activeOpacity={0.85}>
               <Ionicons name="mail" size={20} color="#111" />
               <ThemedText style={[styles.methodBtnText, { color: '#111' }]}>
-                Continuar con correo
+                {t('auth.continueWithEmail')}
               </ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
-              onPress={() => Alert.alert('Próximamente', 'El acceso con Google estará disponible pronto.')}
+              onPress={() => Alert.alert(t('common.soon'), t('auth.soonGoogle'))}
               activeOpacity={0.85}>
               <GoogleGMark size={22} />
               <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
-                Continuar con Google
+                {t('auth.continueWithGoogle')}
               </ThemedText>
             </TouchableOpacity>
 
             {Platform.OS === 'ios' && (
               <TouchableOpacity
                 style={[styles.methodBtn, { backgroundColor: '#000' }]}
-                onPress={() => Alert.alert('Próximamente', 'El acceso con Apple estará disponible pronto.')}
+                onPress={() => Alert.alert(t('common.soon'), t('auth.soonApple'))}
                 activeOpacity={0.85}>
                 <Ionicons name="logo-apple" size={22} color="#fff" />
                 <ThemedText style={[styles.methodBtnText, { color: '#fff' }]}>
-                  Continuar con Apple
+                  {t('auth.continueWithApple')}
                 </ThemedText>
               </TouchableOpacity>
             )}
 
             <View style={styles.orRow}>
               <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
-              <ThemedText style={[styles.orText, { color: 'rgba(255,255,255,0.6)' }]}>o</ThemedText>
+              <ThemedText style={[styles.orText, { color: 'rgba(255,255,255,0.6)' }]}>{t('common.or')}</ThemedText>
               <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
             </View>
 
@@ -141,7 +143,7 @@ export default function LoginScreen() {
               style={[styles.methodBtn, { backgroundColor: colors.tint }]}
               onPress={() => router.replace('/register')}
               activeOpacity={0.85}>
-              <ThemedText style={styles.methodBtnText}>Registrarse</ThemedText>
+              <ThemedText style={styles.methodBtnText}>{t('auth.signUp')}</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -164,9 +166,9 @@ export default function LoginScreen() {
             </View>
           </TouchableOpacity>
 
-          <ThemedText style={[styles.title, { color: colors.text }]}>Iniciar sesión</ThemedText>
+          <ThemedText style={[styles.title, { color: colors.text }]}>{t('auth.signIn')}</ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-            Ingresá con tu correo electrónico
+            {t('auth.emailSubtitle')}
           </ThemedText>
 
           <View style={styles.fields}>
@@ -181,7 +183,7 @@ export default function LoginScreen() {
               />
               <TextInput
                 style={[styles.fieldInput, { color: colors.text }]}
-                placeholder="Correo electrónico"
+                placeholder={t('auth.emailPlaceholder')}
                 placeholderTextColor={colors.tabIconDefault}
                 value={email}
                 onChangeText={setEmail}
@@ -204,7 +206,7 @@ export default function LoginScreen() {
               />
               <TextInput
                 style={[styles.fieldInput, { color: colors.text }]}
-                placeholder="Contraseña"
+                placeholder={t('auth.passwordPlaceholder')}
                 placeholderTextColor={colors.tabIconDefault}
                 value={password}
                 onChangeText={setPassword}
@@ -227,13 +229,10 @@ export default function LoginScreen() {
             style={styles.forgotBtn}
             activeOpacity={0.7}
             onPress={() =>
-              Alert.alert(
-                'Recuperar contraseña',
-                'Ingresá tu correo en el campo de arriba y te enviaremos un enlace de recuperación.',
-              )
+              Alert.alert(t('auth.recoverPassword'), t('auth.recoverPasswordBody'))
             }>
             <ThemedText style={[styles.forgotText, { color: colors.tint }]}>
-              ¿Olvidaste tu contraseña?
+              {t('auth.forgotPassword')}
             </ThemedText>
           </TouchableOpacity>
 
@@ -243,7 +242,7 @@ export default function LoginScreen() {
             disabled={isLoading}
             activeOpacity={0.85}>
             <ThemedText style={styles.submitText}>
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              {isLoading ? t('auth.signingIn') : t('auth.signIn')}
             </ThemedText>
           </TouchableOpacity>
 

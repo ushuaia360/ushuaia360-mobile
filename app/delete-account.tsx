@@ -5,7 +5,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/auth-store';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -19,21 +20,23 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const REASONS = [
-  'Ya no uso la app',
-  'Problemas técnicos',
-  'Preocupaciones de privacidad',
-  'Prefiero no decirlo',
-];
+const REASON_KEYS = ['noLongerUse', 'technical', 'privacy', 'preferNotSay'] as const;
+type ReasonKey = typeof REASON_KEYS[number];
 
 export default function DeleteAccountScreen() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
   const { logout } = useAuthStore();
 
-  const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const reasons = useMemo(
+    () => REASON_KEYS.map((k) => ({ key: k, label: t(`deleteAccount.reasons.${k}`) })),
+    [t],
+  );
+
+  const [selectedReason, setSelectedReason] = useState<ReasonKey | null>(null);
   const [customReason, setCustomReason] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -51,17 +54,16 @@ export default function DeleteAccountScreen() {
 
   const handleSubmit = useCallback(() => {
     Alert.alert(
-      'Eliminar cuenta',
-      '¿Estás seguro? Esta acción es permanente y no se puede deshacer. Todos tus datos, historial y favoritos serán eliminados.',
+      t('deleteAccount.confirmTitle'),
+      t('deleteAccount.confirmBody'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Eliminar',
+          text: t('deleteAccount.confirmBtn'),
           style: 'destructive',
           onPress: async () => {
             setLoading(true);
             try {
-              // TODO: llamar endpoint DELETE /api/v1/users/me cuando esté disponible
               await new Promise((r) => setTimeout(r, 1200));
               await logout();
               router.replace('/login');
@@ -72,7 +74,7 @@ export default function DeleteAccountScreen() {
         },
       ],
     );
-  }, [logout]);
+  }, [logout, t]);
 
   return (
     <ThemedView style={styles.container}>
@@ -88,11 +90,11 @@ export default function DeleteAccountScreen() {
             style={styles.headerBack}
             activeOpacity={0.65}
             accessibilityRole="button"
-            accessibilityLabel="Volver">
+            accessibilityLabel={t('common.back')}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerTitles}>
-            <ThemedText style={styles.headerTitle}>Eliminar cuenta</ThemedText>
+            <ThemedText style={styles.headerTitle}>{t('deleteAccount.title')}</ThemedText>
           </View>
           <View style={[styles.headerIconWrap, { backgroundColor: '#ff3b30' + '15' }]}>
             <Ionicons name="trash-outline" size={22} color="#ff3b30" />
@@ -108,36 +110,37 @@ export default function DeleteAccountScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scroll}>
 
-          {/* Aviso */}
+          {/* Warning */}
           <View style={[styles.warningCard, { backgroundColor: '#ff3b30' + '12', borderColor: '#ff3b30' + '30' }]}>
             <Ionicons name="warning-outline" size={22} color="#ff3b30" style={{ flexShrink: 0, marginTop: 1 }} />
             <View style={{ flex: 1, gap: 4 }}>
               <ThemedText style={[styles.warningTitle, { color: '#ff3b30' }]}>
-                Acción irreversible
+                {t('deleteAccount.warningTitle')}
               </ThemedText>
               <ThemedText style={[styles.warningBody, { color: textSub }]}>
-                Al eliminar tu cuenta perderás permanentemente tu historial de senderos, reseñas, favoritos y todos tus datos personales.
+                {t('deleteAccount.warningBody')}
               </ThemedText>
             </View>
           </View>
 
-          {/* Motivo (opcional) */}
+          {/* Reason */}
           <View style={[styles.card, { backgroundColor: cardBg }]}>
             <ThemedText style={[styles.sectionLabel, { color: textSub }]}>
-              MOTIVO <ThemedText style={[styles.optionalLabel, { color: textSub }]}>(opcional)</ThemedText>
+              {t('deleteAccount.reasonLabel')}{' '}
+              <ThemedText style={[styles.optionalLabel, { color: textSub }]}>{t('common.optional')}</ThemedText>
             </ThemedText>
 
-            {REASONS.map((reason, i) => {
-              const active = selectedReason === reason;
+            {reasons.map(({ key, label }, i) => {
+              const active = selectedReason === key;
               return (
-                <View key={reason}>
+                <View key={key}>
                   {i > 0 && <View style={[styles.divider, { backgroundColor: divider }]} />}
                   <TouchableOpacity
                     style={styles.reasonRow}
                     activeOpacity={0.7}
-                    onPress={() => setSelectedReason(active ? null : reason)}>
+                    onPress={() => setSelectedReason(active ? null : key)}>
                     <ThemedText style={[styles.reasonLabel, active && { color: colors.tint, fontWeight: '600' }]}>
-                      {reason}
+                      {label}
                     </ThemedText>
                     <View style={[
                       styles.radio,
@@ -153,14 +156,13 @@ export default function DeleteAccountScreen() {
 
             <View style={[styles.divider, { backgroundColor: divider }]} />
 
-            {/* Texto libre */}
             <View style={styles.textAreaWrap}>
               <ThemedText style={[styles.textAreaLabel, { color: textSub }]}>
-                Contanos más (opcional)
+                {t('deleteAccount.moreInfo')}
               </ThemedText>
               <TextInput
                 style={[styles.textArea, { backgroundColor: inputBg, color: colors.text }]}
-                placeholder="Tu opinión nos ayuda a mejorar..."
+                placeholder={t('deleteAccount.feedbackPlaceholder')}
                 placeholderTextColor={textSub}
                 value={customReason}
                 onChangeText={setCustomReason}
@@ -174,26 +176,26 @@ export default function DeleteAccountScreen() {
             </View>
           </View>
 
-          {/* Botón */}
+          {/* Button */}
           <TouchableOpacity
             style={[styles.deleteBtn, loading && { opacity: 0.6 }]}
             activeOpacity={0.8}
             onPress={handleSubmit}
             disabled={loading}
             accessibilityRole="button"
-            accessibilityLabel="Solicitar eliminación de cuenta">
+            accessibilityLabel={t('deleteAccount.submitBtn')}>
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <>
                 <Ionicons name="trash-outline" size={18} color="#fff" />
-                <ThemedText style={styles.deleteBtnText}>Solicitar eliminación</ThemedText>
+                <ThemedText style={styles.deleteBtnText}>{t('deleteAccount.submitBtn')}</ThemedText>
               </>
             )}
           </TouchableOpacity>
 
           <ThemedText style={[styles.footerNote, { color: textSub }]}>
-            Tu solicitud será procesada en un plazo de 30 días. Podés cancelarla iniciando sesión antes de que se complete.
+            {t('deleteAccount.footerNote')}
           </ThemedText>
 
         </ScrollView>

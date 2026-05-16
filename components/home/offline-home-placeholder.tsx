@@ -4,13 +4,12 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/**
- * Pantalla de inicio cuando no hay conectividad al API: acceso a contenido descargado.
- */
 export default function OfflineHomePlaceholder() {
+  const { t } = useTranslation();
   const { top, bottom } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -24,18 +23,18 @@ export default function OfflineHomePlaceholder() {
       ]}>
       <View style={styles.inner}>
         <IconSymbol name="cloud-offline-outline" size={56} color={colors.icon} />
-        <ThemedText style={[styles.title, { color: colors.text }]}>No tenés conexión</ThemedText>
+        <ThemedText style={[styles.title, { color: colors.text }]}>{t('offline.title')}</ThemedText>
         <ThemedText style={[styles.body, { color: colors.icon }]}>
-          No pudimos contactar al servidor. Podés abrir senderos que hayas descargado antes para usarlos sin red.
+          {t('offline.body')}
         </ThemedText>
         <TouchableOpacity
           style={[styles.cta, { backgroundColor: colors.tint }]}
           onPress={() => router.push('/(tabs)/downloads' as never)}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Ver descargas">
+          accessibilityLabel={t('offline.viewDownloads')}>
           <IconSymbol name="download-outline" size={22} color="#fff" />
-          <ThemedText style={styles.ctaLabel}>Ver descargas</ThemedText>
+          <ThemedText style={styles.ctaLabel}>{t('offline.viewDownloads')}</ThemedText>
         </TouchableOpacity>
       </View>
     </ThemedView>

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { GoogleGMark } from '@/components/auth/google-g-mark';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
@@ -29,14 +30,11 @@ function checkRequirements(password: string) {
   };
 }
 
-const REQUIREMENTS = [
-  { key: 'length', label: 'Mínimo 8 caracteres' },
-  { key: 'uppercase', label: 'Una letra mayúscula' },
-  { key: 'number', label: 'Un número' },
-  { key: 'special', label: 'Un carácter especial' },
-] as const;
+type ReqKey = 'length' | 'uppercase' | 'number' | 'special';
+const REQUIREMENT_KEYS: ReqKey[] = ['length', 'uppercase', 'number', 'special'];
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const { top, bottom } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -61,28 +59,28 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Por favor completá todos los campos');
+      Alert.alert(t('common.error'), t('auth.fillAllFields'));
       return;
     }
     if (!allReqsMet) {
-      Alert.alert('Error', 'La contraseña no cumple los requisitos');
+      Alert.alert(t('common.error'), t('auth.register.passwordRequirements'));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
+      Alert.alert(t('common.error'), t('auth.register.passwordMismatch'));
       return;
     }
 
     try {
       const result = await register(name.trim(), email.trim(), password, confirmPassword);
       Alert.alert(
-        'Registro exitoso',
-        result.message || 'Revisá tu correo para verificar tu cuenta antes de ingresar.',
-        [{ text: 'Ir a iniciar sesión', onPress: () => router.replace('/login') }],
+        t('auth.register.success'),
+        result.message || t('auth.register.successBody'),
+        [{ text: t('auth.register.goToLogin'), onPress: () => router.replace('/login') }],
       );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al registrarse';
-      Alert.alert('Error', msg);
+      const msg = err instanceof Error ? err.message : t('auth.register.registerError');
+      Alert.alert(t('common.error'), msg);
     }
   };
 
@@ -112,35 +110,35 @@ export default function RegisterScreen() {
               activeOpacity={0.85}>
               <Ionicons name="mail" size={20} color="#111" />
               <ThemedText style={[styles.methodBtnText, { color: '#111' }]}>
-                Continuar con correo
+                {t('auth.continueWithEmail')}
               </ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
-              onPress={() => Alert.alert('Próximamente', 'El registro con Google estará disponible pronto.')}
+              onPress={() => Alert.alert(t('common.soon'), t('auth.register.soonGoogle'))}
               activeOpacity={0.85}>
               <GoogleGMark size={22} />
               <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
-                Continuar con Google
+                {t('auth.continueWithGoogle')}
               </ThemedText>
             </TouchableOpacity>
 
             {Platform.OS === 'ios' && (
               <TouchableOpacity
                 style={[styles.methodBtn, { backgroundColor: '#000' }]}
-                onPress={() => Alert.alert('Próximamente', 'El registro con Apple estará disponible pronto.')}
+                onPress={() => Alert.alert(t('common.soon'), t('auth.register.soonApple'))}
                 activeOpacity={0.85}>
                 <Ionicons name="logo-apple" size={22} color="#fff" />
                 <ThemedText style={[styles.methodBtnText, { color: '#fff' }]}>
-                  Continuar con Apple
+                  {t('auth.continueWithApple')}
                 </ThemedText>
               </TouchableOpacity>
             )}
 
             <View style={styles.orRow}>
               <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
-              <ThemedText style={[styles.orText, { color: 'rgba(255,255,255,0.6)' }]}>o</ThemedText>
+              <ThemedText style={[styles.orText, { color: 'rgba(255,255,255,0.6)' }]}>{t('common.or')}</ThemedText>
               <View style={[styles.orLine, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
             </View>
 
@@ -148,7 +146,7 @@ export default function RegisterScreen() {
               style={[styles.methodBtn, { backgroundColor: colors.tint }]}
               onPress={() => router.replace('/login')}
               activeOpacity={0.85}>
-              <ThemedText style={styles.methodBtnText}>Iniciar sesión</ThemedText>
+              <ThemedText style={styles.methodBtnText}>{t('auth.signIn')}</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -180,13 +178,12 @@ export default function RegisterScreen() {
             </View>
           </TouchableOpacity>
 
-          <ThemedText style={[styles.title, { color: colors.text, marginTop: 40 }]}>Crear cuenta</ThemedText>
+          <ThemedText style={[styles.title, { color: colors.text, marginTop: 40 }]}>{t('auth.register.title')}</ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-            Registrate con tu correo electrónico
+            {t('auth.register.subtitle')}
           </ThemedText>
 
           <View style={styles.fields}>
-            {/* Nombre */}
             <View style={[styles.field, {
               backgroundColor: inputBg,
               borderColor: focusedField === 'name' ? colors.tint : borderColor,
@@ -198,7 +195,7 @@ export default function RegisterScreen() {
               />
               <TextInput
                 style={[styles.fieldInput, { color: colors.text }]}
-                placeholder="Tu nombre completo"
+                placeholder={t('auth.register.namePlaceholder')}
                 placeholderTextColor={colors.tabIconDefault}
                 value={name}
                 onChangeText={setName}
@@ -209,7 +206,6 @@ export default function RegisterScreen() {
               />
             </View>
 
-            {/* Email */}
             <View style={[styles.field, {
               backgroundColor: inputBg,
               borderColor: focusedField === 'email' ? colors.tint : borderColor,
@@ -221,7 +217,7 @@ export default function RegisterScreen() {
               />
               <TextInput
                 style={[styles.fieldInput, { color: colors.text }]}
-                placeholder="tu@correo.com"
+                placeholder={t('auth.register.emailPlaceholder')}
                 placeholderTextColor={colors.tabIconDefault}
                 value={email}
                 onChangeText={setEmail}
@@ -233,7 +229,6 @@ export default function RegisterScreen() {
               />
             </View>
 
-            {/* Contraseña */}
             <View style={styles.fieldGroup}>
               <View style={[styles.field, {
                 backgroundColor: inputBg,
@@ -246,7 +241,7 @@ export default function RegisterScreen() {
                 />
                 <TextInput
                   style={[styles.fieldInput, { color: colors.text }]}
-                  placeholder="Contraseña"
+                  placeholder={t('auth.passwordPlaceholder')}
                   placeholderTextColor={colors.tabIconDefault}
                   value={password}
                   onChangeText={setPassword}
@@ -266,7 +261,7 @@ export default function RegisterScreen() {
 
               {password.length > 0 && (
                 <View style={styles.requirements}>
-                  {REQUIREMENTS.map(({ key, label }) => (
+                  {REQUIREMENT_KEYS.map((key) => (
                     <View key={key} style={styles.reqRow}>
                       <Ionicons
                         name={reqs[key] ? 'checkmark-circle' : 'ellipse-outline'}
@@ -274,7 +269,7 @@ export default function RegisterScreen() {
                         color={reqs[key] ? '#34c759' : colors.tabIconDefault}
                       />
                       <ThemedText style={[styles.reqText, { color: reqs[key] ? '#34c759' : colors.icon }]}>
-                        {label}
+                        {t(`auth.register.req.${key}`)}
                       </ThemedText>
                     </View>
                   ))}
@@ -282,7 +277,6 @@ export default function RegisterScreen() {
               )}
             </View>
 
-            {/* Repetir contraseña */}
             <View style={[styles.field, {
               backgroundColor: inputBg,
               borderColor: confirmBorderColor,
@@ -290,7 +284,7 @@ export default function RegisterScreen() {
               <Ionicons name="lock-closed-outline" size={18} color={colors.icon} />
               <TextInput
                 style={[styles.fieldInput, { color: colors.text }]}
-                placeholder="Repetí tu contraseña"
+                placeholder={t('auth.register.confirmPasswordPlaceholder')}
                 placeholderTextColor={colors.tabIconDefault}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -315,7 +309,7 @@ export default function RegisterScreen() {
             disabled={isLoading}
             activeOpacity={0.85}>
             <ThemedText style={styles.submitText}>
-              {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
+              {isLoading ? t('auth.register.creating') : t('auth.register.create')}
             </ThemedText>
           </TouchableOpacity>
 

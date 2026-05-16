@@ -13,6 +13,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   RefreshControl,
@@ -24,6 +25,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DownloadsScreen() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -58,41 +60,29 @@ export default function DownloadsScreen() {
   const total = trailEntries.length;
 
   const goBack = useCallback(() => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/(tabs)');
-    }
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
   }, []);
 
   const headerSubtitle =
     total === 0
-      ? 'Guardá senderos desde el botón de descarga en la ficha del recorrido'
-      : total === 1
-        ? '1 sendero guardado'
-        : `${total} senderos guardados`;
+      ? t('downloads.empty')
+      : t(total === 1 ? 'downloads.trailsSaved_one' : 'downloads.trailsSaved_other', { count: total });
 
   const header = (
     <View
-      style={[
-        styles.header,
-        {
-          paddingTop: top + 8,
-          backgroundColor: headerBg,
-          borderBottomColor: headerBorder,
-        },
-      ]}>
+      style={[styles.header, { paddingTop: top + 8, backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
       <View style={styles.headerRow}>
         <TouchableOpacity
           onPress={goBack}
           style={styles.headerBack}
           activeOpacity={0.65}
           accessibilityRole="button"
-          accessibilityLabel="Volver">
+          accessibilityLabel={t('downloads.back')}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitles}>
-          <ThemedText style={styles.headerTitle}>Descargas</ThemedText>
+          <ThemedText style={styles.headerTitle}>{t('downloads.title')}</ThemedText>
           <ThemedText style={[styles.headerSubtitle, { color: colors.icon }]} numberOfLines={1}>
             {headerSubtitle}
           </ThemedText>
@@ -106,12 +96,12 @@ export default function DownloadsScreen() {
 
   const askRemoveTrail = (entry: ManualTrailEntry) => {
     Alert.alert(
-      'Quitar descarga',
-      `¿Eliminar «${entry.detail.name ?? 'Sendero'}» del dispositivo?`,
+      t('downloads.removeTitle'),
+      t('downloads.removeBody', { name: entry.detail.name ?? t('downloads.defaultTrailName') }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Quitar',
+          text: t('downloads.remove'),
           style: 'destructive',
           onPress: async () => {
             await removeManualTrailDownload(entry.id);
@@ -134,7 +124,7 @@ export default function DownloadsScreen() {
         }>
         {trailEntries.length > 0 ? (
           <>
-            <ThemedText style={[styles.sectionTitle, { color: colors.icon }]}>Senderos</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: colors.icon }]}>{t('downloads.sectionTrails')}</ThemedText>
             {trailEntries.map((entry) => {
               const thumb =
                 resolveApiMediaUrl(entry.detail.thumbnail_url ?? entry.detail.image_urls?.[0] ?? null) ??
@@ -162,7 +152,7 @@ export default function DownloadsScreen() {
                     )}
                     <View style={styles.rowText}>
                       <ThemedText style={styles.rowTitle} numberOfLines={2}>
-                        {entry.detail.name ?? 'Sendero'}
+                        {entry.detail.name ?? t('downloads.defaultTrailName')}
                       </ThemedText>
                       {sub ? (
                         <ThemedText style={[styles.rowSub, { color: colors.icon }]} numberOfLines={1}>
@@ -176,7 +166,7 @@ export default function DownloadsScreen() {
                     onPress={() => askRemoveTrail(entry)}
                     hitSlop={12}
                     accessibilityRole="button"
-                    accessibilityLabel="Quitar descarga">
+                    accessibilityLabel={t('downloads.removeTitle')}>
                     <Ionicons name="trash-outline" size={22} color="#ff3b30" />
                   </TouchableOpacity>
                 </View>
@@ -188,11 +178,8 @@ export default function DownloadsScreen() {
         {total === 0 && !refreshing ? (
           <View style={styles.empty}>
             <Ionicons name="cloud-download-outline" size={48} color={colors.icon} style={{ opacity: 0.5 }} />
-            <ThemedText style={[styles.emptyTitle, { color: colors.text }]}>Nada descargado todavía</ThemedText>
-            <ThemedText style={[styles.emptySub, { color: colors.icon }]}>
-              En la ficha de un sendero, tocá el ícono de descarga cuando tengas conexión. Los puntos turísticos no se
-              pueden guardar para uso sin conexión.
-            </ThemedText>
+            <ThemedText style={[styles.emptyTitle, { color: colors.text }]}>{t('downloads.nothingDownloaded')}</ThemedText>
+            <ThemedText style={[styles.emptySub, { color: colors.icon }]}>{t('downloads.emptyBody')}</ThemedText>
           </View>
         ) : null}
       </ScrollView>
@@ -282,23 +269,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#e8eaed',
   },
-  rowImgPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowText: {
-    flex: 1,
-    minWidth: 0,
-    gap: 4,
-  },
-  rowTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  rowSub: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  rowImgPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  rowText: { flex: 1, minWidth: 0, gap: 4 },
+  rowTitle: { fontSize: 16, fontWeight: '600' },
+  rowSub: { fontSize: 13, fontWeight: '500' },
   rowTrash: {
     paddingHorizontal: 14,
     paddingVertical: 12,

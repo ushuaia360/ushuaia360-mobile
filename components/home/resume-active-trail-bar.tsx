@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Pressable,
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function ResumeActiveTrailBar({ offsetTop }: Props) {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -70,16 +72,14 @@ export default function ResumeActiveTrailBar({ offsetTop }: Props) {
   const textBlock = (
     <View style={styles.textCol}>
       <ThemedText style={styles.label} numberOfLines={1}>
-        {multi ? 'Recorridos en curso' : 'Recorrido en curso'}
+        {multi ? t('resumeBar.multipleInProgress') : t('resumeBar.inProgress')}
       </ThemedText>
       <ThemedText style={[styles.trailName, { color: colors.tint }]} numberOfLines={1}>
-        {activeSession.trailName.trim() || 'Sendero'}
+        {activeSession.trailName.trim() || t('resumeBar.defaultTrail')}
       </ThemedText>
       {multi && sessions.length > 1 ? (
         <ThemedText style={[styles.moreLabel, { color: colors.icon }]} numberOfLines={1}>
-          {sessions.length - 1 === 1
-            ? '1 sin terminar más'
-            : `${sessions.length - 1} sin terminar más`}
+          {t('resumeBar.more', { count: sessions.length - 1 })}
         </ThemedText>
       ) : null}
     </View>
@@ -88,7 +88,7 @@ export default function ResumeActiveTrailBar({ offsetTop }: Props) {
   const resumePillInner = (
     <>
       <Ionicons name="play" size={14} color="#fff" />
-      <ThemedText style={styles.resumeText}>Resumir</ThemedText>
+      <ThemedText style={styles.resumeText}>{t('resumeBar.resume')}</ThemedText>
       {multi ? <Ionicons name="chevron-down" size={16} color="#fff" /> : null}
     </>
   );
@@ -101,7 +101,7 @@ export default function ResumeActiveTrailBar({ offsetTop }: Props) {
       ]}
       onPress={() => setMenuOpen(true)}
       accessibilityRole="button"
-      accessibilityLabel="Elegir recorrido para resumir">
+      accessibilityLabel={t('resumeBar.pickToResume')}>
       {resumePillInner}
     </Pressable>
   ) : (
@@ -119,7 +119,7 @@ export default function ResumeActiveTrailBar({ offsetTop }: Props) {
               style={({ pressed }) => [styles.barMain, { opacity: pressed ? 0.92 : 1 }]}
               onPress={() => void openRecorrido(activeSession.historyEntryId)}
               accessibilityRole="button"
-              accessibilityLabel={`Resumir sendero ${activeSession.trailName}`}>
+              accessibilityLabel={t('resumeBar.resumeTrail', { name: activeSession.trailName })}>
               {thumbBlock}
               {textBlock}
             </Pressable>
@@ -134,7 +134,7 @@ export default function ResumeActiveTrailBar({ offsetTop }: Props) {
             ]}
             onPress={() => void openRecorrido(activeSession.historyEntryId)}
             accessibilityRole="button"
-            accessibilityLabel={`Resumir sendero ${activeSession.trailName}`}>
+            accessibilityLabel={t('resumeBar.resumeTrail', { name: activeSession.trailName })}>
             {thumbBlock}
             {textBlock}
             {resumePill}
@@ -151,14 +151,14 @@ export default function ResumeActiveTrailBar({ offsetTop }: Props) {
           <Pressable
             style={styles.modalBackdrop}
             onPress={() => setMenuOpen(false)}
-            accessibilityLabel="Cerrar lista de recorridos"
+            accessibilityLabel={t('resumeBar.closeList')}
           />
           <View style={styles.modalCenter} pointerEvents="box-none">
             <View
               style={[styles.menuCard, { backgroundColor: bg, borderColor: border }]}
               accessibilityViewIsModal>
             <ThemedText style={[styles.menuTitle, { color: colors.text }]}>
-              Elegí un recorrido
+              {t('resumeBar.chooseTrail')}
             </ThemedText>
             <ScrollView
               style={styles.menuScroll}
@@ -199,11 +199,11 @@ export default function ResumeActiveTrailBar({ offsetTop }: Props) {
                     )}
                     <View style={styles.menuRowText}>
                       <ThemedText style={styles.menuRowName} numberOfLines={2}>
-                        {s.trailName.trim() || 'Sendero'}
+                        {s.trailName.trim() || t('resumeBar.defaultTrail')}
                       </ThemedText>
                       {isActive ? (
                         <ThemedText style={[styles.menuRowHint, { color: colors.tint }]}>
-                          Activo
+                          {t('resumeBar.active')}
                         </ThemedText>
                       ) : null}
                     </View>

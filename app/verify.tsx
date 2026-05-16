@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-nat
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -10,6 +11,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function VerifyScreen() {
+  const { t } = useTranslation();
   const { top } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -27,7 +29,7 @@ export default function VerifyScreen() {
   useEffect(() => {
     if (!token) {
       setPhase('err');
-      setMessage('Este enlace no es válido.');
+      setMessage(t('auth.verify.invalidLink'));
       return;
     }
 
@@ -38,11 +40,11 @@ export default function VerifyScreen() {
         const res = await verifyEmail(token);
         if (cancelled) return;
         setPhase('ok');
-        setMessage(res.message || 'Tu cuenta fue verificada.');
+        setMessage(res.message || t('auth.verify.defaultSuccess'));
       } catch (err) {
         if (cancelled) return;
         setPhase('err');
-        setMessage(err instanceof Error ? err.message : 'No pudimos verificar tu cuenta.');
+        setMessage(err instanceof Error ? err.message : t('auth.verify.defaultError'));
       }
     })();
 
@@ -78,9 +80,9 @@ export default function VerifyScreen() {
         )}
 
         <ThemedText style={[styles.title, { color: colors.text }]}>
-          {phase === 'loading' && 'Verificando…'}
-          {phase === 'ok' && 'Cuenta verificada'}
-          {phase === 'err' && 'Algo salió mal'}
+          {phase === 'loading' && t('auth.verify.verifying')}
+          {phase === 'ok' && t('auth.verify.verified')}
+          {phase === 'err' && t('auth.verify.error')}
         </ThemedText>
         <ThemedText style={[styles.body, { color: colors.icon }]}>{message}</ThemedText>
 
@@ -89,7 +91,7 @@ export default function VerifyScreen() {
             style={[styles.primaryBtn, { backgroundColor: colors.tint }]}
             onPress={() => router.replace('/login')}
             activeOpacity={0.85}>
-            <ThemedText style={styles.primaryBtnText}>Ir a iniciar sesión</ThemedText>
+            <ThemedText style={styles.primaryBtnText}>{t('auth.verify.goToLogin')}</ThemedText>
           </TouchableOpacity>
         )}
       </View>

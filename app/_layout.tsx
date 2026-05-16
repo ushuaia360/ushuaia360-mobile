@@ -6,12 +6,15 @@ import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+import '@/i18n';
 import SearchPanel from '@/components/home/search-panel';
 import PendingTrailCompletionSync from '@/components/pending-trail-completion-sync';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { configurePurchases } from '@/services/purchases';
 import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
+import { useLanguageStore } from '@/store/language-store';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -25,11 +28,20 @@ export default function RootLayout() {
   const loadFavoriteIds = useFavoritesStore((s) => s.loadIds);
   const clearFavorites = useFavoritesStore((s) => s.clear);
   const hydrateActiveTrailSession = useActiveTrailSessionStore((s) => s.hydrate);
+  const loadSavedLanguage = useLanguageStore((s) => s.loadSavedLanguage);
 
   // Restaurar sesión guardada en AsyncStorage (sin redirigir)
   useEffect(() => {
     initialize();
+    loadSavedLanguage();
   }, []);
+
+  // Configurar RevenueCat solo cuando la sesión ya fue inicializada
+  const user = useAuthStore((s) => s.user);
+  useEffect(() => {
+    if (!isInitialized) return;
+    configurePurchases(user?.id ?? undefined);
+  }, [isInitialized, user?.id]);
 
   /** En web, precarga pickers para no perder user gesture tras `await import`. */
   useEffect(() => {
@@ -67,6 +79,7 @@ export default function RootLayout() {
           <Stack.Screen name="delete-account" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="forgot-password" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="reset-password" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="premium" options={{ headerShown: false, presentation: 'card' }} />
         </Stack>
         <StatusBar style="auto" />
         <PendingTrailCompletionSync />

@@ -28,6 +28,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router, Tabs, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -40,6 +41,7 @@ function formatElapsed(seconds: number): string {
 }
 
 export default function TrailRecorridoScreen() {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -185,7 +187,7 @@ export default function TrailRecorridoScreen() {
     if (!session) return;
 
     if (!token) {
-      setInfoModal({ title: 'Sesión', message: 'Tenés que iniciar sesión para guardar el recorrido.' });
+      setInfoModal({ title: t('trailRecorrido.sessionTitle'), message: t('trailRecorrido.noAuthMessage') });
       return;
     }
 
@@ -205,7 +207,7 @@ export default function TrailRecorridoScreen() {
       setCelebrationVisible(true);
     } catch (e) {
       if (e instanceof ApiHttpError && e.status === 401) {
-        setInfoModal({ title: 'Sesión', message: 'Tenés que iniciar sesión para guardar el recorrido.' });
+        setInfoModal({ title: t('trailRecorrido.sessionTitle'), message: t('trailRecorrido.noAuthMessage') });
         return;
       }
       if (shouldQueueTrailCompletionError(e)) {
@@ -218,19 +220,19 @@ export default function TrailRecorridoScreen() {
           router.replace('/(tabs)' as any);
           setTimeout(() => {
             appAlert(
-              'Sin conexión',
-              'Tu recorrido quedó marcado para subirse cuando vuelva la conexión.',
+              t('common.noConnection'),
+              t('trailRecorrido.noConnectionMessage'),
             );
           }, 400);
         } catch {
           const msg =
-            e instanceof Error ? e.message : 'No pudimos guardar la finalización. Intentá de nuevo.';
-          setInfoModal({ title: 'Error', message: msg });
+            e instanceof Error ? e.message : t('trailRecorrido.saveError');
+          setInfoModal({ title: t('common.error'), message: msg });
         }
         return;
       }
-      const msg = e instanceof Error ? e.message : 'No pudimos guardar la finalización. Intentá de nuevo.';
-      setInfoModal({ title: 'Error', message: msg });
+      const msg = e instanceof Error ? e.message : t('trailRecorrido.saveError');
+      setInfoModal({ title: t('common.error'), message: msg });
     } finally {
       setCompleting(false);
     }
@@ -261,11 +263,11 @@ export default function TrailRecorridoScreen() {
       <>
         <Tabs.Screen options={{ href: null }} />
         <ThemedView style={[styles.empty, { paddingTop: top }]}>
-          <ThemedText style={{ color: colors.icon }}>No hay un recorrido activo.</ThemedText>
+          <ThemedText style={{ color: colors.icon }}>{t('trailRecorrido.noSession')}</ThemedText>
           <Pressable
             style={[styles.ctaMuted, { marginTop: 16, borderColor: colors.tint }]}
             onPress={() => router.back()}>
-            <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>Volver</ThemedText>
+            <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>{t('common.back')}</ThemedText>
           </Pressable>
         </ThemedView>
       </>
@@ -300,7 +302,7 @@ export default function TrailRecorridoScreen() {
                     {session.trailName.trim() || 'Sendero'}
                   </ThemedText>
                   <ThemedText style={[styles.trailTitleTime, { color: isDark ? '#aaa' : '#666' }]}>
-                    {isPaused ? 'En pausa' : 'Navegando'}
+                    {isPaused ? t('trailRecorrido.paused') : t('trailRecorrido.navigating')}
                   </ThemedText>
                 </View>
               </View>
@@ -308,7 +310,7 @@ export default function TrailRecorridoScreen() {
               <Pressable
                 style={[styles.minimizeBtn, { backgroundColor: chipBg }]}
                 onPress={minimizeAndLeave}
-                accessibilityLabel="Minimizar recorrido">
+                accessibilityLabel={t('trailRecorrido.minimize')}>
                 <Ionicons name="chevron-down" size={22} color={isDark ? '#fff' : '#111'} />
               </Pressable>
             </View>
@@ -320,7 +322,7 @@ export default function TrailRecorridoScreen() {
                   <Pressable
                     style={[styles.pauseFab, { backgroundColor: colors.tint }]}
                     onPress={() => setIsPaused(true)}
-                    accessibilityLabel="Pausar recorrido">
+                    accessibilityLabel={t('trailRecorrido.pause')}>
                     <Ionicons name="pause" size={28} color="#fff" />
                   </Pressable>
                   <View style={[styles.timerBadge, { backgroundColor: colors.tint }]}>
@@ -340,7 +342,7 @@ export default function TrailRecorridoScreen() {
                     ]}
                     onPress={() => setIsPaused(false)}>
                     <Ionicons name="play" size={20} color={colors.tint} />
-                    <ThemedText style={[styles.actionBtnLabel, { color: colors.tint }]}>Reanudar</ThemedText>
+                    <ThemedText style={[styles.actionBtnLabel, { color: colors.tint }]}>{t('trailRecorrido.resume')}</ThemedText>
                   </Pressable>
 
                   <Pressable
@@ -355,7 +357,7 @@ export default function TrailRecorridoScreen() {
                     ) : (
                       <>
                         <Ionicons name="flag" size={18} color="#fff" />
-                        <ThemedText style={[styles.actionBtnLabel, { color: '#fff' }]}>Finalizar</ThemedText>
+                        <ThemedText style={[styles.actionBtnLabel, { color: '#fff' }]}>{t('trailRecorrido.finish')}</ThemedText>
                       </>
                     )}
                   </Pressable>
@@ -368,10 +370,10 @@ export default function TrailRecorridoScreen() {
 
         <TrailFinishConfirmModal
           visible={finishConfirmVisible}
-          title="Finalizar recorrido"
-          message="¿Marcar este sendero como completado? Se guardará en tu historial."
-          cancelLabel="Cancelar"
-          confirmLabel="Finalizar"
+          title={t('trailRecorrido.finishTitle')}
+          message={t('trailRecorrido.finishMessage')}
+          cancelLabel={t('common.cancel')}
+          confirmLabel={t('trailRecorrido.finish')}
           onCancel={() => setFinishConfirmVisible(false)}
           onConfirm={() => void runCompleteAfterConfirm()}
         />
@@ -382,7 +384,7 @@ export default function TrailRecorridoScreen() {
           title={infoModal?.title ?? ''}
           message={infoModal?.message ?? ''}
           cancelLabel=""
-          confirmLabel="Entendido"
+          confirmLabel={t('trailRecorrido.understood')}
           onCancel={() => setInfoModal(null)}
           onConfirm={() => setInfoModal(null)}
         />
