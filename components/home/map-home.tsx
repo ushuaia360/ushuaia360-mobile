@@ -33,6 +33,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Animated,
+  Modal,
   PanResponder,
   Platform,
   StyleSheet,
@@ -165,6 +166,24 @@ export default function MapHome() {
     : 'https://a.basemaps.cartocdn.com/light_all';
 
   const [useSatellite, setUseSatellite] = useState(false);
+  const [langSheetVisible, setLangSheetVisible] = useState(false);
+  const langSheetOverlay = useRef(new Animated.Value(0)).current;
+  const langSheetY = useRef(new Animated.Value(260)).current;
+
+  const openLangSheet = () => {
+    setLangSheetVisible(true);
+    Animated.parallel([
+      Animated.timing(langSheetOverlay, { toValue: 1, duration: 240, useNativeDriver: true }),
+      Animated.spring(langSheetY, { toValue: 0, damping: 22, stiffness: 220, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const closeLangSheet = (cb?: () => void) => {
+    Animated.parallel([
+      Animated.timing(langSheetOverlay, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(langSheetY, { toValue: 260, duration: 220, useNativeDriver: true }),
+    ]).start(() => { setLangSheetVisible(false); cb?.(); });
+  };
   /** iOS siempre MapKit. Android: teselas PNG remotas en calle; satélite con MapView nativo (mejor sin red vía caché de Google). */
   const useNativeMapView = Platform.OS === 'ios' || (Platform.OS === 'android' && useSatellite);
 
@@ -617,38 +636,26 @@ export default function MapHome() {
       )}
 
       {/* Search bar */}
-      <View style={[styles.searchOverlay, { paddingTop: top + CARD_PADDING_TOP }]}>
+      <View style={[styles.searchOverlay, { paddingTop: top + CARD_PADDING_TOP, backgroundColor: isDark ? '#1c1c1e' : '#fff' }]}>
         <SearchBar
           onPress={() => setSearchOpen(true)}
           isActive={searchOpen}
           rightSlot={
             <TouchableOpacity
               style={styles.langBtn}
-              onPress={() => {
-                Alert.alert(
-                  t('languagePicker.title'),
-                  undefined,
-                  [
-                    { text: `${language === 'es' ? '✓ ' : ''}🇦🇷  ${t('languagePicker.es')}`, onPress: () => setLanguage('es') },
-                    { text: `${language === 'en' ? '✓ ' : ''}🇺🇸  ${t('languagePicker.en')}`, onPress: () => setLanguage('en') },
-                    { text: `${language === 'pt' ? '✓ ' : ''}🇧🇷  ${t('languagePicker.pt')}`, onPress: () => setLanguage('pt') },
-                    { text: t('common.cancel'), style: 'cancel' },
-                  ],
-                );
-              }}
+              onPress={openLangSheet}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel={t('languagePicker.title')}>
-              <Text style={styles.langBtnText}>{LANG_FLAG[language] ?? language.toUpperCase()}</Text>
+              <Ionicons name="language-outline" size={22} color={chromeAccent} />
             </TouchableOpacity>
           }
         />
         {networkReachable === false ? (
           <View style={[styles.offlineBanner, { borderTopColor: isDark ? '#2a2a2a' : '#ececec' }]}>
+            <Ionicons name="cloud-offline-outline" size={14} color={colors.text} style={{ opacity: 0.65 }} />
             <Text style={[styles.offlineBannerText, { color: colors.text }]} numberOfLines={2}>
-              {mapMarkers.length > 0
-                ? t('map.offline')
-                : t('map.offlineNoCache')}
+              {mapMarkers.length > 0 ? t('map.offline') : t('map.offlineNoCache')}
             </Text>
           </View>
         ) : null}
@@ -689,7 +696,6 @@ export default function MapHome() {
             style={[
               styles.mapCtlChip,
               {
-                marginTop: 6,
                 borderColor: mapCtlChrome.bd,
                 backgroundColor: mapCtlChrome.bg,
               },
@@ -705,7 +711,6 @@ export default function MapHome() {
             style={[
               styles.mapCtlChip,
               {
-                marginTop: 6,
                 borderColor: mapCtlChrome.bd,
                 backgroundColor: mapCtlChrome.bg,
               },
@@ -755,6 +760,40 @@ export default function MapHome() {
           }
         />
       </View>
+      {/* Language picker sheet */}
+      {langSheetVisible ? (
+        <Modal transparent animationType="none" visible={langSheetVisible} onRequestClose={() => closeLangSheet()}>
+          <Animated.View
+            style={[StyleSheet.absoluteFill, styles.langBackdrop, { opacity: langSheetOverlay }]}>
+            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => closeLangSheet()} />
+          </Animated.View>
+          <Animated.View style={[styles.langSheet, { backgroundColor: isDark ? '#1c1c1e' : '#fff', transform: [{ translateY: langSheetY }] }]}>
+            <View style={styles.langSheetHandle} />
+            <Text style={[styles.langSheetTitle, { color: isDark ? '#fff' : '#11181C' }]}>{t('languagePicker.title')}</Text>
+            {([
+              { code: 'es', flag: '🇦🇷', label: t('languagePicker.es') },
+              { code: 'en', flag: '🇺🇸', label: t('languagePicker.en') },
+              { code: 'pt', flag: '🇧🇷', label: t('languagePicker.pt') },
+            ] as const).map((lang, i, arr) => (
+              <View key={lang.code}>
+                <TouchableOpacity
+                  style={styles.langOption}
+                  activeOpacity={0.75}
+                  onPress={() => closeLangSheet(() => setLanguage(lang.code))}>
+                  <Text style={styles.langOptionFlag}>{lang.flag}</Text>
+                  <Text style={[styles.langOptionLabel, { color: isDark ? '#fff' : '#11181C' }]}>{lang.label}</Text>
+                  {language === lang.code && (
+                    <Ionicons name="checkmark" size={20} color={colors.tint} />
+                  )}
+                </TouchableOpacity>
+                {i < arr.length - 1 && (
+                  <View style={[styles.langDivider, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]} />
+                )}
+              </View>
+            ))}
+          </Animated.View>
+        </Modal>
+      ) : null}
     </View>
   );
 }
@@ -778,7 +817,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
@@ -802,6 +840,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 16,
     paddingBottom: 10,
     paddingTop: 6,
@@ -811,6 +852,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     opacity: 0.85,
+    flex: 1,
   },
   rightFabChrome: {
     position: 'absolute',
@@ -818,13 +860,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   mapCtlZoomGroup: {
-    width: 42,
-    borderRadius: 6,
+    width: 44,
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
   },
   mapCtlZoomTap: {
-    height: 36,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -833,11 +875,58 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   mapCtlChip: {
-    width: 42,
-    height: 36,
-    borderRadius: 6,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 8,
   },
+
+  // Language sheet
+  langBackdrop: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  langSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 16,
+  },
+  langSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(120,120,128,0.3)',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  langSheetTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    opacity: 0.5,
+    marginBottom: 8,
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+  },
+  langOptionFlag: { fontSize: 26 },
+  langOptionLabel: { flex: 1, fontSize: 16, fontWeight: '500' },
+  langDivider: { height: StyleSheet.hairlineWidth },
 });

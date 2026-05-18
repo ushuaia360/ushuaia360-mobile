@@ -235,22 +235,38 @@ export default function ProfileScreen() {
           accessibilityLabel={t('profile.accessibility.premium')}
           style={styles.premiumBannerWrap}>
           <LinearGradient
-            colors={['#2a1f00', '#4a3500', '#2a1f00']}
+            colors={['#1a3a5c', '#0d6ebd', '#1a3a5c']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.premiumBanner}>
-            <View style={styles.premiumGlow} />
-            <View style={styles.premiumLeft}>
+            {/* Glow orbs */}
+            <View style={[styles.premiumGlow, { top: -40, right: 20 }]} />
+            <View style={[styles.premiumGlow, { bottom: -30, left: 30, width: 80, height: 80 }]} />
+
+            {/* Crown + title */}
+            <View style={styles.premiumTop}>
               <View style={styles.premiumCrownWrap}>
-                <MaterialCommunityIcons name="crown" size={26} color="#F5C518" />
+                <MaterialCommunityIcons name="crown" size={28} color="#fff" />
               </View>
-              <View style={styles.premiumText}>
+              <View style={styles.premiumTitleBlock}>
                 <ThemedText style={styles.premiumTitle}>{t('profile.premium.title')}</ThemedText>
-                <ThemedText style={styles.premiumSub}>{t('profile.premium.subtitle')}</ThemedText>
+                <ThemedText style={styles.premiumSub}>Explorá Ushuaia sin límites</ThemedText>
               </View>
             </View>
-            <View style={styles.premiumArrow}>
-              <Ionicons name="chevron-forward" size={16} color="#F5C518" />
+
+            {/* Feature pills */}
+            <View style={styles.premiumPills}>
+              {['Mapas offline', 'GPS sin señal', 'Soporte 24/7'].map((pill) => (
+                <View key={pill} style={styles.premiumPill}>
+                  <ThemedText style={styles.premiumPillText}>{pill}</ThemedText>
+                </View>
+              ))}
+            </View>
+
+            {/* CTA */}
+            <View style={styles.premiumCta}>
+              <ThemedText style={styles.premiumCtaText}>Ver planes</ThemedText>
+              <Ionicons name="arrow-forward" size={14} color="#0d6ebd" />
             </View>
           </LinearGradient>
         </TouchableOpacity>
@@ -325,7 +341,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#fff' },
   scroll: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
   card: {
     borderRadius: 20,
@@ -364,53 +380,79 @@ const styles = StyleSheet.create({
   userName: { fontSize: 22, fontWeight: '600', marginBottom: 4 },
   userLocation: { fontSize: 14 },
   premiumBannerWrap: {
-    borderRadius: 18,
-    shadowColor: '#F5C518',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    elevation: 6,
+    borderRadius: 20,
+    shadowColor: '#0d6ebd',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
   premiumBanner: {
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(245,197,24,0.35)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 14,
     overflow: 'hidden',
   },
   premiumGlow: {
     position: 'absolute',
-    top: -30,
-    right: 40,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(245,197,24,0.12)',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.07)',
   },
-  premiumLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
+  premiumTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   premiumCrownWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(245,197,24,0.15)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(245,197,24,0.3)',
+    borderColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  premiumText: { gap: 3 },
-  premiumTitle: { fontSize: 16, fontWeight: '700', color: '#F5C518' },
-  premiumSub: { fontSize: 13, color: 'rgba(245,197,24,0.65)' },
-  premiumArrow: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(245,197,24,0.15)',
+  premiumTitleBlock: { gap: 3, flex: 1 },
+  premiumTitle: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+  premiumSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
+  premiumPills: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  premiumPill: {
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  premiumPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+  },
+  premiumCta: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  premiumCtaText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0d6ebd',
   },
   grid: { flexDirection: 'row', gap: 12 },
   gridCard: {
@@ -479,6 +521,7 @@ const styles = StyleSheet.create({
   },
   settingLabel: { flex: 1, fontSize: 15 },
   rowDivider: { height: 1, marginLeft: 66 },
+
   skelBlock: { borderRadius: 6, alignSelf: 'center' },
   skelBlockStats: { alignSelf: 'flex-start' },
 });

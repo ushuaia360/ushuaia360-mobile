@@ -38,17 +38,42 @@ export default function PersonalInfoScreen() {
 
   const isVerified = Boolean(user?.email_verified);
   const isPremium = Boolean(user?.is_premium);
-  const emailDisplay = (user?.email ?? '').replace(/[@.]/g, (ch) => `${ch}​`);
   const langLabel = LANGUAGE_LABELS[language];
 
+  const fields: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; value: string; valueColor?: string }[] = [
+    {
+      icon: 'person-outline',
+      label: t('personalInfo.fullName'),
+      value: user?.full_name ?? '—',
+    },
+    {
+      icon: 'mail-outline',
+      label: t('personalInfo.email'),
+      value: user?.email ?? '—',
+    },
+    {
+      icon: isVerified ? 'shield-checkmark-outline' : 'shield-outline',
+      label: t('personalInfo.account'),
+      value: isVerified ? t('personalInfo.verified') : t('personalInfo.unverified'),
+      valueColor: isVerified ? '#34c759' : '#ff9500',
+    },
+    {
+      icon: isPremium ? 'star' : 'star-outline',
+      label: t('personalInfo.plan'),
+      value: isPremium ? t('personalInfo.premium') : 'Free',
+      valueColor: isPremium ? colors.tint : undefined,
+    },
+    {
+      icon: 'language-outline',
+      label: t('personalInfo.language'),
+      value: langLabel,
+    },
+  ];
+
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: isDark ? '#000' : '#fff' }]}>
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: top + 8, backgroundColor: headerBg, borderBottomColor: headerBorder },
-        ]}>
+      <View style={[styles.header, { paddingTop: top + 8, backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={goBack}
@@ -58,21 +83,14 @@ export default function PersonalInfoScreen() {
             accessibilityLabel={t('common.back')}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <View style={styles.headerTitles}>
-            <ThemedText style={styles.headerTitle}>{t('personalInfo.title')}</ThemedText>
-          </View>
-          <View style={[styles.headerIconWrap, { backgroundColor: colors.tint + '18' }]}>
-            <Ionicons name="person-outline" size={22} color={colors.tint} />
-          </View>
+          <ThemedText style={styles.headerTitle}>{t('personalInfo.title')}</ThemedText>
         </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* Avatar + nombre */}
-        <View style={[styles.avatarCard, { backgroundColor: cardBg }]}>
+        {/* Avatar */}
+        <View style={styles.avatarSection}>
           <View style={styles.avatarWrap}>
             <Image
               source={{ uri: user?.avatar_url ?? DEFAULT_AVATAR }}
@@ -82,116 +100,37 @@ export default function PersonalInfoScreen() {
               cachePolicy="memory-disk"
             />
             {isVerified && (
-              <View style={[styles.verifiedBadge, { backgroundColor: '#34c759' }]}>
-                <Ionicons name="checkmark" size={12} color="#fff" />
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark" size={11} color="#fff" />
               </View>
             )}
           </View>
           <ThemedText style={styles.avatarName}>{user?.full_name ?? '—'}</ThemedText>
-          <ThemedText style={[styles.avatarEmail, { color: textSub }]} numberOfLines={1}>
-            {user?.email ?? ''}
-          </ThemedText>
         </View>
 
-        {/* Campos */}
+        {/* Fields */}
         <View style={[styles.fieldsCard, { backgroundColor: cardBg }]}>
-
-          <View style={styles.fieldRow}>
-            <View style={[styles.fieldIconWrap, { backgroundColor: colors.tint + '15' }]}>
-              <Ionicons name="person-outline" size={18} color={colors.tint} />
-            </View>
-            <View style={styles.fieldContent}>
-              <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.fullName')}</ThemedText>
-              <ThemedText style={styles.fieldValue}>{user?.full_name ?? '—'}</ThemedText>
-            </View>
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: divider }]} />
-
-          <View style={styles.fieldRow}>
-            <View style={[styles.fieldIconWrap, { backgroundColor: colors.tint + '15' }]}>
-              <Ionicons name="mail-outline" size={18} color={colors.tint} />
-            </View>
-            <View style={styles.fieldContent}>
-              <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.email')}</ThemedText>
-              <ThemedText style={styles.fieldValue}>{emailDisplay}</ThemedText>
-            </View>
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: divider }]} />
-
-          <View style={styles.fieldRow}>
-            <View style={[styles.fieldIconWrap, { backgroundColor: (isVerified ? '#34c759' : '#ff3b30') + '18' }]}>
-              <Ionicons
-                name={isVerified ? 'shield-checkmark-outline' : 'shield-outline'}
-                size={18}
-                color={isVerified ? '#34c759' : '#ff3b30'}
-              />
-            </View>
-            <View style={[styles.fieldContent, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-              <View>
-                <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.account')}</ThemedText>
-                <ThemedText style={styles.fieldValue}>
-                  {isVerified ? t('personalInfo.verified') : t('personalInfo.unverified')}
-                </ThemedText>
+          {fields.map((field, i) => (
+            <View key={field.label}>
+              <View style={styles.fieldRow}>
+                <View style={[styles.fieldIconWrap, { backgroundColor: colors.tint + '15' }]}>
+                  <Ionicons name={field.icon} size={20} color={colors.tint} />
+                </View>
+                <View style={styles.fieldContent}>
+                  <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{field.label}</ThemedText>
+                  <ThemedText
+                    style={[styles.fieldValue, field.valueColor ? { color: field.valueColor } : null]}
+                    numberOfLines={1}>
+                    {field.value}
+                  </ThemedText>
+                </View>
               </View>
-              <View style={[styles.badge, { backgroundColor: (isVerified ? '#34c759' : '#ff3b30') + '18' }]}>
-                <Ionicons
-                  name={isVerified ? 'checkmark-circle' : 'close-circle'}
-                  size={14}
-                  color={isVerified ? '#34c759' : '#ff3b30'}
-                />
-                <ThemedText style={[styles.badgeText, { color: isVerified ? '#34c759' : '#ff3b30' }]}>
-                  {isVerified ? 'OK' : t('personalInfo.pending')}
-                </ThemedText>
-              </View>
+              {i < fields.length - 1 && (
+                <View style={[styles.divider, { backgroundColor: divider }]} />
+              )}
             </View>
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: divider }]} />
-
-          <View style={styles.fieldRow}>
-            <View style={[styles.fieldIconWrap, { backgroundColor: (isPremium ? colors.tint : textSub) + '18' }]}>
-              <Ionicons
-                name={isPremium ? 'star' : 'star-outline'}
-                size={18}
-                color={isPremium ? colors.tint : textSub}
-              />
-            </View>
-            <View style={[styles.fieldContent, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-              <View>
-                <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.plan')}</ThemedText>
-                <ThemedText style={styles.fieldValue}>
-                  {isPremium ? t('personalInfo.premium') : t('personalInfo.free')}
-                </ThemedText>
-              </View>
-              <View style={[styles.badge, { backgroundColor: (isPremium ? colors.tint : textSub) + '15' }]}>
-                <Ionicons
-                  name={isPremium ? 'star' : 'star-outline'}
-                  size={14}
-                  color={isPremium ? colors.tint : textSub}
-                />
-                <ThemedText style={[styles.badgeText, { color: isPremium ? colors.tint : textSub }]}>
-                  {isPremium ? t('personalInfo.premium') : 'Free'}
-                </ThemedText>
-              </View>
-            </View>
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: divider }]} />
-
-          <View style={styles.fieldRow}>
-            <View style={[styles.fieldIconWrap, { backgroundColor: colors.tint + '15' }]}>
-              <Ionicons name="language-outline" size={18} color={colors.tint} />
-            </View>
-            <View style={styles.fieldContent}>
-              <ThemedText style={[styles.fieldLabel, { color: textSub }]}>{t('personalInfo.language')}</ThemedText>
-              <ThemedText style={styles.fieldValue}>{langLabel}</ThemedText>
-            </View>
-          </View>
-
+          ))}
         </View>
-
 
       </ScrollView>
     </ThemedView>
@@ -207,98 +146,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    minHeight: 44,
-  },
-  headerBack: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitles: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
-    paddingRight: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  headerIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
+  headerBack: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
 
   // Scroll
-  scroll: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 40,
-    gap: 16,
-  },
+  scroll: { paddingHorizontal: 16, paddingTop: 28, paddingBottom: 40, gap: 20 },
 
-  // Avatar card
-  avatarCard: {
-    borderRadius: 20,
-    paddingVertical: 28,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  avatarWrap: {
-    position: 'relative',
-    marginBottom: 4,
-  },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-  },
+  // Avatar
+  avatarSection: { alignItems: 'center', gap: 12 },
+  avatarWrap: { position: 'relative' },
+  avatar: { width: 88, height: 88, borderRadius: 44 },
   verifiedBadge: {
     position: 'absolute',
     bottom: 2,
     right: 2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#34c759',
     borderWidth: 2,
     borderColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarName: {
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  avatarEmail: {
-    fontSize: 14,
-  },
+  avatarName: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
 
-  // Fields card
+  // Fields
   fieldsCard: {
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
   fieldRow: {
     flexDirection: 'row',
@@ -308,40 +190,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   fieldIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
-  fieldContent: {
-    flex: 1,
-    gap: 2,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  fieldValue: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 66,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-  badgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-
+  fieldContent: { flex: 1, minWidth: 0, gap: 0 },
+  fieldLabel: { fontSize: 12, fontWeight: '500' },
+  fieldValue: { fontSize: 15, fontWeight: '600', marginTop: -2 },
+  divider: { height: StyleSheet.hairlineWidth, marginLeft: 72 },
 });

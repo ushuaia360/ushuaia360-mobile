@@ -2,83 +2,48 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getProOffering, purchasePro, restorePurchases } from '@/services/purchases';
 import { useAuthStore } from '@/store/auth-store';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Tier = {
-  id: string;
-  name: string;
-  price: string;
-  period: string;
-  accentColor: string;
-  crownName: 'crown-outline' | 'crown';
-  cta: string;
-  isFree?: boolean;
-  popular?: boolean;
-  features?: string[];
-  missing?: string[];
-};
+const PRO_BENEFITS = [
+  { icon: 'cloud-download-outline' as const,  text: 'Senderos y mapas sin conexión' },
+  { icon: 'navigate-outline' as const,         text: 'GPS offline en la montaña' },
+  { icon: 'image-outline' as const,            text: 'Wallpapers exclusivos de Ushuaia' },
+  { icon: 'headset-outline' as const,          text: 'Soporte prioritario 24/7' },
+];
 
 export default function PremiumScreen() {
   const { t } = useTranslation();
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
-  const [selected, setSelected] = useState<string>('pro');
   const [purchasing, setPurchasing] = useState(false);
   const refreshUser = useAuthStore((s) => s.refreshUser);
 
-  const TIERS = useMemo<Tier[]>(() => [
-    {
-      id: 'explorer',
-      name: t('premium.tiers.explorer.name'),
-      price: t('premium.tiers.explorer.price'),
-      period: t('premium.tiers.explorer.period'),
-      accentColor: '#687076',
-      crownName: 'crown-outline',
-      missing: [
-        t('premium.tiers.explorer.features.offline'),
-        t('premium.tiers.explorer.features.wallpapers'),
-        t('premium.tiers.explorer.features.support'),
-      ],
-      cta: t('premium.tiers.explorer.cta'),
-      isFree: true,
-    },
-    {
-      id: 'pro',
-      name: t('premium.tiers.pro.name'),
-      price: '$4.99',
-      period: t('premium.tiers.pro.period'),
-      accentColor: '#3FA9F5',
-      crownName: 'crown',
-      features: [
-        t('premium.tiers.pro.features.offline'),
-        t('premium.tiers.pro.features.wallpapers'),
-        t('premium.tiers.pro.features.support'),
-      ],
-      cta: t('premium.tiers.pro.cta'),
-      popular: true,
-    },
-  ], [t]);
+  const cardBg = isDark ? '#1c1c1e' : '#fff';
+  const pageBg = isDark ? '#000' : '#fff';
+  const divider = isDark ? '#2a2a2a' : '#f0f0f0';
+  const textSub = colors.icon;
+  const headerBg = isDark ? '#1c1c1e' : '#fff';
+  const headerBorder = isDark ? '#2a2a2a' : '#EDF0F5';
 
-  const activeTier = TIERS.find((tier) => tier.id === selected)!;
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.push('/(tabs)/profile');
+  }, []);
 
   const handlePurchase = useCallback(async () => {
-    if (activeTier.isFree) return;
     setPurchasing(true);
     try {
       const pkg = await getProOffering();
-      if (!pkg) {
-        Alert.alert(t('premium.noOfferingTitle'), t('premium.noOfferingBody'));
-        return;
-      }
+      if (!pkg) { Alert.alert(t('premium.noOfferingTitle'), t('premium.noOfferingBody')); return; }
       const success = await purchasePro(pkg);
       if (success) {
         await refreshUser();
@@ -92,7 +57,7 @@ export default function PremiumScreen() {
     } finally {
       setPurchasing(false);
     }
-  }, [activeTier, refreshUser, t]);
+  }, [refreshUser, t]);
 
   const handleRestore = useCallback(async () => {
     setPurchasing(true);
@@ -110,26 +75,10 @@ export default function PremiumScreen() {
     }
   }, [refreshUser, t]);
 
-  const cardBg = isDark ? '#1c1c1e' : '#fff';
-  const divider = isDark ? '#2a2a2a' : '#f0f0f0';
-  const textSub = colors.icon;
-  const headerBg = isDark ? '#1c1c1e' : '#fff';
-  const headerBorder = isDark ? '#2a2a2a' : '#EDF0F5';
-  const pageBg = isDark ? '#151718' : '#f2f2f7';
-
-  const goBack = useCallback(() => {
-    if (router.canGoBack()) router.back();
-    else router.push('/(tabs)/profile');
-  }, []);
-
   return (
-    <ThemedView style={styles.container}>
-      {/* ── Header ── */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: top + 8, backgroundColor: headerBg, borderBottomColor: headerBorder },
-        ]}>
+    <ThemedView style={[styles.container, { backgroundColor: pageBg }]}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: top + 8, backgroundColor: headerBg, borderBottomColor: headerBorder }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={goBack}
@@ -139,135 +88,85 @@ export default function PremiumScreen() {
             accessibilityLabel={t('common.back')}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <View style={styles.headerTitles}>
-            <ThemedText style={styles.headerTitle}>{t('premium.title')}</ThemedText>
-          </View>
-          <View style={[styles.headerIconWrap, { backgroundColor: '#F5C51818' }]}>
-            <MaterialCommunityIcons name="crown" size={22} color="#F5C518" />
-          </View>
+          <ThemedText style={styles.headerTitle}>{t('premium.title')}</ThemedText>
         </View>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { backgroundColor: pageBg }]}>
+        contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(bottom + 140, 160) }]}>
 
-        {/* ── Tiers ── */}
-        {TIERS.map((tier, idx) => {
-          const isSelected = selected === tier.id;
-          const isLast = idx === TIERS.length - 1;
-          return (
-            <View key={tier.id}>
-              <View style={[styles.sectionCard, { backgroundColor: cardBg }]}>
-                {/* Card header row */}
-                <TouchableOpacity
-                  style={styles.tierHeaderRow}
-                  activeOpacity={0.75}
-                  onPress={() => setSelected(tier.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('premium.selectPlan', { name: tier.name })}>
-                  <View style={[styles.tierIconWrap, { backgroundColor: tier.accentColor + '18' }]}>
-                    <MaterialCommunityIcons
-                      name={tier.crownName}
-                      size={20}
-                      color={tier.accentColor}
-                    />
-                  </View>
-                  <View style={styles.tierNameBlock}>
-                    <View style={styles.tierNameRow}>
-                      <ThemedText style={styles.tierName}>{tier.name}</ThemedText>
-                      {tier.popular && (
-                        <View style={[styles.popularBadge, { backgroundColor: tier.accentColor + '18' }]}>
-                          <Text style={[styles.popularText, { color: tier.accentColor }]}>
-                            {t('premium.popular')}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <ThemedText style={[styles.tierPriceLine, { color: textSub }]}>
-                      <Text style={[styles.tierPrice, { color: tier.accentColor }]}>
-                        {tier.price}
-                      </Text>
-                      {!tier.isFree && `  ·  ${tier.period}`}
-                      {tier.isFree && `  ·  ${tier.period}`}
-                    </ThemedText>
-                  </View>
-                  <View
-                    style={[
-                      styles.radioOuter,
-                      isSelected
-                        ? { borderColor: tier.accentColor }
-                        : { borderColor: divider },
-                    ]}>
-                    {isSelected && (
-                      <View style={[styles.radioInner, { backgroundColor: tier.accentColor }]} />
-                    )}
-                  </View>
-                </TouchableOpacity>
+        {/* Hero */}
+        <View style={[styles.hero, { backgroundColor: colors.tint + '12' }]}>
+          <View style={[styles.heroIconWrap, { backgroundColor: colors.tint + '20' }]}>
+            <MaterialCommunityIcons name="crown" size={36} color={colors.tint} />
+          </View>
+          <ThemedText style={styles.heroTitle}>Explorá sin límites</ThemedText>
+          <ThemedText style={[styles.heroSub, { color: textSub }]}>
+            Todo lo que necesitás para recorrer Ushuaia, incluso sin señal.
+          </ThemedText>
+        </View>
 
-                {/* Features / Missing */}
-                {(tier.missing ?? tier.features ?? []).map((f) => {
-                  const isMissing = 'missing' in tier;
-                  return (
-                    <View key={f}>
-                      <View style={[styles.divider, { backgroundColor: divider }]} />
-                      <View style={styles.featureRow}>
-                        <View style={[
-                          styles.featureIconWrap,
-                          { backgroundColor: isMissing ? '#ff3b3015' : tier.accentColor + '15' },
-                        ]}>
-                          <Ionicons
-                            name={isMissing ? 'close' : 'checkmark'}
-                            size={14}
-                            color={isMissing ? '#ff3b30' : tier.accentColor}
-                          />
-                        </View>
-                        <ThemedText style={[styles.featureText, isMissing && styles.featureTextMissing]}>
-                          {f}
-                        </ThemedText>
-                      </View>
-                    </View>
-                  );
-                })}
+        {/* Price card */}
+        <View style={[styles.priceCard, { backgroundColor: cardBg, borderColor: colors.tint + '40' }]}>
+          <View style={[styles.popularBadge, { backgroundColor: colors.tint }]}>
+            <ThemedText style={styles.popularText}>{t('premium.popular')}</ThemedText>
+          </View>
+          <View style={styles.priceRow}>
+            <ThemedText style={styles.priceCurrency}>$</ThemedText>
+            <ThemedText style={styles.priceAmount}>4.99</ThemedText>
+            <ThemedText style={[styles.pricePeriod, { color: textSub }]}>/ mes</ThemedText>
+          </View>
+          <ThemedText style={[styles.priceSub, { color: textSub }]}>
+            Cancelá en cualquier momento
+          </ThemedText>
+        </View>
+
+        {/* Benefits */}
+        <View style={[styles.benefitsCard, { backgroundColor: cardBg }]}>
+          {PRO_BENEFITS.map((b, i) => (
+            <View key={b.text}>
+              <View style={styles.benefitRow}>
+                <View style={[styles.benefitIconWrap, { backgroundColor: colors.tint + '15' }]}>
+                  <Ionicons name={b.icon} size={20} color={colors.tint} />
+                </View>
+                <ThemedText style={styles.benefitText}>{b.text}</ThemedText>
+                <Ionicons name="checkmark-circle" size={20} color="#34c759" />
               </View>
-
-              {!isLast && <View style={styles.cardGap} />}
+              {i < PRO_BENEFITS.length - 1 && (
+                <View style={[styles.divider, { backgroundColor: divider }]} />
+              )}
             </View>
-          );
-        })}
+          ))}
+        </View>
 
-        {/* ── CTA ── */}
+      </ScrollView>
+
+      {/* Sticky footer */}
+      <View style={[styles.footer, { backgroundColor: pageBg, paddingBottom: Math.max(bottom + 8, 20) }]}>
         <TouchableOpacity
-          style={[styles.ctaBtn, { backgroundColor: activeTier.accentColor, opacity: purchasing ? 0.6 : 1 }]}
+          style={[styles.ctaBtn, { backgroundColor: colors.tint }, purchasing && { opacity: 0.6 }]}
           activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel={activeTier.cta}
           disabled={purchasing}
-          onPress={activeTier.isFree ? goBack : handlePurchase}>
-          {!activeTier.isFree && (
-            <MaterialCommunityIcons
-              name="crown"
-              size={18}
-              color="#fff"
-              style={{ marginRight: 8 }}
-            />
+          onPress={handlePurchase}>
+          {!purchasing && (
+            <MaterialCommunityIcons name="crown" size={18} color="#fff" style={{ marginRight: 8 }} />
           )}
-          <Text style={styles.ctaBtnText}>
-            {purchasing ? t('premium.processing') : activeTier.cta}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleRestore} disabled={purchasing}>
-          <ThemedText style={[styles.restoreText, { color: textSub }]}>
-            {t('premium.restore')}
+          <ThemedText style={styles.ctaBtnText}>
+            {purchasing ? t('premium.processing') : t('premium.tiers.pro.cta')}
           </ThemedText>
         </TouchableOpacity>
 
-        <ThemedText style={[styles.legalText, { color: textSub }]}>
-          {t('premium.legal')}
-        </ThemedText>
+        <TouchableOpacity onPress={goBack} activeOpacity={0.6}>
+          <ThemedText style={[styles.declineText, { color: textSub }]}>
+            No gracias, quedarme en el plan gratis
+          </ThemedText>
+        </TouchableOpacity>
 
-      </ScrollView>
+        <TouchableOpacity onPress={handleRestore} disabled={purchasing}>
+          <ThemedText style={[styles.restoreText, { color: textSub }]}>{t('premium.restore')}</ThemedText>
+        </TouchableOpacity>
+      </View>
     </ThemedView>
   );
 }
@@ -275,74 +174,84 @@ export default function PremiumScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  // Header — idéntico al de personal-info / privacy-security
+  // Header
   header: {
     paddingBottom: 14,
     paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    minHeight: 44,
-  },
-  headerBack: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitles: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
-    paddingRight: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  headerIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
+  headerBack: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
 
   // Scroll
-  scroll: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 40,
-    gap: 0,
-    flexGrow: 1,
-  },
+  scroll: { paddingHorizontal: 16, paddingTop: 20, gap: 14 },
 
-  // Section card
-  sectionCard: {
+  // Hero
+  hero: {
+    borderRadius: 20,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 10,
+  },
+  heroIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  heroTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, textAlign: 'center' },
+  heroSub: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
+
+  // Price card
+  priceCard: {
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+    overflow: 'visible',
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: -14,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  popularText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  priceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 2, marginTop: 6 },
+  priceCurrency: { fontSize: 20, fontWeight: '700', marginTop: 6 },
+  priceAmount: { fontSize: 48, fontWeight: '800', letterSpacing: -2, lineHeight: 52 },
+  pricePeriod: { fontSize: 16, fontWeight: '500', marginTop: 28 },
+  priceSub: { fontSize: 12, fontWeight: '500' },
+
+  // Benefits
+  benefitsCard: {
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  cardGap: { height: 16 },
-
-  // Tier header inside card
-  tierHeaderRow: {
+  benefitRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 14,
   },
-  tierIconWrap: {
+  benefitIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 12,
@@ -350,86 +259,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  tierNameBlock: { flex: 1, gap: 3 },
-  tierNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tierName: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
-  popularBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  popularText: { fontSize: 11, fontWeight: '700' },
-  tierPriceLine: { fontSize: 13 },
-  tierPrice: { fontWeight: '700', fontSize: 15 },
+  benefitText: { flex: 1, fontSize: 14, fontWeight: '500' },
+  divider: { height: StyleSheet.hairlineWidth, marginLeft: 70 },
 
-  // Radio button
-  radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-
-  // Feature rows
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 70,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+  // Footer
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 16,
-    paddingVertical: 13,
-  },
-  featureIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(120,120,128,0.2)',
+    gap: 10,
     alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
   },
-  featureText: { fontSize: 14, flex: 1 },
-  featureTextMissing: { opacity: 0.45, textDecorationLine: 'line-through' },
-
-  // CTA
   ctaBtn: {
+    width: '100%',
     height: 52,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 4,
   },
-  ctaBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-
-  restoreText: {
-    fontSize: 13,
-    textAlign: 'center',
-    textDecorationLine: 'underline',
-    marginTop: 4,
-  },
-  legalText: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 4,
-  },
+  ctaBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  declineText: { fontSize: 14, fontWeight: '500' },
+  restoreText: { fontSize: 12, textDecorationLine: 'underline' },
 });

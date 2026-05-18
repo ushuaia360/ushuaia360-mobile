@@ -44,12 +44,7 @@ export default function PrivacySecurityScreen() {
             accessibilityLabel={t('common.back')}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <View style={styles.headerTitles}>
-            <ThemedText style={styles.headerTitle}>{t('privacySecurity.title')}</ThemedText>
-          </View>
-          <View style={[styles.headerIconWrap, { backgroundColor: colors.tint + '18' }]}>
-            <Ionicons name="lock-closed-outline" size={22} color={colors.tint} />
-          </View>
+          <ThemedText style={styles.headerTitle}>{t('privacySecurity.title')}</ThemedText>
         </View>
       </View>
 
@@ -67,8 +62,8 @@ export default function PrivacySecurityScreen() {
             onPress={() => router.push('/forgot-password')}
             accessibilityRole="button"
             accessibilityLabel={t('privacySecurity.changePassword')}>
-            <View style={[styles.rowIcon, { backgroundColor: '#ff9500' + '18' }]}>
-              <Ionicons name="lock-closed-outline" size={18} color="#ff9500" />
+            <View style={[styles.rowIcon, { backgroundColor: colors.tint + '18' }]}>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.tint} />
             </View>
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowLabel}>{t('privacySecurity.changePassword')}</ThemedText>
@@ -87,7 +82,7 @@ export default function PrivacySecurityScreen() {
             accessibilityRole="button"
             accessibilityLabel={t('privacySecurity.twoFactor')}>
             <View style={[styles.rowIcon, { backgroundColor: colors.tint + '18' }]}>
-              <Ionicons name="phone-portrait-outline" size={18} color={colors.tint} />
+              <Ionicons name="phone-portrait-outline" size={20} color={colors.tint} />
             </View>
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowLabel}>{t('privacySecurity.twoFactor')}</ThemedText>
@@ -110,7 +105,7 @@ export default function PrivacySecurityScreen() {
             accessibilityRole="button"
             accessibilityLabel={t('privacySecurity.privacyPolicy')}>
             <View style={[styles.rowIcon, { backgroundColor: colors.tint + '18' }]}>
-              <Ionicons name="document-text-outline" size={18} color={colors.tint} />
+              <Ionicons name="document-text-outline" size={20} color={colors.tint} />
             </View>
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowLabel}>{t('privacySecurity.privacyPolicy')}</ThemedText>
@@ -129,7 +124,7 @@ export default function PrivacySecurityScreen() {
             accessibilityRole="button"
             accessibilityLabel={t('privacySecurity.terms')}>
             <View style={[styles.rowIcon, { backgroundColor: colors.tint + '18' }]}>
-              <Ionicons name="shield-checkmark-outline" size={18} color={colors.tint} />
+              <Ionicons name="shield-checkmark-outline" size={20} color={colors.tint} />
             </View>
             <View style={styles.rowContent}>
               <ThemedText style={styles.rowLabel}>{t('privacySecurity.terms')}</ThemedText>
@@ -168,23 +163,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitles: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
-    paddingRight: 8,
-  },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: -0.3,
-  },
-  headerIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   scroll: {
@@ -205,8 +187,9 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.6,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 6,
@@ -219,9 +202,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   rowIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -239,7 +222,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: 66,
+    marginLeft: 72,
   },
   comingSoonBadge: {
     paddingHorizontal: 10,
