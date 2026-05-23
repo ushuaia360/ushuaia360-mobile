@@ -250,6 +250,16 @@ export interface TrailActiveRoute {
   elevation_loss: number | null;
 }
 
+export interface TrailEmergencyPointDetail {
+  id: string;
+  trail_id: string;
+  name: string;
+  description: string | null;
+  phone: string;
+  order_index: number | null;
+  location: { latitude: number; longitude: number; elevation?: number } | null;
+}
+
 /** Respuesta de GET /trails/:id (incluye ruta y puntos) */
 export interface TrailDetail extends BackendTrail {
   /** Fotos del sendero (sin punto asociado); incluye `media_type` p. ej. photo_360 */
@@ -257,6 +267,7 @@ export interface TrailDetail extends BackendTrail {
   route: TrailActiveRoute | null;
   route_segments: TrailRouteSegment[];
   points: TrailPointDetail[];
+  emergency_points?: TrailEmergencyPointDetail[];
 }
 
 export async function fetchTrailById(trailId: string): Promise<TrailDetail> {

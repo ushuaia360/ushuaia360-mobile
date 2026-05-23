@@ -649,6 +649,32 @@ export default function TrailDetailScreen() {
       .filter((x): x is { id: string; latitude: number; longitude: number; type: string | null } => x != null);
   }, [trailDetail?.points]);
 
+  const mapEmergencyPoints = useMemo(() => {
+    return (trailDetail?.emergency_points ?? [])
+      .map((ep) => {
+        const c = normalizeTrailPointLocation(ep.location);
+        if (!c || !ep.name?.trim()) return null;
+        return {
+          id: ep.id,
+          name: ep.name.trim(),
+          description: ep.description?.trim() || null,
+          phone: ep.phone?.trim() || '',
+          latitude: c.latitude,
+          longitude: c.longitude,
+        };
+      })
+      .filter(
+        (x): x is {
+          id: string;
+          name: string;
+          description: string | null;
+          phone: string;
+          latitude: number;
+          longitude: number;
+        } => x != null,
+      );
+  }, [trailDetail?.emergency_points]);
+
   /** Si `map_point` coincide con un POI (p. ej. inicio), un solo pin verde; evita doble marcar + bug iOS. */
   const { mapPointForMap, interestPointsForMap } = useMemo(() => {
     const mp = trailDetail?.map_point;
@@ -686,13 +712,14 @@ export default function TrailDetailScreen() {
         startedAtISO: normalizeSessionStartedAtToISO(startedAt),
         lineCoordinates,
         interestPoints: mapInterestPoints,
+        emergencyPoints: mapEmergencyPoints,
         mainPoint: trailDetail?.map_point ?? null,
         fallbackCenter: routeReference,
         minimized: false,
         beganRecorridoSynced: false,
       };
     },
-    [trailDetail, trail, trailId, lineCoordinates, mapInterestPoints, routeReference],
+    [trailDetail, trail, trailId, lineCoordinates, mapInterestPoints, mapEmergencyPoints, routeReference],
   );
 
   const resumeActiveTrail = useCallback(async () => {

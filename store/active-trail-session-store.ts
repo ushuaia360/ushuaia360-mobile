@@ -12,6 +12,15 @@ export interface ActiveTrailMapPoint {
   type?: string | null;
 }
 
+export interface ActiveTrailEmergencyPoint {
+  id: string;
+  name: string;
+  description: string | null;
+  phone: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface ActiveTrailSessionSnapshot {
   historyEntryId: string;
   trailId: string;
@@ -20,6 +29,7 @@ export interface ActiveTrailSessionSnapshot {
   startedAtISO: string;
   lineCoordinates: { latitude: number; longitude: number }[];
   interestPoints: ActiveTrailMapPoint[];
+  emergencyPoints: ActiveTrailEmergencyPoint[];
   mainPoint: { latitude: number; longitude: number } | null;
   fallbackCenter: { latitude: number; longitude: number };
   minimized: boolean;
@@ -53,15 +63,24 @@ function migratePersistedSession(raw: unknown): ActiveTrailSessionSnapshot | nul
   const s = raw as PersistedSessionLoose;
   const iso = s.startedAtISO;
   const hasIso = iso != null && String(iso).trim() !== '';
-  if (hasIso) return s as ActiveTrailSessionSnapshot;
+  if (hasIso) {
+    return {
+      ...s,
+      emergencyPoints: Array.isArray(s.emergencyPoints) ? s.emergencyPoints : [],
+    } as ActiveTrailSessionSnapshot;
+  }
   const fromDb = s.started_at ?? s.startedAt;
   if (fromDb != null && fromDb !== '') {
     return {
       ...s,
       startedAtISO: normalizeSessionStartedAtToISO(fromDb),
+      emergencyPoints: Array.isArray(s.emergencyPoints) ? s.emergencyPoints : [],
     };
   }
-  return s as ActiveTrailSessionSnapshot;
+  return {
+    ...(s as ActiveTrailSessionSnapshot),
+    emergencyPoints: Array.isArray(s.emergencyPoints) ? s.emergencyPoints : [],
+  };
 }
 
 async function persistState(

@@ -2,6 +2,7 @@ import TrailActiveNavigationMap, {
   type TrailActiveNavigationMapRef,
 } from '@/components/trail-active-navigation-map';
 import TrailCompletionCelebrationModal from '@/components/trail-completion-celebration-modal';
+import TrailEmergencyModal from '@/components/trail-emergency-modal';
 import TrailFinishConfirmModal from '@/components/trail-finish-confirm-modal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -22,6 +23,7 @@ import {
 } from '@/services/api';
 import { useAuthStore } from '@/store/auth-store';
 import {
+  type ActiveTrailEmergencyPoint,
   selectActiveSession,
   useActiveTrailSessionStore,
 } from '@/store/active-trail-session-store';
@@ -137,6 +139,8 @@ export default function TrailRecorridoScreen() {
   const [celebrationTrailName, setCelebrationTrailName] = useState('');
   const [completing, setCompleting] = useState(false);
   const [finishConfirmVisible, setFinishConfirmVisible] = useState(false);
+  const [emergencyModalVisible, setEmergencyModalVisible] = useState(false);
+  const [highlightedEmergencyId, setHighlightedEmergencyId] = useState<string | null>(null);
   const [infoModal, setInfoModal] = useState<{ title: string; message: string } | null>(null);
 
   // ─── Timer ────────────────────────────────────────────────────
@@ -285,6 +289,8 @@ export default function TrailRecorridoScreen() {
             ref={mapRef}
             lineCoordinates={session.lineCoordinates}
             interestPoints={session.interestPoints}
+            emergencyPoints={session.emergencyPoints ?? []}
+            highlightedEmergencyId={highlightedEmergencyId}
             fallbackCenter={session.fallbackCenter}
             isDark={isDark}
           />
@@ -317,6 +323,15 @@ export default function TrailRecorridoScreen() {
 
             {/* ── Bottom controls ── */}
             <View style={[styles.bottomBar, { paddingBottom: Math.max(bottom, 16) + 8 }]} pointerEvents="box-none">
+              <View style={styles.bottomRow}>
+                <Pressable
+                  style={styles.emergencyBtn}
+                  onPress={() => setEmergencyModalVisible(true)}
+                  accessibilityLabel={t('trailEmergency.button')}>
+                  <Ionicons name="warning" size={26} color="#fff" />
+                </Pressable>
+
+                <View style={styles.bottomCenter}>
               {!isPaused ? (
                 <View style={styles.pauseGroup}>
                   <Pressable
@@ -363,6 +378,10 @@ export default function TrailRecorridoScreen() {
                   </Pressable>
                 </View>
               )}
+                </View>
+
+                <View style={styles.bottomSideSpacer} />
+              </View>
             </View>
 
           </View>
@@ -395,6 +414,20 @@ export default function TrailRecorridoScreen() {
           token={token}
           trailName={celebrationTrailName || session.trailName}
           onClose={closeCelebration}
+        />
+
+        <TrailEmergencyModal
+          visible={emergencyModalVisible}
+          points={session.emergencyPoints ?? []}
+          onClose={() => setEmergencyModalVisible(false)}
+          onViewOnMap={(point: ActiveTrailEmergencyPoint) => {
+            setHighlightedEmergencyId(point.id);
+            mapRef.current?.focusCoordinate({
+              latitude: point.latitude,
+              longitude: point.longitude,
+            });
+            setEmergencyModalVisible(false);
+          }}
         />
       </ThemedView>
     </>
@@ -470,9 +503,33 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     zIndex: 20,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    width: '100%',
+  },
+  bottomCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  bottomSideSpacer: {
+    width: 52,
+  },
+  emergencyBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#E65C00',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 6,
   },
   pauseGroup: {
     alignItems: 'center',

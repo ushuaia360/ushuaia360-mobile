@@ -400,6 +400,16 @@
     "finishMessage": "Marcar esta trilha como concluída? Será salva no seu histórico.",
     "understood": "Entendido"
   },
+  "trailEmergency": {
+    "button": "Emergência",
+    "title": "Você tem uma emergência?",
+    "subtitleWithPoints": "Você pode se aproximar destes pontos e contatá-los pelo WhatsApp.",
+    "subtitleEmpty": "Não há pontos de emergência configurados para esta trilha.",
+    "noPointsConfigured": "Esta trilha não tem pontos de emergência cadastrados. Contate serviços locais se precisar.",
+    "backToList": "Voltar à lista",
+    "viewOnMap": "Ver no mapa",
+    "contactWhatsApp": "Contatar pelo WhatsApp"
+  },
   "mapCard": {
     "trail": "Trilha",
     "place": "Lugar",

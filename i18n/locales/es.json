@@ -400,6 +400,16 @@
     "finishMessage": "¿Marcar este sendero como completado? Se guardará en tu historial.",
     "understood": "Entendido"
   },
+  "trailEmergency": {
+    "button": "Emergencia",
+    "title": "¿Tenés una emergencia?",
+    "subtitleWithPoints": "Podés acercarte a estos puntos y contactar por WhatsApp.",
+    "subtitleEmpty": "No hay puntos de emergencia configurados para este sendero.",
+    "noPointsConfigured": "Este sendero no tiene puntos de emergencia cargados. Contactá a servicios locales si lo necesitás.",
+    "backToList": "Volver al listado",
+    "viewOnMap": "Ver en mapa",
+    "contactWhatsApp": "Contactar por WhatsApp"
+  },
   "mapCard": {
     "trail": "Sendero",
     "place": "Lugar",

@@ -400,6 +400,16 @@
     "finishMessage": "Mark this trail as completed? It will be saved in your history.",
     "understood": "Got it"
   },
+  "trailEmergency": {
+    "button": "Emergency",
+    "title": "Do you have an emergency?",
+    "subtitleWithPoints": "You can head to these points and contact them on WhatsApp.",
+    "subtitleEmpty": "No emergency points are configured for this trail.",
+    "noPointsConfigured": "This trail has no emergency points loaded. Contact local services if you need help.",
+    "backToList": "Back to list",
+    "viewOnMap": "View on map",
+    "contactWhatsApp": "Contact on WhatsApp"
+  },
   "mapCard": {
     "trail": "Trail",
     "place": "Place",

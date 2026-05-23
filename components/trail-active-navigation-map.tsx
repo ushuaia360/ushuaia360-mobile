@@ -7,7 +7,10 @@ import { Colors } from '@/constants/theme';
 import { useWatchUserLocation } from '@/hooks/use-watch-user-location';
 import { pinScaleFromRegionSpan } from '@/lib/map-pin-scale';
 import { poiTypeIcon } from '@/lib/poi-icons';
-import type { ActiveTrailMapPoint } from '@/store/active-trail-session-store';
+import type {
+  ActiveTrailEmergencyPoint,
+  ActiveTrailMapPoint,
+} from '@/store/active-trail-session-store';
 import { Ionicons } from '@expo/vector-icons';
 import {
   forwardRef,
@@ -90,22 +93,34 @@ const POI_Z = 10;
 const ROUTE_Z = 2;
 const USER_MARKER_Z = 100_000;
 
+const EMERGENCY_MARKER_COLOR = '#E65C00';
+
 export interface TrailActiveNavigationMapRef {
   zoomIn: () => void;
   zoomOut: () => void;
   fitRoute: () => void;
+  focusCoordinate: (coord: { latitude: number; longitude: number }) => void;
 }
 
 interface Props {
   lineCoordinates: { latitude: number; longitude: number }[];
   interestPoints: ActiveTrailMapPoint[];
+  emergencyPoints?: ActiveTrailEmergencyPoint[];
+  highlightedEmergencyId?: string | null;
   fallbackCenter: { latitude: number; longitude: number };
   isDark: boolean;
 }
 
 const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
   function TrailActiveNavigationMap(
-    { lineCoordinates, interestPoints, fallbackCenter, isDark },
+    {
+      lineCoordinates,
+      interestPoints,
+      emergencyPoints = [],
+      highlightedEmergencyId = null,
+      fallbackCenter,
+      isDark,
+    },
     ref,
   ) {
     const { bottom: insetBottom } = useSafeAreaInsets();
@@ -186,6 +201,23 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
       });
     }, [allForFit]);
 
+    const focusCoordinate = useCallback(
+      (coord: { latitude: number; longitude: number }) => {
+        const map = mapRef.current;
+        if (!map || Platform.OS === 'web') return;
+        map.animateToRegion(
+          {
+            latitude: coord.latitude,
+            longitude: coord.longitude,
+            latitudeDelta: 0.012,
+            longitudeDelta: 0.012,
+          },
+          450,
+        );
+      },
+      [],
+    );
+
     const zoomIn = useCallback(() => {
       const map = mapRef.current;
       if (!map || Platform.OS === 'web') return;
@@ -259,8 +291,9 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
         zoomIn,
         zoomOut,
         fitRoute,
+        focusCoordinate,
       }),
-      [fitRoute, zoomIn, zoomOut],
+      [fitRoute, focusCoordinate, zoomIn, zoomOut],
     );
 
     useEffect(() => {
@@ -338,6 +371,38 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
               </Marker>
             );
           })}
+          {highlightedEmergencyId
+            ? emergencyPoints
+                .filter((p) => p.id === highlightedEmergencyId)
+                .map((p) => {
+                  const dim = Math.round(42 * poiPinScale);
+                  const iconSz = Math.max(12, Math.round(20 * poiPinScale));
+                  const radius = dim / 2;
+                  return (
+                    <Marker
+                      key={`emergency-${p.id}`}
+                      coordinate={{ latitude: p.latitude, longitude: p.longitude }}
+                      anchor={{ x: 0.5, y: 0.5 }}
+                      zIndex={POI_Z + 50}
+                      tracksViewChanges>
+                      <View
+                        style={[
+                          styles.poiHost,
+                          styles.emergencyHost,
+                          {
+                            width: dim,
+                            height: dim,
+                            borderRadius: radius,
+                            backgroundColor: EMERGENCY_MARKER_COLOR,
+                            borderWidth: 3,
+                          },
+                        ]}>
+                        <Ionicons name="warning" size={iconSz} color="#fff" />
+                      </View>
+                    </Marker>
+                  );
+                })
+            : null}
           {Platform.OS !== 'web' && displayCoord ? (
             <Marker
               coordinate={displayCoord}
@@ -486,5 +551,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.9)',
+  },
+  emergencyHost: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.28,
+    shadowRadius: 3,
+    elevation: 5,
   },
 });
