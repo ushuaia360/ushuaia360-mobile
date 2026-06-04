@@ -1,3 +1,4 @@
+import { ContactLinkRow } from '@/components/contact-link-row';
 import PanoramaWebView from '@/components/panorama-webview';
 import ReviewSelectedPhotosStrip from '@/components/review-selected-photos-strip';
 import TrailGalleryLightbox from '@/components/trail-gallery-lightbox';
@@ -720,6 +721,10 @@ export default function PlaceDetailScreen() {
                 </View>
               ) : null}
 
+              {place.contact_link?.trim() ? (
+                <ContactLinkRow contactLink={place.contact_link} />
+              ) : null}
+
               {hasCoords ? (
                 <View style={styles.mapSection}>
                   <ThemedText style={[styles.mapSectionLabel, { color: colors.text }]}>Ubicación</ThemedText>
@@ -1070,7 +1075,6 @@ export default function PlaceDetailScreen() {
                   {
                     borderColor: colors.tint,
                     opacity: hasCoords ? 1 : 0.45,
-                    flex: isOnline ? undefined : 1,
                   },
                 ]}
                 onPress={openMaps}
@@ -1078,7 +1082,7 @@ export default function PlaceDetailScreen() {
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel="Abrir en mapas">
-                <Ionicons name="navigate-outline" size={22} color={colors.tint} />
+                <Ionicons name="navigate-outline" size={20} color={colors.tint} />
                 <ThemedText style={styles.trailFloatBtnSecondaryLabel} numberOfLines={1}>
                   Cómo llegar
                 </ThemedText>
@@ -1278,6 +1282,9 @@ const styles = StyleSheet.create({
   },
   trailFloatBtnPrimary: {
     flex: 1,
+    flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1290,6 +1297,9 @@ const styles = StyleSheet.create({
   trailFloatBtnPrimaryLabel: { color: '#fff', fontSize: 14, fontWeight: '500', flexShrink: 1 },
   trailFloatBtnSecondary: {
     flex: 1,
+    flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',

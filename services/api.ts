@@ -174,6 +174,7 @@ export interface BackendTrail {
   duration_minutes: number | null;
   is_featured: boolean;
   is_premium: boolean;
+  contact_link: string | null;
   status_id: number | null;
   description: string | null;
   map_point: { latitude: number; longitude: number } | null;
@@ -726,6 +727,7 @@ export interface BackendPlace {
   region: string | null;
   country: string | null;
   description: string | null;
+  contact_link: string | null;
   is_premium: boolean;
   latitude: number | null;
   longitude: number | null;

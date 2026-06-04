@@ -1,3 +1,4 @@
+import { ContactLinkRow } from '@/components/contact-link-row';
 import PanoramaWebView from '@/components/panorama-webview';
 import ReportToast from '@/components/report-toast';
 import ReviewSelectedPhotosStrip from '@/components/review-selected-photos-strip';
@@ -1253,6 +1254,10 @@ export default function TrailDetailScreen() {
                               tint={colors.tint}
                             />
                           </View>
+                        ) : null}
+
+                        {trailDetail?.contact_link?.trim() ? (
+                          <ContactLinkRow contactLink={trailDetail.contact_link} />
                         ) : null}
 
                         <View style={styles.mapSection}>
