@@ -14,7 +14,6 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import ResumeActiveTrailBar from './resume-active-trail-bar';
 import SearchBar from './search-bar';
 import TrailListCard from './trail-list-card';
 
@@ -168,8 +167,6 @@ export default function ListHome() {
           </ThemedText>
         )}
       </View>
-
-      <ResumeActiveTrailBar offsetTop={top + 16 + SB_INPUT_HEIGHT + 42} />
 
       {/* Skeleton o lista */}
       {loading ? (
