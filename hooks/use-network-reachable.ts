@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '@/constants/api';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 /**
  * Sin módulos nativos (NetInfo / expo-network): evita crashes si el binario
@@ -17,6 +17,7 @@ const POLL_MS = 10_000;
 type ReachListener = (v: boolean | null) => void;
 const reachListeners = new Set<ReachListener>();
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+let appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
 
 /** Último resultado del ping (o `navigator.onLine` en web). Para suscriptores que montan después del primer ping. */
 let lastNotifiedReachable: boolean | null = null;
@@ -42,18 +43,20 @@ async function pingBackendReachable(): Promise<boolean> {
   }
 }
 
+async function pingAndNotify() {
+  const ok = await pingBackendReachable();
+  notifyReachable(ok);
+}
+
 function startNativePollingIfNeeded() {
   if (pollTimer != null) return;
-  void (async () => {
-    const ok = await pingBackendReachable();
-    notifyReachable(ok);
-  })();
-  pollTimer = setInterval(() => {
-    void (async () => {
-      const ok = await pingBackendReachable();
-      notifyReachable(ok);
-    })();
-  }, POLL_MS);
+  void pingAndNotify();
+  pollTimer = setInterval(() => void pingAndNotify(), POLL_MS);
+  // Ping inmediato al volver al frente — evita mostrar "sin conexión"
+  // si el poll falló mientras la app estaba en background.
+  appStateSubscription ??= AppState.addEventListener('change', (state) => {
+    if (state === 'active') void pingAndNotify();
+  });
 }
 
 function stopNativePollingIfNoListeners() {
@@ -62,6 +65,8 @@ function stopNativePollingIfNoListeners() {
     clearInterval(pollTimer);
     pollTimer = null;
   }
+  appStateSubscription?.remove();
+  appStateSubscription = null;
 }
 
 /**

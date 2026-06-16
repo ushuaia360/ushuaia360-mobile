@@ -78,6 +78,8 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-security" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="delete-account" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="forgot-password" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen name="forgot-password-sent" options={{ headerShown: false, presentation: 'card' }} />
+          <Stack.Screen name="verify-email-sent" options={{ headerShown: false, presentation: 'card' }} />
           <Stack.Screen name="reset-password" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="premium" options={{ headerShown: false, presentation: 'card' }} />
         </Stack>

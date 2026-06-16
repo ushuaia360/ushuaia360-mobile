@@ -228,9 +228,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.forgotBtn}
             activeOpacity={0.7}
-            onPress={() =>
-              Alert.alert(t('auth.recoverPassword'), t('auth.recoverPasswordBody'))
-            }>
+            onPress={() => router.push('/forgot-password')}>
             <ThemedText style={[styles.forgotText, { color: colors.tint }]}>
               {t('auth.forgotPassword')}
             </ThemedText>
@@ -243,6 +241,18 @@ export default function LoginScreen() {
             activeOpacity={0.85}>
             <ThemedText style={styles.submitText}>
               {isLoading ? t('auth.signingIn') : t('auth.signIn')}
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.switchLink}
+            activeOpacity={0.7}
+            onPress={() => router.replace('/register')}>
+            <ThemedText style={[styles.switchText, { color: colors.icon }]}>
+              No tengo cuenta —{' '}
+              <ThemedText style={[styles.switchText, { color: colors.tint, fontWeight: '600' }]}>
+                Registrarme
+              </ThemedText>
             </ThemedText>
           </TouchableOpacity>
 
@@ -345,6 +355,15 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  switchLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginTop: 8,
+  },
+  switchText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
   submitBtn: {
     height: 52,

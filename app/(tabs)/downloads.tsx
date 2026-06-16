@@ -271,7 +271,13 @@ export default function DownloadsScreen() {
                     }>
 
                     {thumb ? (
-                      <ExpoImage source={{ uri: thumb }} style={styles.cardImg} contentFit="cover" />
+                      <ExpoImage
+                        source={{ uri: thumb }}
+                        style={styles.cardImg}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        transition={150}
+                      />
                     ) : (
                       <View style={[styles.cardImg, styles.cardImgPlaceholder, { backgroundColor: isDark ? '#2a2a2a' : '#e8eaed' }]}>
                         <Ionicons name="trail-sign-outline" size={26} color={colors.icon} />

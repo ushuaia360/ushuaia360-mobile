@@ -38,6 +38,7 @@ export default function ResetPasswordScreen() {
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [done, setDone] = useState(false);
 
   const submit = async () => {
     if (!token) {
@@ -54,13 +55,53 @@ export default function ResetPasswordScreen() {
     }
     try {
       await resetPassword(token, password);
-      Alert.alert(t('common.ok'), t('auth.resetPassword.success'), [
-        { text: t('auth.resetPassword.goToLogin'), onPress: () => router.replace('/login') },
-      ]);
+      setDone(true);
     } catch (err) {
       Alert.alert(t('common.error'), err instanceof Error ? err.message : t('auth.resetPassword.updateError'));
     }
   };
+
+  if (done) {
+    const cardBg = isDark ? '#1c1c1e' : '#f5f5f7';
+    return (
+      <View style={[styles.screen, { backgroundColor: bg, paddingTop: top + 20, paddingBottom: 48 }]}>
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: inputBg, borderColor }]}
+          onPress={() => router.replace('/login')}
+          activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={20} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.successContent}>
+          <View style={[styles.successIconWrap, { backgroundColor: '#34c759' + '18' }]}>
+            <View style={[styles.successIconInner, { backgroundColor: '#34c759' + '28' }]}>
+              <Ionicons name="checkmark-circle-outline" size={44} color="#34c759" />
+            </View>
+          </View>
+          <ThemedText style={[styles.successTitle, { color: colors.text }]}>
+            ¡Contraseña actualizada!
+          </ThemedText>
+          <ThemedText style={[styles.successSub, { color: colors.icon }]}>
+            Tu contraseña fue restablecida correctamente. Ya podés iniciar sesión con tus nuevas credenciales.
+          </ThemedText>
+          <View style={[styles.stepsCard, { backgroundColor: cardBg }]}>
+            <View style={styles.step}>
+              <View style={[styles.stepIcon, { backgroundColor: '#34c759' + '18' }]}>
+                <Ionicons name="shield-checkmark-outline" size={18} color="#34c759" />
+              </View>
+              <ThemedText style={[styles.stepText, { color: colors.text }]}>Tu cuenta está protegida</ThemedText>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.goLoginBtn, { backgroundColor: colors.tint }]}
+            activeOpacity={0.85}
+            onPress={() => router.replace('/login')}>
+            <ThemedText style={styles.goLoginText}>Iniciar sesión</ThemedText>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.screen, { backgroundColor: bg }]}>
@@ -139,10 +180,9 @@ export default function ResetPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  screen: { flex: 1, paddingHorizontal: 24 },
   flex: { flex: 1 },
   scroll: {
-    paddingHorizontal: 24,
     paddingBottom: 48,
   },
   backBtn: {
@@ -191,5 +231,81 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+
+  // Success state
+  successContent: {
+    flex: 1,
+    alignItems: 'center',
+    paddingTop: 24,
+    gap: 16,
+    paddingHorizontal: 0,
+  },
+  successIconWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  successIconInner: {
+    width: 88,
+    height: 88,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: -0.4,
+  },
+  successSub: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 21,
+    paddingHorizontal: 4,
+  },
+  stepsCard: {
+    width: '100%',
+    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 16,
+  },
+  step: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+  },
+  stepIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  stepText: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  goLoginBtn: {
+    width: '100%',
+    height: 52,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  goLoginText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

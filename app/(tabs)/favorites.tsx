@@ -138,8 +138,23 @@ export default function FavoritesScreen() {
       {loading ? (
         <FavoritesListSkeleton isDark={isDark} skelBg={skelBg} />
       ) : trails.length === 0 ? (
-        <View style={styles.center}>
-          <ThemedText style={{ color: colors.icon }}>{t('favorites.empty')}</ThemedText>
+        <View style={styles.emptyWrap}>
+          <View style={[styles.emptyIconWrap, { backgroundColor: colors.tint + '12' }]}>
+            <Ionicons name="heart-outline" size={52} color={colors.tint} />
+          </View>
+          <ThemedText style={[styles.emptyTitle, { color: colors.text }]}>
+            Sin favoritos todavía
+          </ThemedText>
+          <ThemedText style={[styles.emptySub, { color: colors.icon }]}>
+            Guardá los senderos que más te gusten tocando el corazón para encontrarlos fácilmente.
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.emptyBtn, { backgroundColor: colors.tint }]}
+            activeOpacity={0.85}
+            onPress={() => router.push('/(tabs)/trails' as never)}>
+            <ThemedText style={styles.emptyBtnText}>Explorar senderos</ThemedText>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -177,6 +192,28 @@ const styles = StyleSheet.create({
   headerIconWrap: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   list: { paddingTop: 10, paddingBottom: 24 },
   center: { flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center', gap: 16 },
+  emptyWrap: { flex: 1, paddingHorizontal: 24, paddingTop: 56, alignItems: 'center', gap: 16 },
+  emptyIconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 },
+  emptySub: { fontSize: 14, lineHeight: 21, textAlign: 'center', paddingHorizontal: 8 },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    height: 52,
+    borderRadius: 14,
+    marginTop: 8,
+  },
+  emptyBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   skelList: { paddingTop: 10, paddingBottom: 24 },
   skelCard: {
     borderRadius: 16,

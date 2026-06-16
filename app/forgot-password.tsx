@@ -39,10 +39,8 @@ export default function ForgotPasswordScreen() {
       return;
     }
     try {
-      const res = await forgotPassword(e);
-      Alert.alert(t('common.ok'), res.message || t('auth.forgotPasswordScreen.success'), [
-        { text: t('common.ok'), onPress: () => router.replace('/login') },
-      ]);
+      await forgotPassword(e);
+      router.replace({ pathname: '/forgot-password-sent', params: { email: e } } as never);
     } catch (err) {
       Alert.alert(t('common.error'), err instanceof Error ? err.message : t('auth.forgotPasswordScreen.sendError'));
     }

@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nuddo.ushuaia360",
+      "bundleIdentifier": "com.ushuaia360.ios",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Ushuaia360 usa tu ubicación para mostrarte en el mapa mientras hacés un sendero.",
         "NSPhotoLibraryUsageDescription": "Ushuaia360 necesita acceso a tus fotos para que puedas adjuntar imágenes a tus reseñas.",
@@ -33,7 +33,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.nuddo.ushuaia360"
+      "package": "com.ushuaia360.ios"
     },
     "web": {
       "output": "static",

@@ -90,9 +90,7 @@ export default function ProfileScreen() {
 
   const SETTINGS = useMemo(() => [
     { icon: 'person-outline',        label: t('profile.settings.personalInfo'),    key: 'personalInfo' },
-    { icon: 'notifications-outline', label: t('profile.settings.notifications'),   key: 'notifications' },
     { icon: 'lock-closed-outline',   label: t('profile.settings.privacySecurity'), key: 'privacySecurity' },
-    { icon: 'help-circle-outline',   label: t('profile.settings.helpCenter'),      key: 'helpCenter' },
     { icon: 'trash-outline',         label: t('profile.settings.deleteAccount'),   key: 'deleteAccount', danger: true },
     { icon: 'log-out-outline',       label: t('profile.settings.logout'),          key: 'logout', danger: true },
   ], [t]);

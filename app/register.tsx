@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -72,12 +71,8 @@ export default function RegisterScreen() {
     }
 
     try {
-      const result = await register(name.trim(), email.trim(), password, confirmPassword);
-      Alert.alert(
-        t('auth.register.success'),
-        result.message || t('auth.register.successBody'),
-        [{ text: t('auth.register.goToLogin'), onPress: () => router.replace('/login') }],
-      );
+      await register(name.trim(), email.trim(), password, confirmPassword);
+      router.replace({ pathname: '/verify-email-sent', params: { email: email.trim() } } as never);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t('auth.register.registerError');
       Alert.alert(t('common.error'), msg);
@@ -313,6 +308,18 @@ export default function RegisterScreen() {
             </ThemedText>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.switchLink}
+            activeOpacity={0.7}
+            onPress={() => router.replace('/login')}>
+            <ThemedText style={[styles.switchText, { color: colors.icon }]}>
+              Ya tengo cuenta —{' '}
+              <ThemedText style={[styles.switchText, { color: colors.tint, fontWeight: '600' }]}>
+                Iniciar sesión
+              </ThemedText>
+            </ThemedText>
+          </TouchableOpacity>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -427,5 +434,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  switchLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginTop: 8,
+  },
+  switchText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
