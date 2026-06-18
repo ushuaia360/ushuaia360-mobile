@@ -23,6 +23,8 @@ interface Props {
   onHide: () => void;
   /** ms antes de empezar a ocultarse — default 2200 */
   duration?: number;
+  /** px extra sobre el safe area bottom — default 0 */
+  bottomOffset?: number;
 }
 
 export default function ReportToast({
@@ -31,6 +33,7 @@ export default function ReportToast({
   subtitle,
   onHide,
   duration = 2200,
+  bottomOffset = 0,
 }: Props) {
   const { t } = useTranslation();
   const { bottom } = useSafeAreaInsets();
@@ -75,7 +78,7 @@ export default function ReportToast({
     <Animated.View
       style={[
         styles.container,
-        { bottom: Math.max(bottom, 16) + 8, backgroundColor: bg, shadowColor: shadow },
+        { bottom: Math.max(bottom, 16) + 8 + bottomOffset, backgroundColor: bg, shadowColor: shadow },
         animStyle,
       ]}
       pointerEvents="none">

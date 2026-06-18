@@ -468,6 +468,26 @@ export async function addPlaceFavorite(token: string, placeId: string): Promise<
   await apiRequest(`/me/favorite-places/${placeId}`, { method: 'POST', token });
 }
 
+// ── Reportes ──────────────────────────────────────────────────────────────────
+
+export interface SubmitReportBody {
+  target_type: 'trail' | 'place' | 'review';
+  target_id: string;
+  reason?: string;
+  context_id?: string;
+}
+
+export async function submitReport(
+  body: SubmitReportBody,
+  token?: string | null,
+): Promise<void> {
+  await apiRequest<{ message: string }>('/reports', {
+    method: 'POST',
+    body,
+    token,
+  });
+}
+
 export async function removePlaceFavorite(token: string, placeId: string): Promise<void> {
   await apiRequest(`/me/favorite-places/${placeId}`, { method: 'DELETE', token });
 }

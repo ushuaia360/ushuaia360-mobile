@@ -12,6 +12,7 @@ import PendingTrailCompletionSync from '@/components/pending-trail-completion-sy
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { configurePurchases } from '@/services/purchases';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from '@/constants/google';
 import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
@@ -33,8 +34,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      iosClientId: GOOGLE_IOS_CLIENT_ID,
     });
     initialize();
     loadSavedLanguage();

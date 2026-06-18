@@ -191,9 +191,6 @@ export default function ProfileScreen() {
                 <ThemedText style={[styles.userName, { marginTop: 10 }]}>
                   {user?.full_name ?? t('profile.defaultUser')}
                 </ThemedText>
-                <ThemedText style={[styles.userLocation, { color: textSub }]}>
-                  {user?.email ?? ''}
-                </ThemedText>
               </View>
               <View style={styles.stats}>
                 <TouchableOpacity

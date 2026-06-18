@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from '@/constants/google';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_AFTER_LOGIN, sanitizeReturnPath } from '@/lib/needAuth';
@@ -45,6 +46,10 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     try {
+      GoogleSignin.configure({
+        webClientId: GOOGLE_WEB_CLIENT_ID,
+        iosClientId: GOOGLE_IOS_CLIENT_ID,
+      });
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       await GoogleSignin.signIn();
       const { idToken } = await GoogleSignin.getTokens();

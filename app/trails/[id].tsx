@@ -39,6 +39,7 @@ import {
   fetchTrailById,
   fetchTrailReviews,
   startUserTrailHistory,
+  submitReport,
   trailHistoryEntryStartedAt,
   uploadReviewImages,
   type TrailDetail,
@@ -428,6 +429,23 @@ export default function TrailDetailScreen() {
     index: number;
   } | null>(null);
   const [reportToastVisible, setReportToastVisible] = useState(false);
+
+  async function handleReportPress(type: 'trail' | 'review', targetId: string) {
+    try {
+      await submitReport(
+        {
+          target_type: type,
+          target_id: targetId,
+          context_id: type === 'review' ? trail?.id : undefined,
+        },
+        token,
+      );
+    } catch {
+      // mostrar toast igual
+    }
+    setReportToastVisible(true);
+  }
+
   const poiSheetRef = useRef<BottomSheet>(null);
   const poiSnapPoints = useMemo(() => ['40%', '78%'], []);
 
@@ -1160,7 +1178,7 @@ export default function TrailDetailScreen() {
                               hitSlop={12}
                               accessibilityRole="button"
                               accessibilityLabel="Reportar sendero"
-                              onPress={() => setReportToastVisible(true)}>
+                              onPress={() => trail && handleReportPress('trail', trail.id)}>
                               <Ionicons name="flag-outline" size={20} color="#000" />
                             </TouchableOpacity>
                           </>
@@ -1518,7 +1536,7 @@ export default function TrailDetailScreen() {
                                   hitSlop={10}
                                   accessibilityRole="button"
                                   accessibilityLabel="Reportar reseña"
-                                  onPress={() => setReportToastVisible(true)}>
+                                  onPress={() => handleReportPress('review', review.id)}>
                                   <Ionicons name="flag-outline" size={14} color={colors.icon} />
                                 </TouchableOpacity>
                               </View>
@@ -1929,7 +1947,7 @@ export default function TrailDetailScreen() {
                   style={styles.topBarBtn}
                   accessibilityRole="button"
                   accessibilityLabel="Reportar sendero"
-                  onPress={() => setReportToastVisible(true)}>
+                  onPress={() => trail && handleReportPress('trail', trail.id)}>
                   <Ionicons name="flag-outline" size={20} color={isDark ? '#fff' : '#000'} />
                 </TouchableOpacity>
               </View>
@@ -1942,6 +1960,7 @@ export default function TrailDetailScreen() {
       <ReportToast
         visible={reportToastVisible}
         onHide={() => setReportToastVisible(false)}
+        bottomOffset={83}
       />
     </ThemedView>
   );
