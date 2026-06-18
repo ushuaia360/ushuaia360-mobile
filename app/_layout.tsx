@@ -11,6 +11,7 @@ import SearchPanel from '@/components/home/search-panel';
 import PendingTrailCompletionSync from '@/components/pending-trail-completion-sync';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { configurePurchases } from '@/services/purchases';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
@@ -30,8 +31,11 @@ export default function RootLayout() {
   const hydrateActiveTrailSession = useActiveTrailSessionStore((s) => s.hydrate);
   const loadSavedLanguage = useLanguageStore((s) => s.loadSavedLanguage);
 
-  // Restaurar sesión guardada en AsyncStorage (sin redirigir)
   useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    });
     initialize();
     loadSavedLanguage();
   }, []);

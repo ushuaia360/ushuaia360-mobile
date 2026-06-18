@@ -53,6 +53,12 @@ interface AuthStore {
   /** POST /auth/change-password (flujo recuperación) */
   resetPassword: (resetToken: string, newPassword: string) => Promise<{ message: string }>;
 
+  /** POST /auth/apple-app */
+  loginWithApple: (identityToken: string, fullName?: string) => Promise<void>;
+
+  /** POST /auth/google-app */
+  loginWithGoogle: (idToken: string) => Promise<void>;
+
   /** Recarga el usuario desde el servidor (para reflejar cambios de premium) */
   refreshUser: () => Promise<void>;
 
@@ -138,6 +144,38 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       });
       set({ isLoading: false });
       return data;
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  loginWithGoogle: async (idToken) => {
+    set({ isLoading: true });
+    try {
+      const data = await apiRequest<{ token: string; user: User }>('/auth/google-app', {
+        method: 'POST',
+        body: { id_token: idToken },
+      });
+      await AsyncStorage.setItem(TOKEN_KEY, data.token);
+      await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(data.user));
+      set({ token: data.token, user: data.user, isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  loginWithApple: async (identityToken, fullName) => {
+    set({ isLoading: true });
+    try {
+      const data = await apiRequest<{ token: string; user: User }>('/auth/apple-app', {
+        method: 'POST',
+        body: { identity_token: identityToken, full_name: fullName },
+      });
+      await AsyncStorage.setItem(TOKEN_KEY, data.token);
+      await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(data.user));
+      set({ token: data.token, user: data.user, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
       throw error;

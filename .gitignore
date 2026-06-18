@@ -45,3 +45,7 @@ app-example
 /ios
 /android
 .env
+
+# Android keystores
+android/app/*.keystore
+!android/app/debug.keystore

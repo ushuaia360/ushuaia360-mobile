@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_AFTER_LOGIN, sanitizeReturnPath } from '@/lib/needAuth';
@@ -29,7 +31,7 @@ export default function LoginScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
-  const { login, isLoading, resendVerification } = useAuthStore();
+  const { login, loginWithApple, loginWithGoogle, isLoading, resendVerification } = useAuthStore();
   const { next: nextParam } = useLocalSearchParams<{ next?: string }>();
 
   const [email, setEmail] = useState('');
@@ -40,6 +42,53 @@ export default function LoginScreen() {
 
   const inputBg = isDark ? '#1c1c1e' : '#f5f5f7';
   const borderColor = isDark ? '#2a2a2a' : '#e5e5ea';
+
+  const handleGoogleLogin = async () => {
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.signIn();
+      const { idToken } = await GoogleSignin.getTokens();
+      if (!idToken) {
+        Alert.alert(t('common.error'), t('auth.googleError'));
+        return;
+      }
+      await loginWithGoogle(idToken);
+      const rawNext = Array.isArray(nextParam) ? nextParam[0] : nextParam;
+      const dest = sanitizeReturnPath(rawNext ?? DEFAULT_AFTER_LOGIN);
+      router.replace(dest as Href);
+    } catch (err: unknown) {
+      const code = (err as { code?: number })?.code;
+      if (code === -5 || code === 12501) return; // usuario canceló
+      const msg = err instanceof Error ? err.message : t('auth.googleError');
+      Alert.alert(t('common.error'), msg);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) {
+        Alert.alert(t('common.error'), t('auth.appleError'));
+        return;
+      }
+      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+        .filter(Boolean)
+        .join(' ') || undefined;
+      await loginWithApple(credential.identityToken, fullName);
+      const rawNext = Array.isArray(nextParam) ? nextParam[0] : nextParam;
+      const dest = sanitizeReturnPath(rawNext ?? DEFAULT_AFTER_LOGIN);
+      router.replace(dest as Href);
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code === 'ERR_REQUEST_CANCELED') return;
+      const msg = err instanceof Error ? err.message : t('auth.appleError');
+      Alert.alert(t('common.error'), msg);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -113,7 +162,8 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
-              onPress={() => Alert.alert(t('common.soon'), t('auth.soonGoogle'))}
+              onPress={handleGoogleLogin}
+              disabled={isLoading}
               activeOpacity={0.85}>
               <GoogleGMark size={22} />
               <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
@@ -124,7 +174,8 @@ export default function LoginScreen() {
             {Platform.OS === 'ios' && (
               <TouchableOpacity
                 style={[styles.methodBtn, { backgroundColor: '#000' }]}
-                onPress={() => Alert.alert(t('common.soon'), t('auth.soonApple'))}
+                onPress={handleAppleLogin}
+                disabled={isLoading}
                 activeOpacity={0.85}>
                 <Ionicons name="logo-apple" size={22} color="#fff" />
                 <ThemedText style={[styles.methodBtnText, { color: '#fff' }]}>
