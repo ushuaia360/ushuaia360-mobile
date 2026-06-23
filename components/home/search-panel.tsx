@@ -353,7 +353,7 @@ export default function SearchPanel() {
             <TextInput
               ref={inputRef}
               style={[styles.input, { color: isDark ? "#fff" : "#212121" }]}
-              placeholder="Buscar senderos..."
+              placeholder="Buscar senderos y puntos..."
               placeholderTextColor={colors.icon}
               value={searchQuery}
               onChangeText={setSearchQuery}

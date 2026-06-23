@@ -108,7 +108,8 @@
   },
   "home": {
     "trailCount": "{{count}} trilhas",
-    "noTrails": "Nenhuma trilha encontrada",
+    "combinedCount": "{{trailCount}} trilhas e {{placeCount}} pontos",
+    "noTrails": "Nenhum resultado encontrado",
     "noConnectionList": "Sem conexão. Não foi possível carregar a lista; tente o mapa com o último download salvo.",
     "viewMap": "Ver Mapa",
     "searchPlaceholder": "Buscar..."
@@ -183,6 +184,22 @@
     "empty": "Você ainda não concluiu nenhuma trilha. Termine um percurso para vê-lo aqui.",
     "back": "Voltar"
   },
+  "wallpapers": {
+    "title": "Papéis de parede",
+    "subtitle": "Wallpapers exclusivos de Ushuaia",
+    "count_one": "1 papel de parede disponível",
+    "count_other": "{{count}} papéis de parede disponíveis",
+    "download": "Baixar",
+    "back": "Voltar",
+    "emptyTitle": "Nenhum papel de parede ainda",
+    "emptyBody": "Ainda não há wallpapers carregados. Volte mais tarde para baixar fundos exclusivos de Ushuaia.",
+    "downloadSuccessTitle": "Salvo",
+    "downloadSuccessBody": "O papel de parede foi salvo na sua galeria.",
+    "shareSuccessTitle": "Imagem pronta",
+    "shareSuccessBody": "Escolha «Salvar imagem» no menu para adicioná-la à galeria.",
+    "downloadErrorTitle": "Falha no download",
+    "downloadError": "Ocorreu um erro ao salvar a imagem."
+  },
   "profile": {
     "loadingProfile": "Carregando dados do perfil",
     "defaultUser": "Usuário",
@@ -203,6 +220,10 @@
       "title": "Modo offline",
       "subtitle": "Baixe trilhas para usar sem internet"
     },
+    "wallpapers": {
+      "title": "Papéis de parede",
+      "subtitle": "Baixe wallpapers exclusivos de Ushuaia"
+    },
     "settings": {
       "personalInfo": "Informações pessoais",
       "notifications": "Notificações",
@@ -217,7 +238,8 @@
       "completedTrails": "Ver trilhas concluídas",
       "favorites": "Ver favoritos",
       "premium": "Seja premium",
-      "offline": "Abrir downloads offline"
+      "offline": "Abrir downloads offline",
+      "wallpapers": "Abrir papéis de parede"
     }
   },
   "personalInfo": {

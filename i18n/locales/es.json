@@ -108,7 +108,8 @@
   },
   "home": {
     "trailCount": "{{count}} senderos",
-    "noTrails": "No se encontraron senderos",
+    "combinedCount": "{{trailCount}} senderos y {{placeCount}} puntos",
+    "noTrails": "No se encontraron resultados",
     "noConnectionList": "Sin conexión. No pudimos cargar el listado; probá el mapa con la última descarga guardada.",
     "viewMap": "Ver Mapa",
     "searchPlaceholder": "Buscar..."
@@ -183,6 +184,22 @@
     "empty": "Todavía no completaste ningún sendero. Terminá un recorrido para verlo acá.",
     "back": "Volver"
   },
+  "wallpapers": {
+    "title": "Fondos de pantalla",
+    "subtitle": "Wallpapers exclusivos de Ushuaia",
+    "count_one": "1 fondo disponible",
+    "count_other": "{{count}} fondos disponibles",
+    "download": "Descargar",
+    "back": "Volver",
+    "emptyTitle": "Sin fondos todavía",
+    "emptyBody": "Todavía no hay wallpapers cargados. Volvé más tarde para descargar fondos exclusivos de Ushuaia.",
+    "downloadSuccessTitle": "Guardado",
+    "downloadSuccessBody": "El fondo de pantalla se guardó en tu galería.",
+    "shareSuccessTitle": "Imagen lista",
+    "shareSuccessBody": "Elegí «Guardar imagen» en el menú para agregarlo a tu galería.",
+    "downloadErrorTitle": "No se pudo descargar",
+    "downloadError": "Ocurrió un error al guardar la imagen."
+  },
   "profile": {
     "loadingProfile": "Cargando datos del perfil",
     "defaultUser": "Usuario",
@@ -203,6 +220,10 @@
       "title": "Modo sin conexión",
       "subtitle": "Descargá senderos para usarlos sin internet"
     },
+    "wallpapers": {
+      "title": "Fondos de pantalla",
+      "subtitle": "Descargá wallpapers exclusivos de Ushuaia"
+    },
     "settings": {
       "personalInfo": "Información personal",
       "notifications": "Notificaciones",
@@ -217,7 +238,8 @@
       "completedTrails": "Ver senderos completados",
       "favorites": "Ver favoritos",
       "premium": "Hazte premium",
-      "offline": "Abrir descargas offline"
+      "offline": "Abrir descargas offline",
+      "wallpapers": "Abrir fondos de pantalla"
     }
   },
   "personalInfo": {

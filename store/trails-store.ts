@@ -1,5 +1,5 @@
 import { Trail } from '@/constants/mock-trails';
-import { BackendTrail, fetchTrails } from '@/services/api';
+import { BackendPlaceListItem, BackendTrail, fetchPlacesList, fetchTrails } from '@/services/api';
 import { create } from 'zustand';
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
@@ -71,6 +71,10 @@ interface TrailsStore {
   hasMore: boolean;
   loading: boolean;
   loadingMore: boolean;
+  // Puntos turísticos
+  places: BackendPlaceListItem[];
+  placesTotal: number;
+  loadingPlaces: boolean;
   // Búsqueda
   searchQuery: string;
   recentSearches: string[];
@@ -78,10 +82,14 @@ interface TrailsStore {
   fetchFeaturedTrails: () => Promise<void>;
   fetchTrails: (reset?: boolean) => Promise<void>;
   loadMoreTrails: () => Promise<void>;
+  fetchPlaces: () => Promise<void>;
   setSearchQuery: (query: string) => void;
   addRecentSearch: (query: string) => void;
   filteredTrails: () => Trail[];
+  filteredPlaces: () => BackendPlaceListItem[];
 }
+
+export type { BackendPlaceListItem };
 
 export const useTrailsStore = create<TrailsStore>((set, get) => ({
   featuredTrails: [],
@@ -91,6 +99,9 @@ export const useTrailsStore = create<TrailsStore>((set, get) => ({
   hasMore: true,
   loading: false,
   loadingMore: false,
+  places: [],
+  placesTotal: 0,
+  loadingPlaces: false,
   searchQuery: '',
   recentSearches: [
     'Laguna Esmeralda',
@@ -155,6 +166,18 @@ export const useTrailsStore = create<TrailsStore>((set, get) => ({
     }
   },
 
+  fetchPlaces: async () => {
+    set({ loadingPlaces: true });
+    try {
+      const data = await fetchPlacesList({ limit: 100 });
+      set({ places: data.places, placesTotal: data.total });
+    } catch (e) {
+      console.error('fetchPlaces error', e);
+    } finally {
+      set({ loadingPlaces: false });
+    }
+  },
+
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   addRecentSearch: (query) => {
@@ -174,6 +197,18 @@ export const useTrailsStore = create<TrailsStore>((set, get) => ({
         t.name.toLowerCase().includes(q) ||
         t.type.toLowerCase().includes(q) ||
         t.difficulty.toLowerCase().includes(q),
+    );
+  },
+
+  filteredPlaces: () => {
+    const { places, searchQuery } = get();
+    if (!searchQuery.trim()) return places;
+    const q = searchQuery.toLowerCase();
+    return places.filter(
+      (p) =>
+        (p.name ?? '').toLowerCase().includes(q) ||
+        (p.category ?? '').toLowerCase().includes(q) ||
+        (p.region ?? '').toLowerCase().includes(q),
     );
   },
 }));

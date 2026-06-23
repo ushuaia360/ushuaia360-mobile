@@ -55,6 +55,8 @@ html, body {
 <script>
 (function () {
   var el = document.getElementById('v');
+  var started = false;
+
   function fit() {
     var w = window.innerWidth || document.documentElement.clientWidth || screen.width;
     var h = window.innerHeight || document.documentElement.clientHeight || screen.height;
@@ -68,12 +70,28 @@ html, body {
   fit();
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', function () { setTimeout(fit, 300); });
+
   function post() {
     if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage('playing');
   }
-  el.addEventListener('playing', post);
-  el.addEventListener('canplay', post);
-  el.play().catch(function () {});
+
+  function tryPlay() {
+    if (started) return;
+    var p = el.play();
+    if (p && typeof p.then === 'function') {
+      p.then(function () { started = true; post(); }).catch(function () {});
+    }
+  }
+
+  el.addEventListener('playing', function () { started = true; post(); });
+  el.addEventListener('canplay', tryPlay);
+  el.addEventListener('loadeddata', tryPlay);
+  el.addEventListener('loadedmetadata', tryPlay);
+
+  tryPlay();
+  setTimeout(tryPlay, 200);
+  setTimeout(tryPlay, 800);
+  setTimeout(tryPlay, 2000);
 })();
 </script>
 </body>
@@ -146,6 +164,7 @@ export function AuthHeroBackground({ children, style }: AuthHeroBackgroundProps)
           mediaPlaybackRequiresUserAction={false}
           allowFileAccess
           allowFileAccessFromFileURLs
+          allowUniversalAccessFromFileURLs
           domStorageEnabled
           javaScriptEnabled
           contentMode="mobile"

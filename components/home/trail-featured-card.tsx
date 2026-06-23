@@ -5,6 +5,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import TrailImage from './trail-image';
+import { toTitleCase } from '@/lib/title-case';
 
 const DIFFICULTY_COLOR: Record<Trail['difficulty'], string> = {
   Fácil: '#34c759',
@@ -43,7 +44,7 @@ export default function TrailFeaturedCard({ trail, onPress }: Props) {
       <View style={styles.info}>
         {/* Name + difficulty */}
         <View style={styles.topRow}>
-          <ThemedText style={styles.name} numberOfLines={1}>{trail.name}</ThemedText>
+          <ThemedText style={styles.name} numberOfLines={1}>{toTitleCase(trail.name)}</ThemedText>
           <View style={[styles.difficultyBadge, { backgroundColor: DIFFICULTY_COLOR[trail.difficulty] + '22' }]}>
             <ThemedText style={[styles.difficultyText, { color: DIFFICULTY_COLOR[trail.difficulty] }]}>
               {trail.difficulty}
@@ -64,11 +65,6 @@ export default function TrailFeaturedCard({ trail, onPress }: Props) {
           <View style={styles.stat}>
             <IconSymbol name="time-outline" size={12} color={colors.tint} />
             <ThemedText style={styles.statText}>{trail.duration}</ThemedText>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: isDark ? '#3a3a3a' : '#ddd' }]} />
-          <View style={styles.stat}>
-            <IconSymbol name="trending-up-outline" size={12} color={colors.tint} />
-            <ThemedText style={styles.statText}>{trail.elevationGain}</ThemedText>
           </View>
         </View>
       </View>

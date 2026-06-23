@@ -108,7 +108,8 @@
   },
   "home": {
     "trailCount": "{{count}} trails",
-    "noTrails": "No trails found",
+    "combinedCount": "{{trailCount}} trails and {{placeCount}} points",
+    "noTrails": "No results found",
     "noConnectionList": "No connection. Couldn't load the list; try the map with the last saved download.",
     "viewMap": "View Map",
     "searchPlaceholder": "Search..."
@@ -183,6 +184,22 @@
     "empty": "You haven't completed any trails yet. Finish a route to see it here.",
     "back": "Back"
   },
+  "wallpapers": {
+    "title": "Wallpapers",
+    "subtitle": "Exclusive Ushuaia wallpapers",
+    "count_one": "1 wallpaper available",
+    "count_other": "{{count}} wallpapers available",
+    "download": "Download",
+    "back": "Back",
+    "emptyTitle": "No wallpapers yet",
+    "emptyBody": "No wallpapers have been uploaded yet. Check back later for exclusive Ushuaia backgrounds.",
+    "downloadSuccessTitle": "Saved",
+    "downloadSuccessBody": "The wallpaper was saved to your gallery.",
+    "shareSuccessTitle": "Image ready",
+    "shareSuccessBody": "Choose «Save Image» from the menu to add it to your gallery.",
+    "downloadErrorTitle": "Download failed",
+    "downloadError": "Something went wrong while saving the image."
+  },
   "profile": {
     "loadingProfile": "Loading profile data",
     "defaultUser": "User",
@@ -203,6 +220,10 @@
       "title": "Offline mode",
       "subtitle": "Download trails to use them without internet"
     },
+    "wallpapers": {
+      "title": "Wallpapers",
+      "subtitle": "Download exclusive Ushuaia backgrounds"
+    },
     "settings": {
       "personalInfo": "Personal information",
       "notifications": "Notifications",
@@ -217,7 +238,8 @@
       "completedTrails": "View completed trails",
       "favorites": "View favorites",
       "premium": "Go premium",
-      "offline": "Open offline downloads"
+      "offline": "Open offline downloads",
+      "wallpapers": "Open wallpapers"
     }
   },
   "personalInfo": {

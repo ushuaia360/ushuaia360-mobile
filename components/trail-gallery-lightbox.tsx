@@ -154,7 +154,7 @@ export default function TrailGalleryLightbox({
                 },
               ]}>
               <View style={styles.viewerCenter}>
-                <View style={[styles.viewerBox, { height: viewerH }]}>
+                <View style={[styles.viewerBox, { height: item.mode === 'panorama' ? innerH : viewerH }]}>
                   {item.mode === 'panorama' ? (
                     <PanoramaWebView
                       uri={item.uri}

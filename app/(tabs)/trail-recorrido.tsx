@@ -293,6 +293,7 @@ export default function TrailRecorridoScreen() {
             highlightedEmergencyId={highlightedEmergencyId}
             fallbackCenter={session.fallbackCenter}
             isDark={isDark}
+            isPaused={isPaused}
           />
 
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -322,30 +323,9 @@ export default function TrailRecorridoScreen() {
             </View>
 
             {/* ── Bottom controls ── */}
-            <View style={[styles.bottomBar, { paddingBottom: Math.max(bottom, 16) + 8 }]} pointerEvents="box-none">
-              <View style={styles.bottomRow}>
-                <Pressable
-                  style={styles.emergencyBtn}
-                  onPress={() => setEmergencyModalVisible(true)}
-                  accessibilityLabel={t('trailEmergency.button')}>
-                  <Ionicons name="warning" size={26} color="#fff" />
-                </Pressable>
-
-                <View style={styles.bottomCenter}>
-              {!isPaused ? (
-                <View style={styles.pauseGroup}>
-                  <Pressable
-                    style={[styles.pauseFab, { backgroundColor: colors.tint }]}
-                    onPress={() => setIsPaused(true)}
-                    accessibilityLabel={t('trailRecorrido.pause')}>
-                    <Ionicons name="pause" size={28} color="#fff" />
-                  </Pressable>
-                  <View style={[styles.timerBadge, { backgroundColor: colors.tint }]}>
-                    <ThemedText style={styles.timerText}>{formatElapsed(elapsed)}</ThemedText>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.pausedRow} pointerEvents="box-none">
+            <View style={[styles.bottomBar, { paddingBottom: isPaused ? Math.max(bottom, 8) : Math.max(bottom, 16) + 8 }]} pointerEvents="box-none">
+              {isPaused ? (
+                <View style={styles.pausedRow}>
                   <Pressable
                     style={[
                       styles.actionBtn,
@@ -359,7 +339,6 @@ export default function TrailRecorridoScreen() {
                     <Ionicons name="play" size={20} color={colors.tint} />
                     <ThemedText style={[styles.actionBtnLabel, { color: colors.tint }]}>{t('trailRecorrido.resume')}</ThemedText>
                   </Pressable>
-
                   <Pressable
                     style={[
                       styles.actionBtn,
@@ -377,11 +356,30 @@ export default function TrailRecorridoScreen() {
                     )}
                   </Pressable>
                 </View>
-              )}
+              ) : (
+                <View style={styles.bottomRow}>
+                  <Pressable
+                    style={styles.emergencyBtn}
+                    onPress={() => setEmergencyModalVisible(true)}
+                    accessibilityLabel={t('trailEmergency.button')}>
+                    <Ionicons name="warning" size={26} color="#fff" />
+                  </Pressable>
+                  <View style={styles.bottomCenter}>
+                    <View style={styles.pauseGroup}>
+                      <Pressable
+                        style={[styles.pauseFab, { backgroundColor: colors.tint }]}
+                        onPress={() => setIsPaused(true)}
+                        accessibilityLabel={t('trailRecorrido.pause')}>
+                        <Ionicons name="pause" size={28} color="#fff" />
+                      </Pressable>
+                      <View style={[styles.timerBadge, { backgroundColor: colors.tint }]}>
+                        <ThemedText style={styles.timerText}>{formatElapsed(elapsed)}</ThemedText>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.bottomSideSpacer} />
                 </View>
-
-                <View style={styles.bottomSideSpacer} />
-              </View>
+              )}
             </View>
 
           </View>
@@ -562,6 +560,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     width: '100%',
+    marginBottom: 12,
   },
   actionBtn: {
     flex: 1,
@@ -570,6 +569,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
+    paddingHorizontal: 12,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -580,5 +580,6 @@ const styles = StyleSheet.create({
   actionBtnLabel: {
     fontWeight: '700',
     fontSize: 15,
+    flexShrink: 1,
   },
 });

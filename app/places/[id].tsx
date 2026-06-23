@@ -1,5 +1,4 @@
 import { ContactLinkRow } from '@/components/contact-link-row';
-import PanoramaWebView from '@/components/panorama-webview';
 import ReviewSelectedPhotosStrip from '@/components/review-selected-photos-strip';
 import TrailGalleryLightbox from '@/components/trail-gallery-lightbox';
 import TrailRouteTileMap, {
@@ -53,6 +52,7 @@ import {
 } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toTitleCase } from '@/lib/title-case';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GALLERY_HORIZONTAL_MARGIN = 16;
@@ -555,19 +555,11 @@ export default function PlaceDetailScreen() {
                           setLightboxOpen(true);
                         }}>
                         <View style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}>
-                          {item.mode === 'panorama' ? (
-                            <PanoramaWebView
-                              uri={item.uri}
-                              panoramaHalf={item.panoramaHalf}
-                              style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}
-                            />
-                          ) : (
-                            <Image
-                              source={{ uri: item.uri }}
-                              style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}
-                              resizeMode="cover"
-                            />
-                          )}
+                          <Image
+                            source={{ uri: item.uri }}
+                            style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}
+                            resizeMode="cover"
+                          />
                           {item.mode === 'panorama' ? (
                             <View
                               style={[
@@ -666,7 +658,7 @@ export default function PlaceDetailScreen() {
 
             <View style={[styles.card, { backgroundColor: isDark ? '#1c1c1e' : '#fff', padding: 0, overflow: 'hidden' }]}>
               <View style={styles.nameSection}>
-                <ThemedText style={styles.name}>{place.name ?? place.slug}</ThemedText>
+                <ThemedText style={styles.name}>{toTitleCase(place.name ?? place.slug)}</ThemedText>
                 <ThemedText style={[styles.ratingText, { color: colors.icon, marginTop: 6, fontSize: 15 }]}>
                   {formatPlaceCategoryLabel(place.category)}
                   {place.region ? ` · ${place.region}` : ''}
@@ -1231,7 +1223,7 @@ const styles = StyleSheet.create({
   titleRatingValue: { fontSize: 18, fontWeight: '500' },
   titleRatingCount: { fontSize: 18 },
   ratingText: { fontSize: 18 },
-  descInline: { fontSize: 16, lineHeight: 24, textAlign: 'center' },
+  descInline: { fontSize: 16, lineHeight: 24, textAlign: 'left' },
   trailDescBlock: { paddingHorizontal: 6, paddingBottom: 20, paddingTop: 4 },
   cardDivider: { height: 1, marginHorizontal: 0 },
   metricsRow: { flexDirection: 'row', paddingTop: 24, paddingBottom: 14, paddingHorizontal: 8 },

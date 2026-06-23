@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.ushuaia360.ios",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Ushuaia360 usa tu ubicación para mostrarte en el mapa mientras hacés un sendero.",
-        "NSPhotoLibraryUsageDescription": "Ushuaia360 necesita acceso a tus fotos para que puedas adjuntar imágenes a tus reseñas.",
+        "NSPhotoLibraryUsageDescription": "Ushuaia360 necesita acceso a tus fotos para que puedas adjuntar imágenes a tus reseñas y guardar fondos de pantalla.",
+        "NSPhotoLibraryAddUsageDescription": "Ushuaia360 guarda fondos de pantalla en tu galería de fotos.",
         "NSCameraUsageDescription": "Ushuaia360 puede usar la cámara si elegís sacar una foto para tu reseña."
       }
     },
@@ -22,7 +23,8 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "READ_MEDIA_IMAGES",
-        "READ_EXTERNAL_STORAGE"
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ],
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
@@ -61,6 +63,13 @@
         {
           "photosPermission": "Ushuaia360 necesita acceso a tus fotos para que puedas adjuntar imágenes a tus reseñas.",
           "cameraPermission": "Ushuaia360 puede usar la cámara si elegís sacar una foto para tu reseña."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Ushuaia360 necesita acceso a tus fotos para guardar fondos de pantalla.",
+          "savePhotosPermission": "Ushuaia360 guarda fondos de pantalla en tu galería de fotos."
         }
       ],
       [

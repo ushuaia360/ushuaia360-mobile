@@ -109,6 +109,7 @@ interface Props {
   highlightedEmergencyId?: string | null;
   fallbackCenter: { latitude: number; longitude: number };
   isDark: boolean;
+  isPaused?: boolean;
 }
 
 const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
@@ -120,6 +121,7 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
       highlightedEmergencyId = null,
       fallbackCenter,
       isDark,
+      isPaused = false,
     },
     ref,
   ) {
@@ -429,7 +431,7 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
           ) : null}
         </MapView>
 
-        {Platform.OS !== 'web' ? (
+        {Platform.OS !== 'web' && !isPaused ? (
           <View
             style={[styles.mapCtlFabColumn, { bottom: Math.max(insetBottom, 12) + 6 }]}
             pointerEvents="box-none">

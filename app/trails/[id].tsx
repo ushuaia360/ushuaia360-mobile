@@ -1,5 +1,4 @@
 import { ContactLinkRow } from '@/components/contact-link-row';
-import PanoramaWebView from '@/components/panorama-webview';
 import ReportToast from '@/components/report-toast';
 import ReviewSelectedPhotosStrip from '@/components/review-selected-photos-strip';
 import { ThemedText } from '@/components/themed-text';
@@ -79,6 +78,7 @@ import {
 } from 'react-native';
 import Animated, { Extrapolation, Keyframe, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toTitleCase } from '@/lib/title-case';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 /** Márgenes laterales de la foto principal / carrusel */
@@ -644,18 +644,7 @@ export default function TrailDetailScreen() {
   );
 
   const lineCoordinates = useMemo(() => {
-    const fromSegments = buildTrailLineCoordinates(trailDetail, routeReference);
-    if (fromSegments.length >= 2) return fromSegments;
-    const fromPois = buildLineFromTrailPoints(trailDetail?.points ?? []);
-    if (fromPois.length >= 2) return fromPois;
-    // Un solo POI y sin segmentos: trazo map_point → POI (datos reales del API, no inventados)
-    if (fromPois.length === 1) {
-      const a = routeReference;
-      const b = fromPois[0];
-      const same = a.latitude === b.latitude && a.longitude === b.longitude;
-      if (!same) return [a, b];
-    }
-    return fromSegments;
+    return buildTrailLineCoordinates(trailDetail, routeReference);
   }, [trailDetail, routeReference]);
 
   const mapInterestPoints = useMemo(() => {
@@ -1191,7 +1180,7 @@ export default function TrailDetailScreen() {
                   <View style={[styles.card, { backgroundColor: isDark ? '#1c1c1e' : '#fff', padding: 0, overflow: 'hidden' }]}>
                     {/* Nombre + meta */}
                     <View style={styles.nameSection}>
-                      <ThemedText style={styles.name}>{trail.name}</ThemedText>
+                      <ThemedText style={styles.name}>{toTitleCase(trail.name)}</ThemedText>
                       {isOnline ? (
                         <View style={styles.ratingRow}>
                           <Ionicons name="star" size={14} color="#000" />
@@ -1213,8 +1202,6 @@ export default function TrailDetailScreen() {
                       <Metric icon="map-outline" label="Distancia" value={trail.distance} iconColor={colors.tint} />
                       <View style={[styles.metricSep, { backgroundColor: isDark ? '#2a2a2a' : '#EDF0F5' }]} />
                       <Metric icon="time-outline" label="Duración" value={trail.duration} iconColor={colors.tint} />
-                      <View style={[styles.metricSep, { backgroundColor: isDark ? '#2a2a2a' : '#EDF0F5' }]} />
-                      <Metric icon="trending-up-outline" label="Desnivel" value={trail.elevationGain} iconColor={colors.tint} />
                       <View style={[styles.metricSep, { backgroundColor: isDark ? '#2a2a2a' : '#EDF0F5' }]} />
                       <Metric
                         icon="flag-outline"
@@ -1309,28 +1296,26 @@ export default function TrailDetailScreen() {
                           </View>
                         </View>
 
-                        <ThemedText
-                          style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
-                          Puntos de interés
-                        </ThemedText>
-                        <View style={styles.poiListSection}>
-                          {sortedTrailPoints.length === 0 ? (
-                            <ThemedText style={[styles.poiListEmpty, { color: colors.icon }]}>
-                              Este sendero aún no tiene puntos de interés cargados.
+                        {sortedTrailPoints.length > 0 && (
+                          <>
+                            <ThemedText
+                              style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
+                              Puntos de interés
                             </ThemedText>
-                          ) : (
-                            sortedTrailPoints.map((p) => (
-                              <TrailPoiListCard
-                                key={p.id}
-                                point={p}
-                                colors={colors}
-                                isDark={isDark}
-                                tint={colors.tint}
-                                onMapPress={handleMapPoiPress}
-                              />
-                            ))
-                          )}
-                        </View>
+                            <View style={styles.poiListSection}>
+                              {sortedTrailPoints.map((p) => (
+                                <TrailPoiListCard
+                                  key={p.id}
+                                  point={p}
+                                  colors={colors}
+                                  isDark={isDark}
+                                  tint={colors.tint}
+                                  onMapPress={handleMapPoiPress}
+                                />
+                              ))}
+                            </View>
+                          </>
+                        )}
                       </>
                     )}
 
@@ -1767,10 +1752,10 @@ export default function TrailDetailScreen() {
                             }
                             if (hero.kind === 'panorama') {
                               return (
-                                <PanoramaWebView
-                                  uri={hero.uri}
-                                  panoramaHalf={hero.half}
+                                <ExpoImage
+                                  source={{ uri: hero.uri }}
                                   style={styles.poiSheetImage}
+                                  contentFit="cover"
                                 />
                               );
                             }
@@ -2154,7 +2139,7 @@ const styles = StyleSheet.create({
   diffBadgeText: { fontSize: 12, fontWeight: '700' },
   metaDot: { fontSize: 12, opacity: 0.4 },
   type: { fontSize: 18 },
-  descInline: { fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 8 },
+  descInline: { fontSize: 16, lineHeight: 24, textAlign: 'left', marginTop: 8 },
   trailDescBlock: {
     paddingHorizontal: 6,
     paddingBottom: 20,

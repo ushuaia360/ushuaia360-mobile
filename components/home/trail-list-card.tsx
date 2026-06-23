@@ -10,10 +10,11 @@ import { usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import TrailImage from './trail-image';
+import { toTitleCase } from '@/lib/title-case';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH - 32; // marginHorizontal: 16 * 2
-const IMAGE_WIDTH = CARD_WIDTH - 20;  // imageContainer marginHorizontal: 10 * 2
+const CARD_WIDTH = SCREEN_WIDTH - 32;
+const IMAGE_WIDTH = CARD_WIDTH - 20;
 import Animated, {
   Easing,
   useSharedValue,
@@ -147,7 +148,7 @@ function TrailListCard({ trail, onPress, onMapPress }: Props) {
 
         {/* Name + rating */}
         <View style={styles.nameRow}>
-          <ThemedText style={styles.name} numberOfLines={1}>{trail.name}</ThemedText>
+          <ThemedText style={styles.name} numberOfLines={1}>{toTitleCase(trail.name)}</ThemedText>
           <View style={styles.ratingBlock}>
             <Ionicons name="star" size={13} color={isDark ? '#fff' : '#000'} />
             <ThemedText style={styles.ratingText}>{trail.rating.toFixed(1)} ({trail.reviewCount})</ThemedText>
@@ -173,11 +174,6 @@ function TrailListCard({ trail, onPress, onMapPress }: Props) {
           <View style={styles.stat}>
             <Ionicons name="time-outline" size={13} color={colors.icon} />
             <ThemedText style={[styles.statText, { color: colors.icon }]}>{trail.duration}</ThemedText>
-          </View>
-          <View style={styles.statDot} />
-          <View style={styles.stat}>
-            <Ionicons name="trending-up-outline" size={13} color={colors.icon} />
-            <ThemedText style={[styles.statText, { color: colors.icon }]}>{trail.elevationGain}</ThemedText>
           </View>
         </View>
 

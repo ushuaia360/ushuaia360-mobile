@@ -502,6 +502,31 @@ export async function fetchProfileStats(token: string): Promise<ProfileStatsResp
   return apiRequest<ProfileStatsResponse>('/me/profile-stats', { token });
 }
 
+// ── Wallpapers ────────────────────────────────────────────────────────────────
+
+export interface Wallpaper {
+  id: string;
+  url: string;
+  title: string | null;
+  order_index: number;
+  created_at: string;
+}
+
+export interface WallpapersResponse {
+  wallpapers: Wallpaper[];
+  total: number;
+}
+
+export async function fetchWallpapers(
+  params: { limit?: number; offset?: number } = {},
+): Promise<WallpapersResponse> {
+  const qs = new URLSearchParams();
+  if (params.limit !== undefined) qs.set('limit', String(params.limit));
+  if (params.offset !== undefined) qs.set('offset', String(params.offset));
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<WallpapersResponse>(`/wallpapers${query}`);
+}
+
 // ── Historial de senderos (recorridos del usuario) ─────────────────────────────
 
 export interface UserTrailHistoryEntry {
@@ -761,4 +786,37 @@ export interface BackendPlace {
 export async function fetchPlace(placeId: string): Promise<BackendPlace> {
   const data = await apiRequest<{ place: BackendPlace }>(`/places/${placeId}`);
   return data.place;
+}
+
+export interface BackendPlaceListItem {
+  id: string;
+  slug: string;
+  name: string | null;
+  category: string | null;
+  region: string | null;
+  country: string | null;
+  description: string | null;
+  is_premium: boolean;
+  contact_link: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  thumbnail_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlacesListResponse {
+  places: BackendPlaceListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchPlacesList(params: { limit?: number; offset?: number; q?: string } = {}): Promise<PlacesListResponse> {
+  const qs = new URLSearchParams();
+  if (params.limit !== undefined) qs.set('limit', String(params.limit));
+  if (params.offset !== undefined) qs.set('offset', String(params.offset));
+  if (params.q) qs.set('q', params.q);
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<PlacesListResponse>(`/places${query}`);
 }

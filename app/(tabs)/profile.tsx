@@ -311,6 +311,23 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={18} color={textSub} />
         </TouchableOpacity>
 
+        {/* Wallpapers */}
+        <TouchableOpacity
+          style={[styles.ctaCard, { backgroundColor: cardBg }]}
+          activeOpacity={0.88}
+          onPress={() => router.push('/wallpapers')}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.accessibility.wallpapers')}>
+          <View style={[styles.ctaIcon, { backgroundColor: colors.tint + '18' }]}>
+            <Ionicons name="image-outline" size={28} color={colors.tint} />
+          </View>
+          <View style={styles.ctaText}>
+            <ThemedText style={styles.ctaTitle}>{t('profile.wallpapers.title')}</ThemedText>
+            <ThemedText style={[styles.ctaSubtitle, { color: textSub }]}>{t('profile.wallpapers.subtitle')}</ThemedText>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={textSub} />
+        </TouchableOpacity>
+
         {/* Settings */}
         <View style={[styles.settingsCard, { backgroundColor: cardBg }]}>
           {SETTINGS.map(({ icon, label, key, danger }, i) => (
