@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import TrailListCard from '@/components/home/trail-list-card';
+import RecordedRouteViewModal from '@/components/recorded-route-view-modal';
 import { Trail } from '@/constants/mock-trails';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -60,6 +61,7 @@ export default function CompletedTrailsScreen() {
   const [trails, setTrails] = useState<Trail[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [routeModal, setRouteModal] = useState<{ trailId: string; trailName: string } | null>(null);
 
   const loadCompleted = useCallback(async (isRefresh: boolean) => {
     if (!token) return;
@@ -153,9 +155,20 @@ export default function CompletedTrailsScreen() {
             <TrailListCard
               trail={item}
               onPress={(t) => router.push({ pathname: '/trails/[id]', params: { id: t.id } } as never)}
+              onRoutePress={(t) => setRouteModal({ trailId: t.id, trailName: t.name })}
             />
           )}
           showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {routeModal && (
+        <RecordedRouteViewModal
+          visible={!!routeModal}
+          trailId={routeModal.trailId}
+          trailName={routeModal.trailName}
+          token={token}
+          onClose={() => setRouteModal(null)}
         />
       )}
     </ThemedView>

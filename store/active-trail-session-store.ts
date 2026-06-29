@@ -28,6 +28,8 @@ export interface ActiveTrailSessionSnapshot {
   thumbnailUrl: string | null;
   startedAtISO: string;
   lineCoordinates: { latitude: number; longitude: number }[];
+  /** Ruta GPS real del usuario durante el recorrido (se va acumulando en tiempo real). */
+  recordedPath?: { latitude: number; longitude: number }[];
   interestPoints: ActiveTrailMapPoint[];
   emergencyPoints: ActiveTrailEmergencyPoint[];
   mainPoint: { latitude: number; longitude: number } | null;
@@ -67,6 +69,7 @@ function migratePersistedSession(raw: unknown): ActiveTrailSessionSnapshot | nul
     return {
       ...s,
       emergencyPoints: Array.isArray(s.emergencyPoints) ? s.emergencyPoints : [],
+      recordedPath: Array.isArray(s.recordedPath) ? s.recordedPath : [],
     } as ActiveTrailSessionSnapshot;
   }
   const fromDb = s.started_at ?? s.startedAt;
@@ -75,11 +78,13 @@ function migratePersistedSession(raw: unknown): ActiveTrailSessionSnapshot | nul
       ...s,
       startedAtISO: normalizeSessionStartedAtToISO(fromDb),
       emergencyPoints: Array.isArray(s.emergencyPoints) ? s.emergencyPoints : [],
+      recordedPath: Array.isArray(s.recordedPath) ? s.recordedPath : [],
     };
   }
   return {
     ...(s as ActiveTrailSessionSnapshot),
     emergencyPoints: Array.isArray(s.emergencyPoints) ? s.emergencyPoints : [],
+    recordedPath: Array.isArray(s.recordedPath) ? s.recordedPath : [],
   };
 }
 

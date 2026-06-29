@@ -689,15 +689,41 @@ export async function beginTrailHistoryRecorrido(
 export async function completeUserTrailHistory(
   token: string,
   historyEntryId: string,
+  gpsPath?: { latitude: number; longitude: number }[],
 ): Promise<UserTrailHistoryEntry> {
   const data = await apiRequest<Record<string, unknown>>(
     `/me/trail-history/${historyEntryId}/complete`,
     {
       method: 'POST',
       token,
+      body: gpsPath && gpsPath.length >= 2 ? { gps_path: gpsPath } : undefined,
     },
   );
   return parseUserTrailHistoryEntryPayload(data);
+}
+
+/**
+ * Devuelve la última entrada completada del usuario para un sendero, incluyendo
+ * la ruta GPS grabada (`gps_path`). Retorna `null` si no completó el sendero.
+ */
+export async function fetchTrailRecordedPath(
+  token: string,
+  trailId: string,
+): Promise<{ latitude: number; longitude: number }[] | null> {
+  try {
+    const data = await apiRequest<{ entry?: Record<string, unknown> | null }>(
+      `/me/trail-history/by-trail/${trailId}`,
+      { token },
+    );
+    const gpsPath = data.entry?.gps_path;
+    if (!Array.isArray(gpsPath) || gpsPath.length < 2) return null;
+    return gpsPath.filter(
+      (p): p is { latitude: number; longitude: number } =>
+        p != null && typeof p.latitude === 'number' && typeof p.longitude === 'number',
+    );
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchUserTrailHistory(
@@ -819,4 +845,26 @@ export async function fetchPlacesList(params: { limit?: number; offset?: number;
   if (params.q) qs.set('q', params.q);
   const query = qs.toString() ? `?${qs.toString()}` : '';
   return apiRequest<PlacesListResponse>(`/places${query}`);
+}
+
+export interface AppConfigBanner {
+  active: boolean;
+  title: string;
+  message: string;
+}
+
+export interface AppConfigResponse {
+  maintenance: AppConfigBanner;
+  required_update: AppConfigBanner;
+}
+
+export async function fetchAppConfig(params: {
+  platform: 'ios' | 'android';
+  build: number;
+}): Promise<AppConfigResponse> {
+  const qs = new URLSearchParams({
+    platform: params.platform,
+    build: String(params.build),
+  });
+  return apiRequest<AppConfigResponse>(`/app/config?${qs.toString()}`);
 }

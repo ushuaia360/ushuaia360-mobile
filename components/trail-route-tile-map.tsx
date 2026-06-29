@@ -22,6 +22,8 @@ const LOG_PREFIX = '[TrailRouteTileMap]';
 const MIN_LAYOUT = 32;
 
 const MAX_ROUTE_VERTICES = 400;
+const MAX_RECORDED_VERTICES = 600;
+const RECORDED_PATH_COLOR = '#22c55e';
 
 /** Padding (px) al ajustar la ruta al viewport (tile map) — más alto = encuadre más holgado, menos zoom. */
 const FIT_MAP_PADDING = 50;
@@ -107,6 +109,8 @@ export interface MapFocusTarget {
 
 interface Props {
   routeCoordinates: { latitude: number; longitude: number }[];
+  /** Ruta GPS real del usuario (se dibuja en verde sobre la ruta oficial). */
+  recordedPath?: { latitude: number; longitude: number }[];
   interestPoints: TrailInterestPoint[];
   /** Punto principal del sendero (`map_point`), igual que el marcador rojo en admin */
   mainPoint: { latitude: number; longitude: number } | null;
@@ -132,6 +136,7 @@ const POI_HIT_RADIUS = 28;
 
 export default function TrailRouteTileMap({
   routeCoordinates,
+  recordedPath,
   interestPoints,
   mainPoint,
   fallbackCenter,
@@ -210,6 +215,22 @@ export default function TrailRouteTileMap({
     }
     return pts.length >= 2 ? pts.join(' ') : '';
   }, [routeForDraw, mapState, size.w, size.h]);
+
+  const recordedPathForDraw = useMemo(
+    () => (recordedPath ? decimateRoute(recordedPath, MAX_RECORDED_VERTICES) : []),
+    [recordedPath],
+  );
+
+  const recordedPathPixelPolyline = useMemo(() => {
+    if (recordedPathForDraw.length < 2 || size.w < MIN_LAYOUT) return '';
+    const pts: string[] = [];
+    for (const c of recordedPathForDraw) {
+      const { left, top } = latLonToMapPixel(c.latitude, c.longitude, mapState, size.w, size.h);
+      if (!Number.isFinite(left) || !Number.isFinite(top)) continue;
+      pts.push(`${left},${top}`);
+    }
+    return pts.length >= 2 ? pts.join(' ') : '';
+  }, [recordedPathForDraw, mapState, size.w, size.h]);
 
   const showRouteLine = routePixelPolyline.length > 0;
   const showMainMarker = Boolean(mainPoint);
@@ -366,6 +387,24 @@ export default function TrailRouteTileMap({
               />
             </>
           )}
+          {recordedPathForDraw.length >= 2 && (
+            <>
+              <MapPolyline
+                coordinates={recordedPathForDraw}
+                strokeColor="rgba(255,255,255,0.9)"
+                strokeWidth={5}
+                lineCap="round"
+                lineJoin="round"
+              />
+              <MapPolyline
+                coordinates={recordedPathForDraw}
+                strokeColor={RECORDED_PATH_COLOR}
+                strokeWidth={3}
+                lineCap="round"
+                lineJoin="round"
+              />
+            </>
+          )}
           {interestPoints.map((p) => (
             <Marker
               key={p.id}
@@ -450,7 +489,7 @@ export default function TrailRouteTileMap({
         ))}
       </View>
 
-      {showRouteLine && size.w >= MIN_LAYOUT && size.h >= MIN_LAYOUT && (
+      {(showRouteLine || recordedPathPixelPolyline.length > 0) && size.w >= MIN_LAYOUT && size.h >= MIN_LAYOUT && (
         <Svg
           width={size.w}
           height={size.h}
@@ -458,24 +497,49 @@ export default function TrailRouteTileMap({
           style={[styles.svgOverlay, Platform.OS === 'android' ? styles.svgAndroidElev : null]}
           pointerEvents="none"
           collapsable={false}>
-          <Polyline
-            points={routePixelPolyline}
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth={7}
-            strokeOpacity={0.95}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <Polyline
-            points={routePixelPolyline}
-            fill="none"
-            stroke={routeColor}
-            strokeWidth={4}
-            strokeOpacity={0.7}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          {showRouteLine && (
+            <>
+              <Polyline
+                points={routePixelPolyline}
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth={7}
+                strokeOpacity={0.95}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <Polyline
+                points={routePixelPolyline}
+                fill="none"
+                stroke={routeColor}
+                strokeWidth={4}
+                strokeOpacity={0.7}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </>
+          )}
+          {recordedPathPixelPolyline.length > 0 && (
+            <>
+              <Polyline
+                points={recordedPathPixelPolyline}
+                fill="none"
+                stroke="rgba(255,255,255,0.9)"
+                strokeWidth={5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <Polyline
+                points={recordedPathPixelPolyline}
+                fill="none"
+                stroke={RECORDED_PATH_COLOR}
+                strokeWidth={3}
+                strokeOpacity={0.85}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </>
+          )}
         </Svg>
       )}
 

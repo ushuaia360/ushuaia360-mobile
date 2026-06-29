@@ -21,6 +21,8 @@ import {
   startUserTrailHistory,
   trailHistoryEntryStartedAt,
 } from '@/services/api';
+import { saveRecordedPath } from '@/lib/recorded-trail-path';
+import { useWatchUserLocation } from '@/hooks/use-watch-user-location';
 import { useAuthStore } from '@/store/auth-store';
 import {
   type ActiveTrailEmergencyPoint,
@@ -31,7 +33,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Tabs, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, BackHandler, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function formatElapsed(seconds: number): string {
@@ -135,6 +137,32 @@ export default function TrailRecorridoScreen() {
   }, [hydrated, session?.historyEntryId, session?.beganRecorridoSynced, token, updateActiveSession]);
 
   const [isPaused, setIsPaused] = useState(false);
+
+  // ─── Grabación GPS ────────────────────────────────────────────
+  const [localRecordedPath, setLocalRecordedPath] = useState<
+    { latitude: number; longitude: number }[]
+  >(() => session?.recordedPath ?? []);
+
+  const geoFix = useWatchUserLocation(Platform.OS !== 'web');
+  const prevGeoFixRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const pointsSinceSaveRef = useRef(0);
+
+  useEffect(() => {
+    if (!geoFix || isPaused) return;
+    const { latitude, longitude } = geoFix;
+    const prev = prevGeoFixRef.current;
+    if (prev && prev.latitude === latitude && prev.longitude === longitude) return;
+    prevGeoFixRef.current = { latitude, longitude };
+    setLocalRecordedPath((existing) => [...existing, { latitude, longitude }]);
+    pointsSinceSaveRef.current += 1;
+  }, [geoFix, isPaused]);
+
+  useEffect(() => {
+    if (pointsSinceSaveRef.current < 20 || localRecordedPath.length === 0) return;
+    pointsSinceSaveRef.current = 0;
+    void updateActiveSession({ recordedPath: localRecordedPath });
+  }, [localRecordedPath, updateActiveSession]);
+
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const [celebrationTrailName, setCelebrationTrailName] = useState('');
   const [completing, setCompleting] = useState(false);
@@ -198,6 +226,9 @@ export default function TrailRecorridoScreen() {
     const snapBefore = selectActiveSession(useActiveTrailSessionStore.getState()) ?? session;
 
     setCompleting(true);
+    if (localRecordedPath.length >= 2) {
+      void saveRecordedPath(snapBefore.trailId, localRecordedPath);
+    }
     let serverIdAfterStart: string | undefined;
     try {
       let historyEntryId = snapBefore.historyEntryId;
@@ -206,7 +237,7 @@ export default function TrailRecorridoScreen() {
         historyEntryId = entry.id;
         serverIdAfterStart = entry.id;
       }
-      await completeUserTrailHistory(token, historyEntryId);
+      await completeUserTrailHistory(token, historyEntryId, localRecordedPath.length >= 2 ? localRecordedPath : undefined);
       setCelebrationTrailName(snapBefore.trailName);
       setCelebrationVisible(true);
     } catch (e) {
@@ -288,9 +319,11 @@ export default function TrailRecorridoScreen() {
           <TrailActiveNavigationMap
             ref={mapRef}
             lineCoordinates={session.lineCoordinates}
+            recordedPath={localRecordedPath}
             interestPoints={session.interestPoints}
             emergencyPoints={session.emergencyPoints ?? []}
             highlightedEmergencyId={highlightedEmergencyId}
+            mainPoint={session.mainPoint}
             fallbackCenter={session.fallbackCenter}
             isDark={isDark}
             isPaused={isPaused}

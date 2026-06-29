@@ -14,10 +14,12 @@ import { fetchSearchSuggestions, type SearchSuggestion } from "@/services/api";
 import { useHomeStore } from "@/store/home-store";
 import { useTrailsStore } from "@/store/trails-store";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -333,14 +335,22 @@ export default function SearchPanel() {
 
       {/* Backdrop */}
       <TouchableWithoutFeedback onPress={handleClose}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFillObject,
-            styles.backdrop,
-            { backgroundColor: isDark ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.25)" },
-            backdropStyle,
-          ]}
-        />
+        <Animated.View style={[StyleSheet.absoluteFillObject, backdropStyle]}>
+          {Platform.OS === "ios" ? (
+            <BlurView
+              style={StyleSheet.absoluteFillObject}
+              intensity={isDark ? 55 : 40}
+              tint={isDark ? "dark" : "light"}
+            />
+          ) : (
+            <View
+              style={[
+                StyleSheet.absoluteFillObject,
+                { backgroundColor: isDark ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.25)" },
+              ]}
+            />
+          )}
+        </Animated.View>
       </TouchableWithoutFeedback>
 
       {/* Card — drops down from search bar position */}
@@ -475,7 +485,6 @@ const styles = StyleSheet.create({
   overlayRoot: {
     flex: 1,
   },
-  backdrop: {},
   card: {
     position: "absolute",
     overflow: "hidden",

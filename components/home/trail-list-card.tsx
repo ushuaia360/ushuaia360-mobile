@@ -51,9 +51,10 @@ interface Props {
   trail: Trail;
   onPress?: (trail: Trail) => void;
   onMapPress?: (trail: Trail) => void;
+  onRoutePress?: (trail: Trail) => void;
 }
 
-function TrailListCard({ trail, onPress, onMapPress }: Props) {
+function TrailListCard({ trail, onPress, onMapPress, onRoutePress }: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -166,15 +167,27 @@ function TrailListCard({ trail, onPress, onMapPress }: Props) {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Ionicons name="map-outline" size={13} color={colors.icon} />
-            <ThemedText style={[styles.statText, { color: colors.icon }]}>{trail.distance}</ThemedText>
+          <View style={styles.statsLeft}>
+            <View style={styles.stat}>
+              <Ionicons name="map-outline" size={13} color={colors.icon} />
+              <ThemedText style={[styles.statText, { color: colors.icon }]}>{trail.distance}</ThemedText>
+            </View>
+            <View style={styles.statDot} />
+            <View style={styles.stat}>
+              <Ionicons name="time-outline" size={13} color={colors.icon} />
+              <ThemedText style={[styles.statText, { color: colors.icon }]}>{trail.duration}</ThemedText>
+            </View>
           </View>
-          <View style={styles.statDot} />
-          <View style={styles.stat}>
-            <Ionicons name="time-outline" size={13} color={colors.icon} />
-            <ThemedText style={[styles.statText, { color: colors.icon }]}>{trail.duration}</ThemedText>
-          </View>
+          {onRoutePress && (
+            <TouchableOpacity
+              style={[styles.routeBtn, { borderColor: colors.tint + '66' }]}
+              onPress={() => onRoutePress(trail)}
+              hitSlop={8}
+              activeOpacity={0.7}>
+              <Ionicons name="map-outline" size={12} color={colors.tint} />
+              <ThemedText style={[styles.routeBtnText, { color: colors.tint }]}>Ver recorrido</ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
 
       </View>
@@ -277,8 +290,27 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     marginTop: 2,
+  },
+  statsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  routeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  routeBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.1,
   },
   stat: {
     flexDirection: 'row',

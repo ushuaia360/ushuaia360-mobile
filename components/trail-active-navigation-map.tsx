@@ -1,4 +1,5 @@
 import {
+  TRAIL_MAIN_MARKER_COLOR,
   TRAIL_POI_MARKER_COLOR,
   TRAIL_ROUTE_LINE_COLOR,
 } from '@/components/trail-route-tile-map';
@@ -90,8 +91,12 @@ function syncZoomRefFromRegion(r: Region, zoomRef: { current: number }) {
 }
 
 const POI_Z = 10;
+const MAIN_Z = 200;
 const ROUTE_Z = 2;
 const USER_MARKER_Z = 100_000;
+const MAIN_PIN = 32;
+
+const RECORDED_PATH_COLOR = '#22c55e';
 
 const EMERGENCY_MARKER_COLOR = '#E65C00';
 
@@ -104,9 +109,12 @@ export interface TrailActiveNavigationMapRef {
 
 interface Props {
   lineCoordinates: { latitude: number; longitude: number }[];
+  /** Ruta GPS real del usuario, se dibuja en verde sobre la ruta del sendero. */
+  recordedPath?: { latitude: number; longitude: number }[];
   interestPoints: ActiveTrailMapPoint[];
   emergencyPoints?: ActiveTrailEmergencyPoint[];
   highlightedEmergencyId?: string | null;
+  mainPoint?: { latitude: number; longitude: number } | null;
   fallbackCenter: { latitude: number; longitude: number };
   isDark: boolean;
   isPaused?: boolean;
@@ -116,9 +124,11 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
   function TrailActiveNavigationMap(
     {
       lineCoordinates,
+      recordedPath,
       interestPoints,
       emergencyPoints = [],
       highlightedEmergencyId = null,
+      mainPoint = null,
       fallbackCenter,
       isDark,
       isPaused = false,
@@ -347,6 +357,26 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
               />
             </>
           )}
+          {recordedPath && recordedPath.length >= 2 && (
+            <>
+              <MapPolyline
+                coordinates={recordedPath}
+                strokeColor="rgba(255,255,255,0.9)"
+                strokeWidth={5}
+                lineCap="round"
+                lineJoin="round"
+                zIndex={ROUTE_Z + 2}
+              />
+              <MapPolyline
+                coordinates={recordedPath}
+                strokeColor={RECORDED_PATH_COLOR}
+                strokeWidth={3}
+                lineCap="round"
+                lineJoin="round"
+                zIndex={ROUTE_Z + 3}
+              />
+            </>
+          )}
           {interestPoints.map((p) => {
             const dim = Math.round(34 * poiPinScale);
             const iconSz = Math.max(10, Math.round(18 * poiPinScale));
@@ -373,6 +403,17 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
               </Marker>
             );
           })}
+          {mainPoint ? (
+            <Marker
+              coordinate={mainPoint}
+              anchor={{ x: 0.5, y: 1 }}
+              zIndex={MAIN_Z}
+              tracksViewChanges={false}>
+              <View pointerEvents="none" style={{ alignItems: 'center' }} collapsable={false}>
+                <Ionicons name="location" size={MAIN_PIN} color={TRAIL_MAIN_MARKER_COLOR} />
+              </View>
+            </Marker>
+          ) : null}
           {highlightedEmergencyId
             ? emergencyPoints
                 .filter((p) => p.id === highlightedEmergencyId)

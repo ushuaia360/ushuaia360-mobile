@@ -16,6 +16,8 @@ import {
 import { redirectToLogin } from '@/lib/needAuth';
 import { poiTypeIcon } from '@/lib/poi-icons';
 import { appAlert } from '@/lib/app-alert';
+import { loadRecordedPath } from '@/lib/recorded-trail-path';
+import { fetchTrailRecordedPath } from '@/services/api';
 import { isLikelyNetworkError, shouldQueueTrailCompletionError } from '@/lib/network-error';
 import { cacheTrailDetailMediaForOffline } from '@/lib/offline-media-cache';
 import { canDownloadForOffline } from '@/lib/offline-download-gate';
@@ -214,7 +216,7 @@ interface TrailPoiListCardProps {
 
 function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailPoiListCardProps) {
   const { t } = useTranslation();
-  const title = p.name?.trim() || t('trailDetail.defaultPoiName');
+  const title = p.name?.trim() ? toTitleCase(p.name.trim()) : t('trailDetail.defaultPoiName');
   const mediaItems = filterDisplayableMedia(p.media);
   const [hero, ...restMedia] = mediaItems;
   const poiGallerySlides = useMemo(() => trailPointMediaToGallerySlides(p.media), [p.media]);
@@ -484,6 +486,9 @@ export default function TrailDetailScreen() {
   const [trailDetail, setTrailDetail] = useState<TrailDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(() => Boolean(trailId));
   const [trailManualDownload, setTrailManualDownload] = useState(false);
+  const [savedRecordedPath, setSavedRecordedPath] = useState<
+    { latitude: number; longitude: number }[] | null
+  >(null);
 
   const refreshTrailManualDownload = useCallback(() => {
     if (!trailId) return;
@@ -494,6 +499,20 @@ export default function TrailDetailScreen() {
     useCallback(() => {
       refreshTrailManualDownload();
     }, [refreshTrailManualDownload]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!trailId) return;
+      void (async () => {
+        if (token && networkReachable === true) {
+          const fromServer = await fetchTrailRecordedPath(token, trailId);
+          if (fromServer) { setSavedRecordedPath(fromServer); return; }
+        }
+        const fromLocal = await loadRecordedPath(trailId);
+        setSavedRecordedPath(fromLocal);
+      })();
+    }, [trailId, token, networkReachable]),
   );
 
   const [trailDownloadBusy, setTrailDownloadBusy] = useState(false);
@@ -1271,6 +1290,7 @@ export default function TrailDetailScreen() {
                             <View style={styles.mapOverlay}>
                               <TrailRouteTileMap
                                 routeCoordinates={lineCoordinates}
+                                recordedPath={savedRecordedPath ?? undefined}
                                 interestPoints={interestPointsForMap}
                                 mainPoint={mapPointForMap}
                                 fallbackCenter={trail.coordinate}
@@ -1312,6 +1332,39 @@ export default function TrailDetailScreen() {
                                   tint={colors.tint}
                                   onMapPress={handleMapPoiPress}
                                 />
+                              ))}
+                            </View>
+                          </>
+                        )}
+
+                        {mapEmergencyPoints.length > 0 && (
+                          <>
+                            <ThemedText
+                              style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
+                              Puntos de emergencia
+                            </ThemedText>
+                            <View style={styles.poiListSection}>
+                              {mapEmergencyPoints.map((ep) => (
+                                <View
+                                  key={ep.id}
+                                  style={[styles.emergencyCard, { borderColor: isDark ? '#3a3a3c' : '#e5e5ea', backgroundColor: isDark ? '#1c1c1e' : '#fff' }]}>
+                                  <View style={styles.emergencyCardIconWrap}>
+                                    <Ionicons name="warning" size={18} color="#fff" />
+                                  </View>
+                                  <View style={styles.emergencyCardBody}>
+                                    <ThemedText style={styles.emergencyCardName}>{ep.name}</ThemedText>
+                                    {ep.description ? (
+                                      <ThemedText style={[styles.emergencyCardDesc, { color: colors.icon }]}>
+                                        {ep.description}
+                                      </ThemedText>
+                                    ) : null}
+                                    {ep.phone ? (
+                                      <ThemedText style={[styles.emergencyCardPhone, { color: colors.icon }]}>
+                                        {ep.phone}
+                                      </ThemedText>
+                                    ) : null}
+                                  </View>
+                                </View>
                               ))}
                             </View>
                           </>
@@ -1623,6 +1676,7 @@ export default function TrailDetailScreen() {
                 <View style={styles.mapFullscreenBody}>
                   <TrailRouteTileMap
                     routeCoordinates={lineCoordinates}
+                    recordedPath={savedRecordedPath ?? undefined}
                     interestPoints={interestPointsForMap}
                     mainPoint={mapPointForMap}
                     fallbackCenter={trail.coordinate}
@@ -1672,7 +1726,7 @@ export default function TrailDetailScreen() {
                           ) : (
                             (trailDetail?.points ?? []).map((p, index) => {
                               const loc = normalizeTrailPointLocation(p.location ?? null);
-                              const title = p.name?.trim() || t('trailDetail.defaultPoiName');
+                              const title = p.name?.trim() ? toTitleCase(p.name.trim()) : t('trailDetail.defaultPoiName');
                               const typeLabel = p.type
                                 ? (POI_TYPE_KEYS.has(p.type) ? t(`trailDetail.waypoints.${p.type}`) : p.type)
                                 : null;
@@ -1770,7 +1824,7 @@ export default function TrailDetailScreen() {
                           <View style={styles.poiSheetHeader}>
                             <Ionicons name={poiTypeIcon(selectedPoi.type)} size={26} color={colors.tint} />
                             <ThemedText style={[styles.poiSheetTitle, { color: colors.text }]}>
-                              {selectedPoi.name?.trim() || 'Punto de interés'}
+                              {selectedPoi.name?.trim() ? toTitleCase(selectedPoi.name.trim()) : 'Punto de interés'}
                             </ThemedText>
                           </View>
                           {(selectedPoi.type || selectedPoi.km_marker != null) ? (
@@ -2332,6 +2386,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 8,
     gap: 14,
+  },
+  emergencyCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  emergencyCardIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#E65C00',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  emergencyCardBody: {
+    flex: 1,
+    gap: 2,
+  },
+  emergencyCardName: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  emergencyCardDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  emergencyCardPhone: {
+    fontSize: 13,
   },
   poiListEmpty: {
     fontSize: 15,
