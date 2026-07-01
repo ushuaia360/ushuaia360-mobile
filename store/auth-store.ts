@@ -1,7 +1,7 @@
 import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ApiHttpError, apiRequest } from '@/services/api';
+import { ApiHttpError, apiRequest, updateProfile as apiUpdateProfile, type UpdateProfileParams } from '@/services/api';
 
 const TOKEN_KEY = 'auth_token';
 const USER_CACHE_KEY = 'auth_user_cache_v1';
@@ -58,6 +58,9 @@ interface AuthStore {
 
   /** POST /auth/google-app */
   loginWithGoogle: (idToken: string) => Promise<void>;
+
+  /** Actualiza nombre y/o avatar; sincroniza la store y el cache local. */
+  updateProfile: (params: UpdateProfileParams) => Promise<void>;
 
   /** Recarga el usuario desde el servidor (para reflejar cambios de premium) */
   refreshUser: () => Promise<void>;
@@ -208,6 +211,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       method: 'POST',
       body: { reset_token: resetToken, new_password: newPassword },
     });
+  },
+
+  updateProfile: async (params) => {
+    const token = get().token;
+    if (!token) return;
+    const data = await apiUpdateProfile(token, params);
+    const user = data.user as unknown as User;
+    await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    set({ user });
   },
 
   refreshUser: async () => {

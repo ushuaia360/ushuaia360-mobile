@@ -2,6 +2,7 @@ import {
   completeUserTrailHistory,
   startUserTrailHistory,
 } from '@/services/api';
+import { loadRecordedPath } from '@/lib/recorded-trail-path';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'pending_trail_completions_v1';
@@ -64,7 +65,9 @@ export async function flushPendingTrailCompletions(token: string): Promise<void>
         historyId = entry.id;
         createdServerId = entry.id;
       }
-      await completeUserTrailHistory(token, historyId);
+      // Load the locally-saved GPS path so it reaches the server even after an offline completion
+      const gpsPath = await loadRecordedPath(p.trailId);
+      await completeUserTrailHistory(token, historyId, gpsPath ?? undefined);
     } catch {
       remaining.push(
         createdServerId && !p.serverHistoryEntryId

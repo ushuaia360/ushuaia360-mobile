@@ -14,6 +14,7 @@ import SearchPanel from '@/components/home/search-panel';
 import PendingTrailCompletionSync from '@/components/pending-trail-completion-sync';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { configurePurchases } from '@/services/purchases';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from '@/constants/google';
 import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
@@ -63,11 +64,14 @@ export default function RootLayout() {
     return () => clearInterval(id);
   }, [fetchAppConfig]);
 
-  // Configurar RevenueCat solo cuando la sesión ya fue inicializada
+  // Configure RevenueCat once auth is settled; re-run on login/logout to bind/unbind user identity
   const user = useAuthStore((s) => s.user);
   useEffect(() => {
     if (!isInitialized) return;
-    configurePurchases(user?.id ?? undefined);
+    void configurePurchases(user?.id ?? undefined).then(() => {
+      usePurchasesStore.getState().setup();
+      void usePurchasesStore.getState().refresh();
+    });
   }, [isInitialized, user?.id]);
 
   /** En web, precarga pickers para no perder user gesture tras `await import`. */

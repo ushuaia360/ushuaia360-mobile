@@ -4,6 +4,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { redirectToLogin } from '@/lib/needAuth';
 import { fetchProfileStats, type ProfileStatsResponse } from '@/services/api';
+import { presentCustomerCenter } from '@/services/purchases';
 import { useAuthStore } from '@/store/auth-store';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -89,10 +90,11 @@ export default function ProfileScreen() {
   const textSub = colors.icon;
 
   const SETTINGS = useMemo(() => [
-    { icon: 'person-outline',        label: t('profile.settings.personalInfo'),    key: 'personalInfo' },
-    { icon: 'lock-closed-outline',   label: t('profile.settings.privacySecurity'), key: 'privacySecurity' },
-    { icon: 'trash-outline',         label: t('profile.settings.deleteAccount'),   key: 'deleteAccount', danger: true },
-    { icon: 'log-out-outline',       label: t('profile.settings.logout'),          key: 'logout', danger: true },
+    { icon: 'person-outline',        label: t('profile.settings.personalInfo'),       key: 'personalInfo' },
+    { icon: 'lock-closed-outline',   label: t('profile.settings.privacySecurity'),    key: 'privacySecurity' },
+    { icon: 'receipt-outline',       label: t('profile.settings.manageSubscription'), key: 'manageSubscription' },
+    { icon: 'trash-outline',         label: t('profile.settings.deleteAccount'),      key: 'deleteAccount', danger: true },
+    { icon: 'log-out-outline',       label: t('profile.settings.logout'),             key: 'logout', danger: true },
   ], [t]);
 
   if (!isInitialized) {
@@ -166,6 +168,7 @@ export default function ProfileScreen() {
     if (key === 'personalInfo') return router.push('/personal-info');
     if (key === 'privacySecurity') return router.push('/privacy-security');
     if (key === 'deleteAccount') return router.push('/delete-account');
+    if (key === 'manageSubscription') return void presentCustomerCenter();
   };
 
   return (

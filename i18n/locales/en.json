@@ -229,6 +229,7 @@
       "notifications": "Notifications",
       "privacySecurity": "Privacy & security",
       "helpCenter": "Help center",
+      "manageSubscription": "Manage subscription",
       "deleteAccount": "Delete account",
       "logout": "Sign out"
     },
@@ -253,7 +254,12 @@
     "free": "Free",
     "premium": "Premium",
     "language": "Language",
-    "pending": "Pending"
+    "pending": "Pending",
+    "changePhoto": "Change photo",
+    "emptyName": "Name cannot be empty",
+    "saveError": "Could not save profile",
+    "permissionTitle": "Permission required",
+    "permissionBody": "We need access to your gallery to change your profile photo"
   },
   "privacySecurity": {
     "title": "Privacy & security",

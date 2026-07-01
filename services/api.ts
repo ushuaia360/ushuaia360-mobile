@@ -868,3 +868,48 @@ export async function fetchAppConfig(params: {
   });
   return apiRequest<AppConfigResponse>(`/app/config?${qs.toString()}`);
 }
+
+// ─── Profile editing ─────────────────────────────────────────────────────────
+
+export interface UpdateProfileParams {
+  fullName?: string;
+  avatarUrl?: string | null;
+}
+
+export async function updateProfile(
+  token: string,
+  params: UpdateProfileParams,
+): Promise<{ user: Record<string, unknown> }> {
+  const body: Record<string, unknown> = {};
+  if (params.fullName !== undefined) body.full_name = params.fullName;
+  if (params.avatarUrl !== undefined) body.avatar_url = params.avatarUrl;
+  return apiRequest('/auth/profile', { method: 'PATCH', token, body });
+}
+
+/**
+ * Upload a local image URI to the avatars bucket.
+ * Returns the public URL of the stored avatar.
+ */
+export async function uploadAvatar(token: string, localUri: string): Promise<string> {
+  const filename = localUri.split('/').pop() ?? 'avatar.jpg';
+  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const mimeMap: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+  const type = mimeMap[ext] ?? 'image/jpeg';
+
+  const formData = new FormData();
+  formData.append('file', { uri: localUri, name: filename, type } as any);
+
+  const res = await fetch(`${API_BASE_URL}/uploads/avatar`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = parseJsonOrEmpty(await res.text());
+    throw new ApiHttpError(res.status, (err.error as string) ?? 'Upload failed', err);
+  }
+
+  const data = (await res.json()) as { url: string };
+  return data.url;
+}

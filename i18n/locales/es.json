@@ -229,6 +229,7 @@
       "notifications": "Notificaciones",
       "privacySecurity": "Privacidad y seguridad",
       "helpCenter": "Centro de ayuda",
+      "manageSubscription": "Gestionar suscripción",
       "deleteAccount": "Eliminar cuenta",
       "logout": "Cerrar sesión"
     },
@@ -253,7 +254,12 @@
     "free": "Gratuito",
     "premium": "Premium",
     "language": "Idioma",
-    "pending": "Pendiente"
+    "pending": "Pendiente",
+    "changePhoto": "Cambiar foto",
+    "emptyName": "El nombre no puede estar vacío",
+    "saveError": "No se pudo guardar el perfil",
+    "permissionTitle": "Permiso requerido",
+    "permissionBody": "Necesitamos acceso a tu galería para cambiar la foto de perfil"
   },
   "privacySecurity": {
     "title": "Privacidad y seguridad",
