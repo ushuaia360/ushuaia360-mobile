@@ -8,7 +8,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import { useHomeStore } from '@/store/home-store';
 import { BackendPlaceListItem, useTrailsStore } from '@/store/trails-store';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Animated, FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -98,13 +98,17 @@ export default function ListHome() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Filtros pendientes desde el Home (p. ej. tap en una categoría)
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const pending = useHomeStore.getState().consumePendingListFilters();
-    if (pending) {
-      setFilterKind(pending.filterKind);
-      setFilterCategory(pending.filterCategory);
+    if (!pending) return;
+    if (pending.resetAll) {
+      useTrailsStore.getState().setSearchQuery('');
+      setFilterDifficulty([]);
+      setFilterRouteType([]);
     }
-  }, []);
+    setFilterKind(pending.filterKind);
+    setFilterCategory(pending.filterCategory);
+  }, []));
 
   // Carga inicial
   useEffect(() => {

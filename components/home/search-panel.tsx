@@ -1,4 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
+import { toTitleCase } from "@/lib/title-case";
+import { formatPlaceCategoryLabel } from "@/lib/place-category-map";
 import {
   SB_INPUT_HEIGHT,
   SB_INPUT_RADIUS,
@@ -67,7 +69,7 @@ const SuggestedRow = React.memo(function SuggestedRow({
         <Ionicons name={item.icon as any} size={18} color={iconColor} />
       </View>
       <View style={memoStyles.rowText}>
-        <ThemedText style={memoStyles.rowTitle}>{item.name}</ThemedText>
+        <ThemedText style={memoStyles.rowTitle}>{toTitleCase(item.name)}</ThemedText>
         <View style={memoStyles.suggestionStats}>
           {item.stats.map((stat, i) => (
             <View key={i} style={memoStyles.suggestionStat}>
@@ -243,8 +245,12 @@ export default function SearchPanel() {
   const toSuggestionRow = useCallback((s: SearchSuggestion): SuggestionRowModel => {
     if (s.type === "trail") {
       const d = s.distance_km != null ? `${s.distance_km} km` : "-";
-      const dur = s.duration_minutes != null ? `${Math.round(s.duration_minutes / 60)}h` : "-";
-      const eg = s.elevation_gain != null ? `${s.elevation_gain} m` : "-";
+      const dur =
+        s.duration_minutes != null
+          ? s.duration_minutes < 60
+            ? `${s.duration_minutes} min`
+            : `${Math.round(s.duration_minutes / 60)}h`
+          : "-";
       return {
         key: `trail:${s.id}`,
         name: s.name,
@@ -253,13 +259,11 @@ export default function SearchPanel() {
         stats: [
           { icon: "map-outline", value: d },
           { icon: "time-outline", value: dur },
-          { icon: "trending-up-outline", value: eg },
         ],
       };
     }
     const region = (s.region || "").trim() || "-";
-    const category = (s.category || "").trim() || "-";
-    const country = (s.country || "").trim() || "-";
+    const category = formatPlaceCategoryLabel(s.category);
     return {
       key: `place:${s.id}`,
       name: s.name,
@@ -268,7 +272,6 @@ export default function SearchPanel() {
       stats: [
         { icon: "location-outline", value: region },
         { icon: "pricetag-outline", value: category },
-        { icon: "flag-outline", value: country },
       ],
     };
   }, []);

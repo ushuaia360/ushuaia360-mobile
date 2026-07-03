@@ -4,6 +4,8 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
+import { toTitleCase } from '@/lib/title-case';
+import { formatPlaceCategoryLabel } from '@/lib/place-category-map';
 import { fetchSearchSuggestions, type SearchSuggestion } from '@/services/api';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
@@ -103,8 +105,15 @@ export default function SearchScreen() {
                   const icon = item.type === 'trail' ? 'walk-outline' : 'location-outline';
                   const subtitle =
                     item.type === 'trail'
-                      ? item.region || t('search.trail')
-                      : [item.region, item.category].filter(Boolean).join(' · ') || t('search.place');
+                      ? [
+                          item.distance_km != null ? `${item.distance_km} km` : null,
+                          item.duration_minutes != null
+                            ? item.duration_minutes < 60
+                              ? `${item.duration_minutes} min`
+                              : `${Math.round(item.duration_minutes / 60)}h`
+                            : null,
+                        ].filter(Boolean).join(' · ') || t('search.trail')
+                      : [item.region, formatPlaceCategoryLabel(item.category)].filter(Boolean).join(' · ') || t('search.place');
 
                   return (
                     <TouchableOpacity
@@ -128,7 +137,7 @@ export default function SearchScreen() {
 
                       <View style={styles.suggestionText}>
                         <ThemedText numberOfLines={1} style={styles.suggestionTitle}>
-                          {item.name}
+                          {toTitleCase(item.name)}
                         </ThemedText>
                         <ThemedText numberOfLines={1} style={[styles.suggestionSubtitle, { color: colors.tabIconDefault }]}>
                           {subtitle}

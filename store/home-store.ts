@@ -5,6 +5,7 @@ type HomeMode = 'map' | 'list';
 export interface PendingListFilters {
   filterKind: string[];
   filterCategory: string[];
+  resetAll?: boolean;
 }
 
 interface HomeStore {

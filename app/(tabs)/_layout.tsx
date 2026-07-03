@@ -18,9 +18,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="home"
+        name="explorer"
         options={{
-          href: '/(tabs)/home',
+          href: '/(tabs)/explorer',
         }}
       />
       <Tabs.Screen

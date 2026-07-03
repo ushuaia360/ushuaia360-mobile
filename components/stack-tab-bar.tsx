@@ -28,8 +28,8 @@ export function stackTabBarReserveHeight(bottomInset: number): number {
 }
 
 const STACK_TABS: TabItem[] = [
-  { name: 'home', path: '/(tabs)/home', icon: 'home-outline', iconFilled: 'home' },
-  { name: 'index', path: '/(tabs)', icon: 'map-outline', iconFilled: 'map' },
+  { name: 'index', path: '/(tabs)', icon: 'home-outline', iconFilled: 'home' },
+  { name: 'explorer', path: '/(tabs)/explorer', icon: 'map-outline', iconFilled: 'map' },
   { name: 'favorites', path: '/(tabs)/favorites', icon: 'heart-outline', iconFilled: 'heart' },
   { name: 'downloads', path: '/(tabs)/downloads', icon: 'download-outline', iconFilled: 'download' },
   { name: 'profile', path: '/(tabs)/profile', icon: 'person-outline', iconFilled: 'person' },
@@ -67,7 +67,7 @@ export default function StackTabBar() {
   const focusedForPath = (tab: TabItem): boolean => {
     if (stackDetailContext) return tab.name === 'index';
     if (tab.path === '/(tabs)') {
-      return pathname === '/(tabs)' || pathname === '/' || pathname === '/index' || pathname === '';
+      return pathname === '/(tabs)' || pathname === '/' || pathname === '/index' || pathname === '' || pathname === '/(tabs)/index';
     }
     return pathname === tab.path || pathname.startsWith(`${tab.path}/`);
   };
