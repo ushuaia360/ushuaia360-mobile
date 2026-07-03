@@ -17,11 +17,23 @@ export type PlaceCategoryKey =
   | 'gastronomia'
   | 'otros';
 
+/** Orden canónico en el que se muestran las categorías (grid del home, filtros, etc). */
+export const PLACE_CATEGORY_ORDER: PlaceCategoryKey[] = [
+  'turistico',
+  'naturaleza',
+  'patrimonio',
+  'miradores',
+  'costa',
+  'cultura',
+  'gastronomia',
+  'otros',
+];
+
 const VISUAL: Record<
   PlaceCategoryKey,
   { icon: IonName; pinColor: string; pinColorDark: string }
 > = {
-  turistico: { icon: 'trail-sign', pinColor: '#2563eb', pinColorDark: '#60a5fa' },
+  turistico: { icon: 'compass', pinColor: '#4f46e5', pinColorDark: '#818cf8' },
   naturaleza: { icon: 'leaf', pinColor: '#059669', pinColorDark: '#34d399' },
   patrimonio: { icon: 'library', pinColor: '#d97706', pinColorDark: '#fbbf24' },
   miradores: { icon: 'eye', pinColor: '#0284c7', pinColorDark: '#38bdf8' },
@@ -64,7 +76,7 @@ export function normalizePlaceCategoryKey(
 
   if (SLUGS.has(t)) return t as PlaceCategoryKey;
 
-  if (t.includes('turistic')) return 'turistico';
+  if (t.includes('turis')) return 'turistico';
   if (t.includes('naturaleza')) return 'naturaleza';
   if (t.includes('patrimonio') || t.includes('historia')) return 'patrimonio';
   if (t.includes('mirador')) return 'miradores';

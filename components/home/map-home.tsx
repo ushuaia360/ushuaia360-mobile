@@ -669,6 +669,7 @@ export default function MapHome() {
         <View
           style={[styles.rightFabChrome, { bottom: bottom + FAB_CHROME_ABOVE_SHEET }]}
           pointerEvents="box-none">
+          {/*
           <View
             style={[styles.mapCtlZoomGroup, { borderColor: mapCtlChrome.bd, backgroundColor: mapCtlChrome.bg }]}>
             <TouchableOpacity
@@ -689,6 +690,7 @@ export default function MapHome() {
               <Ionicons name="remove" size={18} color={chromeAccent} />
             </TouchableOpacity>
           </View>
+          */}
 
           <TouchableOpacity
             accessibilityRole="button"
@@ -702,7 +704,7 @@ export default function MapHome() {
             ]}
             activeOpacity={0.7}
             onPress={() => setUseSatellite((v) => !v)}>
-            <Ionicons name="layers-outline" size={16} color={chromeAccent} />
+            <Ionicons name="layers-outline" size={18} color={chromeAccent} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -748,7 +750,7 @@ export default function MapHome() {
                 return next;
               });
             }}>
-            <IconSymbol name="location" size={16} color={chromeAccent} />
+            <IconSymbol name="location" size={18} color={chromeAccent} />
           </TouchableOpacity>
         </View>
 
@@ -858,6 +860,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     alignItems: 'flex-end',
+    gap: 10,
   },
   mapCtlZoomGroup: {
     width: 44,
@@ -881,7 +884,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 6,
   },
 
   // Language sheet

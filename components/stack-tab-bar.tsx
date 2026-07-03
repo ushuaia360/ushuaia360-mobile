@@ -28,7 +28,8 @@ export function stackTabBarReserveHeight(bottomInset: number): number {
 }
 
 const STACK_TABS: TabItem[] = [
-  { name: 'index', path: '/(tabs)', icon: 'home-outline', iconFilled: 'home' },
+  { name: 'home', path: '/(tabs)/home', icon: 'home-outline', iconFilled: 'home' },
+  { name: 'index', path: '/(tabs)', icon: 'map-outline', iconFilled: 'map' },
   { name: 'favorites', path: '/(tabs)/favorites', icon: 'heart-outline', iconFilled: 'heart' },
   { name: 'downloads', path: '/(tabs)/downloads', icon: 'download-outline', iconFilled: 'download' },
   { name: 'profile', path: '/(tabs)/profile', icon: 'person-outline', iconFilled: 'person' },

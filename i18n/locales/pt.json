@@ -114,6 +114,28 @@
     "viewMap": "Ver Mapa",
     "searchPlaceholder": "Buscar..."
   },
+  "homeTab": {
+    "greeting": "Olá!",
+    "greetingNamed": "Olá, {{name}}!",
+    "subtitle": "O que você quer descobrir hoje?",
+    "searchPlaceholder": "Buscar lugares, atividades...",
+    "categoriesTitle": "Explore por categorias",
+    "viewAll": "Ver todas",
+    "featuredTitle": "Lugares em destaque",
+    "viewAllFeatured": "Ver todos",
+    "emptyFeatured": "Ainda não há destaques para mostrar",
+    "categories": {
+      "turistico": "Turístico",
+      "gastronomy": "Gastronomia",
+      "viewpoints": "Mirantes",
+      "nature": "Natureza",
+      "heritage": "Patrimônio",
+      "history": "História",
+      "coast": "Costa e mar",
+      "culture": "Cultura",
+      "other": "Outros"
+    }
+  },
   "map": {
     "title": "Mapa",
     "subtitle": "Explore Ushuaia no mapa",

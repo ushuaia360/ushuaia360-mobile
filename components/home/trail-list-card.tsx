@@ -41,12 +41,6 @@ function AnimatedDot({ active }: { active: boolean }) {
   return <Animated.View style={style} />;
 }
 
-const DIFFICULTY_COLOR: Record<Trail['difficulty'], string> = {
-  Fácil:   '#34c759',
-  Media:   '#ff9500',
-  Difícil: '#ff3b30',
-};
-
 interface Props {
   trail: Trail;
   onPress?: (trail: Trail) => void;
@@ -58,7 +52,6 @@ function TrailListCard({ trail, onPress, onMapPress, onRoutePress }: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
-  const diffColor = DIFFICULTY_COLOR[trail.difficulty];
 
   const token = useAuthStore((s) => s.token);
   const pathname = usePathname();
@@ -113,11 +106,6 @@ function TrailListCard({ trail, onPress, onMapPress, onRoutePress }: Props) {
             <TrailImage uri={item || undefined} style={styles.image} contentFit="cover" />
           )}
         />
-
-        {/* Difficulty — top left */}
-        <View style={[styles.diffBadge, { backgroundColor: diffColor, position: 'absolute', top: 10, left: 10 }]}>
-          <ThemedText style={styles.diffText}>{trail.difficulty}</ThemedText>
-        </View>
 
         {/* Heart */}
         <TouchableOpacity
@@ -276,16 +264,6 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 1.5,
     backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  diffBadge: {
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  diffText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
   },
   statsRow: {
     flexDirection: 'row',

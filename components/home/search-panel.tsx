@@ -97,8 +97,8 @@ const memoStyles = StyleSheet.create({
   statSeparator: { fontSize: 12, opacity: 0.4 },
 });
 
-// Smooth expo-out — arranca rápido, desacelera gradualmente
-const EASE_DROP  = Easing.bezier(0.22, 1, 0.36, 1);
+// True expo-out — muy suave, desacelera de forma prolongada y natural
+const EASE_DROP  = Easing.bezier(0.16, 1, 0.3, 1);
 // Aceleración suave al cerrar
 const EASE_CLOSE = Easing.bezier(0.4, 0, 1, 1);
 const EASE_OUT   = Easing.out(Easing.cubic);
@@ -140,23 +140,23 @@ export default function SearchPanel() {
     externalOpacity.value  = 0;
     fadeOpacity.value      = 1;
     // Backdrop
-    backdropOpacity.value = withTiming(1, { duration: 320, easing: EASE_OUT });
+    backdropOpacity.value = withTiming(1, { duration: 420, easing: EASE_OUT });
 
-    // Card cae hacia abajo — expo-out, muy smooth
-    cardHeight.value  = withTiming(CARD_TARGET_HEIGHT, { duration: 540, easing: EASE_DROP });
-    cardHMargin.value = withTiming(CARD_MARGIN,        { duration: 500, easing: EASE_DROP });
-    cardRadius.value  = withTiming(CARD_RADIUS,        { duration: 500, easing: EASE_DROP });
+    // Card cae hacia abajo — expo-out prolongado, muy smooth
+    cardHeight.value  = withTiming(CARD_TARGET_HEIGHT, { duration: 760, easing: EASE_DROP });
+    cardHMargin.value = withTiming(CARD_MARGIN,        { duration: 720, easing: EASE_DROP });
+    cardRadius.value  = withTiming(CARD_RADIUS,        { duration: 720, easing: EASE_DROP });
 
     // Contenido dentro de la card
     contentOpacity.value = withDelay(
-      220,
-      withTiming(1, { duration: 240, easing: EASE_OUT }, (finished) => {
+      300,
+      withTiming(1, { duration: 380, easing: EASE_OUT }, (finished) => {
         if (finished) runOnJS(focusInput)();
       })
     );
 
     // Card2 + botones — cuando la card ya está asentada
-    externalOpacity.value = withDelay(460, withTiming(1, { duration: 200, easing: EASE_OUT }));
+    externalOpacity.value = withDelay(620, withTiming(1, { duration: 320, easing: EASE_OUT }));
   };
 
   const close = (cb?: () => void) => {
@@ -337,16 +337,24 @@ export default function SearchPanel() {
       <TouchableWithoutFeedback onPress={handleClose}>
         <Animated.View style={[StyleSheet.absoluteFillObject, backdropStyle]}>
           {Platform.OS === "ios" ? (
-            <BlurView
-              style={StyleSheet.absoluteFillObject}
-              intensity={isDark ? 55 : 40}
-              tint={isDark ? "dark" : "light"}
-            />
+            <>
+              <BlurView
+                style={StyleSheet.absoluteFillObject}
+                intensity={isDark ? 55 : 40}
+                tint={isDark ? "dark" : "light"}
+              />
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { backgroundColor: isDark ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.18)" },
+                ]}
+              />
+            </>
           ) : (
             <View
               style={[
                 StyleSheet.absoluteFillObject,
-                { backgroundColor: isDark ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.25)" },
+                { backgroundColor: isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.32)" },
               ]}
             />
           )}

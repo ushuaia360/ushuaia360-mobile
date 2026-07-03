@@ -18,6 +18,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="home"
+        options={{
+          href: '/(tabs)/home',
+        }}
+      />
+      <Tabs.Screen
         name="favorites"
         options={{
           href: '/(tabs)/favorites',

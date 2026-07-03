@@ -7,14 +7,14 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import { useHomeStore } from '@/store/home-store';
-import { useLanguageStore } from '@/store/language-store';
 import { BackendPlaceListItem, useTrailsStore } from '@/store/trails-store';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, Animated, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import FiltersOverlay from './filters-overlay';
 import PlaceListCard from './place-list-card';
 import SearchBar from './search-bar';
 import TrailListCard from './trail-list-card';
@@ -22,8 +22,6 @@ import TrailListCard from './trail-list-card';
 type ListItem =
   | { kind: 'trail'; data: Trail }
   | { kind: 'place'; data: BackendPlaceListItem };
-
-type FilterType = 'all' | 'trail' | 'place';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -69,116 +67,6 @@ function SkeletonList() {
   );
 }
 
-// ── Constantes de filtros ─────────────────────────────────────────────────────
-
-const PLACE_CATEGORIES = [
-  { key: 'turistico',   label: 'Turístico' },
-  { key: 'naturaleza',  label: 'Naturaleza' },
-  { key: 'patrimonio',  label: 'Patrimonio' },
-  { key: 'miradores',   label: 'Miradores' },
-  { key: 'costa',       label: 'Costa y mar' },
-  { key: 'cultura',     label: 'Cultura' },
-  { key: 'gastronomia', label: 'Gastronomía' },
-  { key: 'otros',       label: 'Otros' },
-];
-
-const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
-  PLACE_CATEGORIES.map((c) => [c.key, c.label])
-);
-
-// ── Filter sub-components ─────────────────────────────────────────────────────
-
-function FilterChip({
-  label, active, open, onPress, isDark, colors,
-}: {
-  label: string; active: boolean; open: boolean;
-  onPress: () => void; isDark: boolean; colors: any;
-}) {
-  const bg = active || open
-    ? colors.tint
-    : isDark ? '#2c2c2e' : '#F0F0F5';
-  const textColor = active || open ? '#fff' : colors.icon;
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.75}
-      style={[chipStyles.chip, { backgroundColor: bg }]}>
-      <ThemedText style={[chipStyles.label, { color: textColor }]}>{label}</ThemedText>
-      <ThemedText style={[chipStyles.arrow, { color: textColor }]}>
-        {open ? '▲' : '▾'}
-      </ThemedText>
-    </TouchableOpacity>
-  );
-}
-
-const chipStyles = StyleSheet.create({
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  label: { fontSize: 13, fontWeight: '500' },
-  arrow: { fontSize: 9, marginTop: 1 },
-});
-
-function OptionsPanel({
-  options, selected, onSelect, isDark, colors,
-}: {
-  options: { key: string; label: string; color?: string }[];
-  selected: string[];
-  onSelect: (key: string) => void;
-  isDark: boolean;
-  colors: any;
-}) {
-  return (
-    <View style={[panelStyles.panel, { backgroundColor: isDark ? '#1c1c1e' : '#fff', borderTopColor: isDark ? '#2a2a2a' : '#EDF0F5' }]}>
-      <View style={panelStyles.wrap}>
-        {options.map(({ key, label, color }) => {
-          const active = selected.includes(key);
-          const bg = active ? (color ?? colors.tint) : (isDark ? '#2c2c2e' : '#F0F0F5');
-          return (
-            <TouchableOpacity
-              key={key}
-              onPress={() => onSelect(key)}
-              activeOpacity={0.75}
-              style={[panelStyles.option, { backgroundColor: bg }]}>
-              <ThemedText style={[panelStyles.optionText, { color: active ? '#fff' : colors.icon }]}>
-                {label}
-              </ThemedText>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-const panelStyles = StyleSheet.create({
-  panel: {
-    borderTopWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  wrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  option: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  optionText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-});
-
 // ── ListHome ──────────────────────────────────────────────────────────────────
 
 export default function ListHome() {
@@ -202,30 +90,21 @@ export default function ListHome() {
     searchQuery,
   } = useTrailsStore();
   const { setMode, searchOpen, setSearchOpen } = useHomeStore();
-  const { language, setLanguage } = useLanguageStore();
   const networkReachable = useNetworkReachable();
-  const [filterType, setFilterType] = useState<FilterType>('all');
+  const [filterKind, setFilterKind] = useState<string[]>([]);
   const [filterDifficulty, setFilterDifficulty] = useState<string[]>([]);
   const [filterRouteType, setFilterRouteType] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string[]>([]);
-  const [activePanel, setActivePanel] = useState<'type' | 'difficulty' | 'route' | 'category' | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const togglePanel = useCallback((panel: 'type' | 'difficulty' | 'route' | 'category') => {
-    setActivePanel((prev) => (prev === panel ? null : panel));
+  // Filtros pendientes desde el Home (p. ej. tap en una categoría)
+  useEffect(() => {
+    const pending = useHomeStore.getState().consumePendingListFilters();
+    if (pending) {
+      setFilterKind(pending.filterKind);
+      setFilterCategory(pending.filterCategory);
+    }
   }, []);
-
-  const openLanguagePicker = useCallback(() => {
-    Alert.alert(
-      t('languagePicker.title'),
-      undefined,
-      [
-        { text: `${language === 'es' ? '✓ ' : ''}🇦🇷  ${t('languagePicker.es')}`, onPress: () => setLanguage('es') },
-        { text: `${language === 'en' ? '✓ ' : ''}🇺🇸  ${t('languagePicker.en')}`, onPress: () => setLanguage('en') },
-        { text: `${language === 'pt' ? '✓ ' : ''}🇧🇷  ${t('languagePicker.pt')}`, onPress: () => setLanguage('pt') },
-        { text: t('common.cancel'), style: 'cancel' },
-      ],
-    );
-  }, [t, language, setLanguage]);
 
   // Carga inicial
   useEffect(() => {
@@ -236,20 +115,26 @@ export default function ListHome() {
     if (places.length === 0) fetchPlaces();
   }, [fetchPlaces, places.length]);
 
-  let trailItems: ListItem[] = filteredTrails()
-    .filter((t) => !filterDifficulty.length || filterDifficulty.includes(t.difficulty))
-    .filter((t) => !filterRouteType.length || filterRouteType.includes(t.type))
-    .map((t): ListItem => ({ kind: 'trail', data: t }));
+  const trailsBase = filteredTrails();
+  const placesBase = filteredPlaces();
 
-  let placeItems: ListItem[] = filteredPlaces()
-    .filter((p) => !filterCategory.length || filterCategory.includes(p.category ?? ''))
-    .map((p): ListItem => ({ kind: 'place', data: p }));
+  const showTrails = !(filterKind.length === 1 && filterKind[0] === 'place');
+  const showPlaces = !(filterKind.length === 1 && filterKind[0] === 'trail');
 
-  const results: ListItem[] =
-    filterType === 'trail' ? trailItems :
-    filterType === 'place' ? placeItems :
-    filterCategory.length ? placeItems :
-    [...trailItems, ...placeItems];
+  const trailItems: ListItem[] = showTrails
+    ? trailsBase
+        .filter((t) => !filterDifficulty.length || filterDifficulty.includes(t.difficulty))
+        .filter((t) => !filterRouteType.length || filterRouteType.includes(t.type))
+        .map((t): ListItem => ({ kind: 'trail', data: t }))
+    : [];
+
+  const placeItems: ListItem[] = showPlaces
+    ? placesBase
+        .filter((p) => !filterCategory.length || filterCategory.includes(p.category ?? ''))
+        .map((p): ListItem => ({ kind: 'place', data: p }))
+    : [];
+
+  const results: ListItem[] = [...trailItems, ...placeItems];
 
   const renderItem = useCallback(
     ({ item }: { item: ListItem }) => {
@@ -287,6 +172,12 @@ export default function ListHome() {
     if (!searchQuery.trim()) loadMoreTrails();
   }, [searchQuery, loadMoreTrails]);
 
+  const activeFilterCount =
+    filterKind.length +
+    filterDifficulty.length +
+    filterRouteType.length +
+    filterCategory.length;
+
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
@@ -303,117 +194,35 @@ export default function ListHome() {
           isActive={searchOpen}
           rightSlot={
             <TouchableOpacity
-              style={[styles.langBtn, { backgroundColor: isDark ? '#2c2c2e' : '#fff' }]}
-              onPress={openLanguagePicker}
+              style={[styles.filterBtn, { backgroundColor: isDark ? '#2c2c2e' : '#fff' }]}
+              onPress={() => setFiltersOpen(true)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel={t('languagePicker.title')}>
-              <Ionicons name="language-outline" size={22} color={isDark ? '#fff' : '#000'} />
+              accessibilityLabel="Filtros">
+              <Ionicons name="options-outline" size={22} color={isDark ? '#fff' : '#000'} />
+              {activeFilterCount > 0 && (
+                <View style={[styles.filterBadge, { backgroundColor: colors.tint }]}>
+                  <ThemedText style={styles.filterBadgeText}>{activeFilterCount}</ThemedText>
+                </View>
+              )}
             </TouchableOpacity>
           }
         />
-        {/* Chips compactos */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterBar}>
-          {/* Tipo */}
-          <FilterChip
-            label={filterType === 'all' ? 'Tipo' : filterType === 'trail' ? 'Senderos' : 'Puntos'}
-            active={filterType !== 'all'}
-            open={activePanel === 'type'}
-            onPress={() => togglePanel('type')}
-            isDark={isDark}
-            colors={colors}
-          />
-          {/* Dificultad */}
-          {filterType !== 'place' && (
-            <FilterChip
-              label={filterDifficulty.length === 1 ? filterDifficulty[0] : filterDifficulty.length > 1 ? `Dificultad (${filterDifficulty.length})` : 'Dificultad'}
-              active={filterDifficulty.length > 0}
-              open={activePanel === 'difficulty'}
-              onPress={() => togglePanel('difficulty')}
-              isDark={isDark}
-              colors={colors}
-            />
-          )}
-          {/* Tipo de ruta */}
-          {filterType !== 'place' && (
-            <FilterChip
-              label={filterRouteType.length === 1 ? filterRouteType[0] : filterRouteType.length > 1 ? `Ruta (${filterRouteType.length})` : 'Tipo de ruta'}
-              active={filterRouteType.length > 0}
-              open={activePanel === 'route'}
-              onPress={() => togglePanel('route')}
-              isDark={isDark}
-              colors={colors}
-            />
-          )}
-          {/* Categoría */}
-          {filterType !== 'trail' && (
-            <FilterChip
-              label={filterCategory.length === 1 ? (CATEGORY_LABELS[filterCategory[0]] ?? filterCategory[0]) : filterCategory.length > 1 ? `Categoría (${filterCategory.length})` : 'Categoría'}
-              active={filterCategory.length > 0}
-              open={activePanel === 'category'}
-              onPress={() => togglePanel('category')}
-              isDark={isDark}
-              colors={colors}
-            />
-          )}
-        </ScrollView>
-
-        {/* Panel de opciones */}
-        {activePanel === 'type' && (
-          <OptionsPanel
-            options={[
-              { key: 'all', label: 'Todos' },
-              { key: 'trail', label: 'Senderos' },
-              { key: 'place', label: 'Puntos' },
-            ]}
-            selected={[filterType]}
-            onSelect={(k) => {
-              setFilterType(k as FilterType);
-              setFilterDifficulty([]);
-              setFilterRouteType([]);
-              setFilterCategory([]);
-              setActivePanel(null);
-            }}
-            isDark={isDark}
-            colors={colors}
-          />
-        )}
-        {activePanel === 'difficulty' && (
-          <OptionsPanel
-            options={[
-              { key: 'Fácil', label: 'Fácil', color: '#34c759' },
-              { key: 'Media', label: 'Media', color: '#ff9500' },
-              { key: 'Difícil', label: 'Difícil', color: '#ff3b30' },
-            ]}
-            selected={filterDifficulty}
-            onSelect={(k) => setFilterDifficulty((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k])}
-            isDark={isDark}
-            colors={colors}
-          />
-        )}
-        {activePanel === 'route' && (
-          <OptionsPanel
-            options={[
-              { key: 'Circular', label: 'Circular' },
-              { key: 'Lineal', label: 'Lineal' },
-              { key: 'Ida y vuelta', label: 'Ida y vuelta' },
-            ]}
-            selected={filterRouteType}
-            onSelect={(k) => setFilterRouteType((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k])}
-            isDark={isDark}
-            colors={colors}
-          />
-        )}
-        {activePanel === 'category' && (
-          <OptionsPanel
-            options={PLACE_CATEGORIES}
-            selected={filterCategory}
-            onSelect={(k) => setFilterCategory((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k])}
-            isDark={isDark}
-            colors={colors}
-          />
-        )}
       </View>
+
+      <FiltersOverlay
+        visible={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        initial={{ filterKind, filterDifficulty, filterRouteType, filterCategory }}
+        onApply={(next) => {
+          setFilterKind(next.filterKind);
+          setFilterDifficulty(next.filterDifficulty);
+          setFilterRouteType(next.filterRouteType);
+          setFilterCategory(next.filterCategory);
+        }}
+        trails={trailsBase}
+        places={placesBase}
+      />
 
       {/* Skeleton o lista */}
       {loading || loadingPlaces ? (
@@ -470,20 +279,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     borderBottomWidth: 1,
-    paddingBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 3,
     zIndex: 10,
-  },
-  filterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
   },
   // ── Skeleton ──
   skeletonContainer: {
@@ -543,8 +344,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: { fontSize: 15 },
-  // ── Language pill ──
-  langBtn: {
+  // ── Filter button ──
+  filterBtn: {
     width: 46,
     height: 46,
     borderRadius: 22,
@@ -555,6 +356,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    lineHeight: Platform.OS === 'android' ? 12 : 14,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   // ── FAB ──
   mapFab: {
