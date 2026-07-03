@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import TrailImage from './trail-image';
 import { toTitleCase } from '@/lib/title-case';
+import { formatPlaceCategoryLabel, getPlaceCategoryVisual } from '@/lib/place-category-map';
 
 interface Props {
   place: BackendPlaceListItem;
@@ -16,6 +17,7 @@ export default function PlaceListCard({ place, onPress }: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
+  const categoryVisual = getPlaceCategoryVisual(place.category, isDark);
 
   return (
     <TouchableOpacity
@@ -26,8 +28,10 @@ export default function PlaceListCard({ place, onPress }: Props) {
       <View style={styles.imageContainer}>
         <TrailImage uri={place.thumbnail_url ?? undefined} style={styles.image} contentFit="cover" />
         {place.category && (
-          <View style={[styles.badge, { backgroundColor: '#5856D6' }]}>
-            <ThemedText style={styles.badgeText}>{place.category!.charAt(0).toUpperCase() + place.category!.slice(1)}</ThemedText>
+          <View style={[styles.badge, { backgroundColor: categoryVisual.accent }]}>
+            <ThemedText style={styles.badgeText}>
+              {formatPlaceCategoryLabel(place.category)}
+            </ThemedText>
           </View>
         )}
       </View>

@@ -72,6 +72,7 @@ function SkeletonList() {
 // ── Constantes de filtros ─────────────────────────────────────────────────────
 
 const PLACE_CATEGORIES = [
+  { key: 'turistico',   label: 'Turístico' },
   { key: 'naturaleza',  label: 'Naturaleza' },
   { key: 'patrimonio',  label: 'Patrimonio' },
   { key: 'miradores',   label: 'Miradores' },

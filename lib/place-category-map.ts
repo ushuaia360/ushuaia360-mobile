@@ -8,6 +8,7 @@ type IonName = ComponentProps<typeof Ionicons>['name'];
  * @see ushuaia360-frontend `placeCategories.ts`
  */
 export type PlaceCategoryKey =
+  | 'turistico'
   | 'naturaleza'
   | 'patrimonio'
   | 'miradores'
@@ -20,6 +21,7 @@ const VISUAL: Record<
   PlaceCategoryKey,
   { icon: IonName; pinColor: string; pinColorDark: string }
 > = {
+  turistico: { icon: 'trail-sign', pinColor: '#2563eb', pinColorDark: '#60a5fa' },
   naturaleza: { icon: 'leaf', pinColor: '#059669', pinColorDark: '#34d399' },
   patrimonio: { icon: 'library', pinColor: '#d97706', pinColorDark: '#fbbf24' },
   miradores: { icon: 'eye', pinColor: '#0284c7', pinColorDark: '#38bdf8' },
@@ -30,6 +32,7 @@ const VISUAL: Record<
 };
 
 const KEY_LABEL: Record<PlaceCategoryKey, string> = {
+  turistico: 'Turístico',
   naturaleza: 'Naturaleza',
   patrimonio: 'Patrimonio e historia',
   miradores: 'Miradores',
@@ -61,6 +64,7 @@ export function normalizePlaceCategoryKey(
 
   if (SLUGS.has(t)) return t as PlaceCategoryKey;
 
+  if (t.includes('turistic')) return 'turistico';
   if (t.includes('naturaleza')) return 'naturaleza';
   if (t.includes('patrimonio') || t.includes('historia')) return 'patrimonio';
   if (t.includes('mirador')) return 'miradores';
