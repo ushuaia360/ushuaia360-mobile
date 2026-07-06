@@ -65,7 +65,13 @@
         "uppercase": "Uma letra maiúscula",
         "number": "Um número",
         "special": "Um caractere especial"
-      }
+      },
+      "legalConsent": "Ao continuar você aceita os",
+      "legalAnd": "e a",
+      "legalTerms": "Termos e Condições",
+      "legalPrivacy": "Política de Privacidade",
+      "legalLoading": "Carregando...",
+      "legalError": "Não foi possível carregar o conteúdo."
     },
     "forgotPasswordScreen": {
       "title": "Recuperar senha",

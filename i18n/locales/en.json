@@ -65,7 +65,13 @@
         "uppercase": "One uppercase letter",
         "number": "One number",
         "special": "One special character"
-      }
+      },
+      "legalConsent": "By continuing you accept our",
+      "legalAnd": "and our",
+      "legalTerms": "Terms and Conditions",
+      "legalPrivacy": "Privacy Policy",
+      "legalLoading": "Loading...",
+      "legalError": "Could not load content."
     },
     "forgotPasswordScreen": {
       "title": "Recover password",

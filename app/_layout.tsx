@@ -71,7 +71,7 @@ export default function RootLayout() {
     void configurePurchases(user?.id ?? undefined).then(() => {
       usePurchasesStore.getState().setup();
       void usePurchasesStore.getState().refresh();
-    });
+    }).catch(() => {});
   }, [isInitialized, user?.id]);
 
   /** En web, precarga pickers para no perder user gesture tras `await import`. */

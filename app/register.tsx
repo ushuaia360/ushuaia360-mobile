@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -19,6 +22,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth-store';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AuthHeroBackground } from '@/components/auth/auth-hero-background';
+import { fetchLegalDocument, type LegalDocument } from '@/services/api';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 function checkRequirements(password: string) {
   return {
@@ -40,6 +45,27 @@ export default function RegisterScreen() {
   const isDark = colorScheme === 'dark';
 
   const { register, isLoading } = useAuthStore();
+
+  const [legalModal, setLegalModal] = useState<{ type: 'terms' | 'privacy'; title: string } | null>(null);
+  const [legalDoc, setLegalDoc] = useState<LegalDocument | null>(null);
+  const [legalLoading, setLegalLoading] = useState(false);
+  const [legalError, setLegalError] = useState(false);
+
+  const openLegal = useCallback(async (type: 'terms' | 'privacy') => {
+    const title = type === 'terms' ? t('auth.register.legalTerms') : t('auth.register.legalPrivacy');
+    setLegalModal({ type, title });
+    setLegalDoc(null);
+    setLegalError(false);
+    setLegalLoading(true);
+    try {
+      const doc = await fetchLegalDocument(type);
+      setLegalDoc(doc);
+    } catch {
+      setLegalError(true);
+    } finally {
+      setLegalLoading(false);
+    }
+  }, [t]);
 
   const [step, setStep] = useState<'method' | 'form'>('method');
   const [name, setName] = useState('');
@@ -308,6 +334,24 @@ export default function RegisterScreen() {
             </ThemedText>
           </TouchableOpacity>
 
+          <View style={styles.legalWrap}>
+            <ThemedText style={[styles.legalText, { color: colors.icon }]}>
+              {t('auth.register.legalConsent')}{' '}
+              <ThemedText
+                style={[styles.legalText, styles.legalLink, { color: colors.tint }]}
+                onPress={() => void openLegal('terms')}>
+                {t('auth.register.legalTerms')}
+              </ThemedText>
+              {' '}{t('auth.register.legalAnd')}{' '}
+              <ThemedText
+                style={[styles.legalText, styles.legalLink, { color: colors.tint }]}
+                onPress={() => void openLegal('privacy')}>
+                {t('auth.register.legalPrivacy')}
+              </ThemedText>
+              .
+            </ThemedText>
+          </View>
+
           <TouchableOpacity
             style={styles.switchLink}
             activeOpacity={0.7}
@@ -322,6 +366,52 @@ export default function RegisterScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Legal document modal */}
+      <Modal
+        visible={legalModal != null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setLegalModal(null)}>
+        <View style={[styles.legalModalRoot, { backgroundColor: isDark ? '#121212' : '#fff' }]}>
+          <View style={[styles.legalModalHeader, { borderBottomColor: isDark ? '#2a2a2a' : '#e5e5ea' }]}>
+            <ThemedText style={styles.legalModalTitle}>{legalModal?.title ?? ''}</ThemedText>
+            <TouchableOpacity onPress={() => setLegalModal(null)} activeOpacity={0.7} hitSlop={12}>
+              <Ionicons name="close" size={24} color={colors.icon} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.legalModalContent}
+            showsVerticalScrollIndicator>
+            {legalLoading ? (
+              <Animated.View entering={FadeIn} style={styles.legalModalCenter}>
+                <ActivityIndicator size="large" color={colors.tint} />
+              </Animated.View>
+            ) : legalError ? (
+              <Animated.View entering={FadeIn} style={styles.legalModalCenter}>
+                <Ionicons name="alert-circle-outline" size={44} color={colors.icon} />
+                <ThemedText style={[styles.legalModalEmpty, { color: colors.icon }]}>
+                  {t('auth.register.legalError')}
+                </ThemedText>
+              </Animated.View>
+            ) : legalDoc?.content ? (
+              <Animated.View entering={FadeIn}>
+                <ThemedText style={[styles.legalModalBody, { color: colors.text }]}>
+                  {legalDoc.content}
+                </ThemedText>
+              </Animated.View>
+            ) : (
+              <Animated.View entering={FadeIn} style={styles.legalModalCenter}>
+                <Ionicons name="document-text-outline" size={44} color={colors.icon} />
+                <ThemedText style={[styles.legalModalEmpty, { color: colors.icon }]}>
+                  {t('auth.register.legalLoading')}
+                </ThemedText>
+              </Animated.View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -444,4 +534,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
+  legalWrap: {
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  legalText: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  legalLink: {
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  legalModalRoot: { flex: 1 },
+  legalModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  legalModalTitle: { fontSize: 17, fontWeight: '700', flex: 1, marginRight: 12 },
+  legalModalContent: { padding: 20, paddingBottom: 48 },
+  legalModalCenter: {
+    flex: 1,
+    minHeight: 300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  legalModalBody: { fontSize: 14, lineHeight: 22 },
+  legalModalEmpty: { fontSize: 15, textAlign: 'center' },
 });

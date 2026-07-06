@@ -508,6 +508,7 @@ export interface Wallpaper {
   id: string;
   url: string;
   title: string | null;
+  orientation: 'vertical' | 'horizontal';
   order_index: number;
   created_at: string;
 }
@@ -856,6 +857,18 @@ export interface AppConfigBanner {
 export interface AppConfigResponse {
   maintenance: AppConfigBanner;
   required_update: AppConfigBanner;
+}
+
+// ── Documentos legales ────────────────────────────────────────────────────────
+
+export interface LegalDocument {
+  type: 'terms' | 'privacy';
+  content: string;
+  updated_at: string | null;
+}
+
+export async function fetchLegalDocument(type: 'terms' | 'privacy'): Promise<LegalDocument> {
+  return apiRequest<LegalDocument>(`/legal/${type}`);
 }
 
 export async function fetchAppConfig(params: {

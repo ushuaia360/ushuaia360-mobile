@@ -13,6 +13,13 @@ function isAvailable(): boolean {
   return Boolean(NativeModules.RNPurchases);
 }
 
+/** Returns true only when the native module is present AND the API key is configured. */
+export function isPurchasesReady(): boolean {
+  if (!isAvailable()) return false;
+  const key = Platform.OS === 'ios' ? IOS_KEY : ANDROID_KEY;
+  return Boolean(key);
+}
+
 /**
  * Call once on app init (and whenever userId changes) to configure the SDK
  * and bind the RevenueCat identity to your backend user.

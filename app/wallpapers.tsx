@@ -20,6 +20,7 @@ import {
   FlatList,
   Modal,
   RefreshControl,
+  SectionList,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -31,16 +32,23 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_GAP = 12;
 const GRID_PADDING = 16;
 const CARD_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP) / 2;
+const HORIZONTAL_CARD_WIDTH = SCREEN_WIDTH - GRID_PADDING * 2;
 
 function WallpapersSkeleton({ skelBg }: { skelBg: string }) {
   return (
     <View style={styles.grid}>
       {[0, 1, 2, 3, 4, 5].map((i) => (
-        <View key={i} style={[styles.image, { width: CARD_WIDTH, backgroundColor: skelBg }]} />
+        <View key={i} style={[styles.verticalImage, { width: CARD_WIDTH, backgroundColor: skelBg }]} />
       ))}
     </View>
   );
 }
+
+type SectionData = {
+  title: string;
+  orientation: 'vertical' | 'horizontal';
+  data: Wallpaper[][];
+};
 
 export default function WallpapersScreen() {
   const { t } = useTranslation();
@@ -73,6 +81,28 @@ export default function WallpapersScreen() {
   useEffect(() => {
     void loadWallpapers(false);
   }, [loadWallpapers]);
+
+  const sections = useMemo<SectionData[]>(() => {
+    const vertical = wallpapers.filter((w) => w.orientation !== 'horizontal');
+    const horizontal = wallpapers.filter((w) => w.orientation === 'horizontal');
+
+    const toRows = (items: Wallpaper[], cols: number): Wallpaper[][] => {
+      const rows: Wallpaper[][] = [];
+      for (let i = 0; i < items.length; i += cols) {
+        rows.push(items.slice(i, i + cols));
+      }
+      return rows;
+    };
+
+    const result: SectionData[] = [];
+    if (vertical.length > 0) {
+      result.push({ title: 'Vertical', orientation: 'vertical', data: toRows(vertical, 2) });
+    }
+    if (horizontal.length > 0) {
+      result.push({ title: 'Horizontal', orientation: 'horizontal', data: toRows(horizontal, 1) });
+    }
+    return result;
+  }, [wallpapers]);
 
   const headerSubtitle = useMemo(() => {
     if (loading && wallpapers.length === 0) return null;
@@ -148,67 +178,106 @@ export default function WallpapersScreen() {
     </View>
   );
 
-  const renderItem = ({ item, index }: { item: Wallpaper; index: number }) => {
+  const renderCard = (item: Wallpaper, index: number, isHorizontal: boolean) => {
     const imageUrl = resolveApiMediaUrl(item.url);
     const isDownloading = downloadingId === item.id;
     const isBlocked = downloadingId != null && !isDownloading;
+    const cardWidth = isHorizontal ? HORIZONTAL_CARD_WIDTH : CARD_WIDTH;
 
     return (
-      <Animated.View entering={FadeInDown.delay(index * 40).duration(320)}>
+      <Animated.View key={item.id} entering={FadeInDown.delay(index * 40).duration(320)}>
         <TouchableOpacity
           activeOpacity={0.9}
-          style={[styles.card, { width: CARD_WIDTH }]}
+          style={[styles.card, { width: cardWidth }]}
           onPress={() => openPreview(item)}
           accessibilityRole="button"
           accessibilityLabel={item.title ?? t('wallpapers.title')}>
-          {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.image}
-              contentFit="cover"
-              transition={200}
-              cachePolicy="memory-disk"
+          <View style={[
+            isHorizontal ? styles.horizontalImage : styles.verticalImage,
+            { backgroundColor: skelBg },
+          ]}>
+            {imageUrl ? (
+              <Image
+                source={{ uri: imageUrl }}
+                style={StyleSheet.absoluteFillObject}
+                contentFit="cover"
+                transition={300}
+                cachePolicy="memory-disk"
+                priority={index < 6 ? 'high' : 'normal'}
+                recyclingKey={item.id}
+              />
+            ) : (
+              <View style={[StyleSheet.absoluteFillObject, styles.imagePlaceholder]}>
+                <Ionicons name="image-outline" size={28} color={colors.icon} />
+              </View>
+            )}
+
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.65)']}
+              style={styles.cardGradient}
+              pointerEvents="none"
             />
-          ) : (
-            <View style={[styles.image, styles.imagePlaceholder, { backgroundColor: skelBg }]}>
-              <Ionicons name="image-outline" size={28} color={colors.icon} />
-            </View>
-          )}
 
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.65)']}
-            style={styles.cardGradient}
-            pointerEvents="none"
-          />
+            {item.title ? (
+              <ThemedText style={styles.cardTitle} numberOfLines={2} lightColor="#fff" darkColor="#fff">
+                {item.title}
+              </ThemedText>
+            ) : null}
 
-          {item.title ? (
-            <ThemedText style={styles.cardTitle} numberOfLines={2} lightColor="#fff" darkColor="#fff">
-              {item.title}
-            </ThemedText>
-          ) : null}
-
-          <TouchableOpacity
-            style={styles.downloadFab}
-            activeOpacity={0.8}
-            disabled={isDownloading || isBlocked}
-            onPress={() => void handleDownload(item)}
-            accessibilityRole="button"
-            accessibilityLabel={t('wallpapers.download')}>
-            <BlurView intensity={40} tint="dark" style={styles.downloadFabBlur}>
-              {isDownloading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Ionicons name="download-outline" size={18} color="#fff" style={{ opacity: isBlocked ? 0.4 : 1 }} />
-              )}
-            </BlurView>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.downloadFab}
+              activeOpacity={0.8}
+              disabled={isDownloading || isBlocked}
+              onPress={() => void handleDownload(item)}
+              accessibilityRole="button"
+              accessibilityLabel={t('wallpapers.download')}>
+              <BlurView intensity={40} tint="dark" style={styles.downloadFabBlur}>
+                {isDownloading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="download-outline" size={18} color="#fff" style={{ opacity: isBlocked ? 0.4 : 1 }} />
+                )}
+              </BlurView>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </Animated.View>
     );
   };
 
+  const renderSectionHeader = ({ section }: { section: SectionData }) => (
+    <View style={styles.sectionHeader}>
+      <Ionicons
+        name={section.orientation === 'vertical' ? 'phone-portrait-outline' : 'phone-landscape-outline'}
+        size={16}
+        color={colors.icon}
+      />
+      <ThemedText style={[styles.sectionTitle, { color: colors.icon }]}>{section.title}</ThemedText>
+    </View>
+  );
+
+  const renderSectionItem = ({ item, index, section }: { item: Wallpaper[]; index: number; section: SectionData }) => {
+    const isHorizontal = section.orientation === 'horizontal';
+    const baseIndex = index * (isHorizontal ? 1 : 2);
+
+    if (isHorizontal) {
+      return (
+        <View style={[styles.horizontalRow, { paddingHorizontal: GRID_PADDING }]}>
+          {item.map((w, i) => renderCard(w, baseIndex + i, true))}
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.verticalRow}>
+        {item.map((w, i) => renderCard(w, baseIndex + i, false))}
+      </View>
+    );
+  };
+
   const previewUrl = previewItem ? resolveApiMediaUrl(previewItem.url) : null;
   const isPreviewDownloading = previewItem != null && downloadingId === previewItem.id;
+  const previewIsHorizontal = previewItem?.orientation === 'horizontal';
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: isDark ? '#000' : '#fff' }]}>
@@ -229,14 +298,14 @@ export default function WallpapersScreen() {
           </ThemedText>
         </View>
       ) : (
-        <FlatList
-          data={wallpapers}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
+        <SectionList
+          sections={sections}
+          keyExtractor={(row, i) => row.map((w) => w.id).join('-') + i}
+          renderSectionHeader={renderSectionHeader}
+          renderItem={renderSectionItem}
           contentContainerStyle={styles.listContent}
-          renderItem={renderItem}
           showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -259,8 +328,9 @@ export default function WallpapersScreen() {
               <Image
                 source={{ uri: previewUrl }}
                 style={StyleSheet.absoluteFillObject}
-                contentFit="cover"
+                contentFit={previewIsHorizontal ? 'contain' : 'cover'}
                 cachePolicy="memory-disk"
+                priority="high"
               />
             ) : null}
 
@@ -346,12 +416,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: {
+    paddingTop: 8,
+    paddingBottom: 32,
+    gap: 0,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: GRID_PADDING,
     paddingTop: 16,
-    paddingBottom: 32,
-    gap: GRID_GAP,
+    paddingBottom: 10,
   },
-  row: { gap: GRID_GAP },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  verticalRow: {
+    flexDirection: 'row',
+    gap: GRID_GAP,
+    paddingHorizontal: GRID_PADDING,
+    marginBottom: GRID_GAP,
+  },
+  horizontalRow: {
+    marginBottom: GRID_GAP,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -368,10 +459,17 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
-  image: {
+  verticalImage: {
     width: '100%',
     aspectRatio: 9 / 16,
     borderRadius: 18,
+    overflow: 'hidden',
+  },
+  horizontalImage: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 18,
+    overflow: 'hidden',
   },
   imagePlaceholder: {
     alignItems: 'center',
