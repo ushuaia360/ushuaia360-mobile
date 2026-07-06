@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -20,6 +20,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LegalDocModal } from '@/components/legal-doc-modal';
 import { GoogleGMark } from '@/components/auth/google-g-mark';
 import { useAuthStore } from '@/store/auth-store';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,6 +41,8 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [step, setStep] = useState<'method' | 'form'>('method');
+  const [legalType, setLegalType] = useState<'terms' | 'privacy' | null>(null);
+  const openLegal = useCallback((type: 'terms' | 'privacy') => setLegalType(type), []);
 
   const inputBg = isDark ? '#1c1c1e' : '#f5f5f7';
   const borderColor = isDark ? '#2a2a2a' : '#e5e5ea';
@@ -138,6 +141,7 @@ export default function LoginScreen() {
   // ─── Step 1: pantalla de bienvenida ────────────────────────
   if (step === 'method') {
     return (
+      <>
       <AuthHeroBackground style={styles.bgImage}>
         <LinearGradient
           colors={['rgba(0,0,0,0.15)', 'transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.92)']}
@@ -201,9 +205,27 @@ export default function LoginScreen() {
               activeOpacity={0.85}>
               <ThemedText style={styles.methodBtnText}>{t('auth.signUp')}</ThemedText>
             </TouchableOpacity>
+
+            <ThemedText style={styles.methodLegal}>
+              {t('auth.register.legalConsent')}{' '}
+              <ThemedText
+                style={[styles.methodLegal, styles.methodLegalLink]}
+                onPress={() => openLegal('terms')}>
+                {t('auth.register.legalTerms')}
+              </ThemedText>
+              {' '}{t('auth.register.legalAnd')}{' '}
+              <ThemedText
+                style={[styles.methodLegal, styles.methodLegalLink]}
+                onPress={() => openLegal('privacy')}>
+                {t('auth.register.legalPrivacy')}
+              </ThemedText>
+              .
+            </ThemedText>
           </View>
         </View>
       </AuthHeroBackground>
+      <LegalDocModal type={legalType} onClose={() => setLegalType(null)} />
+      </>
     );
   }
 
@@ -339,6 +361,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
   methodButtons: { gap: 12 },
+  methodLegal: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.55)',
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  methodLegalLink: {
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
   methodBtn: {
     flexDirection: 'row',
     alignItems: 'center',

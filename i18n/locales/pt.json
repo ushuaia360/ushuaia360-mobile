@@ -71,7 +71,8 @@
       "legalTerms": "Termos e Condições",
       "legalPrivacy": "Política de Privacidade",
       "legalLoading": "Carregando...",
-      "legalError": "Não foi possível carregar o conteúdo."
+      "legalError": "Não foi possível carregar o conteúdo.",
+      "legalEmpty": "Nenhum conteúdo disponível."
     },
     "forgotPasswordScreen": {
       "title": "Recuperar senha",

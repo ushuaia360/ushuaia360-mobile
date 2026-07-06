@@ -4,6 +4,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
 import { saveWallpaperToDevice } from '@/lib/save-wallpaper';
+import { supabaseThumbnailUrl } from '@/lib/supabase-image-transform';
 import { fetchWallpapers, type Wallpaper } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -11,7 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -49,6 +50,109 @@ type SectionData = {
   orientation: 'vertical' | 'horizontal';
   data: Wallpaper[][];
 };
+
+type WallpaperCardProps = {
+  item: Wallpaper;
+  index: number;
+  isHorizontal: boolean;
+  skelBg: string;
+  colors: (typeof Colors)[keyof typeof Colors];
+  downloadingId: string | null;
+  onPress: (item: Wallpaper) => void;
+  onDownload: (item: Wallpaper) => void;
+  t: (key: string) => string;
+};
+
+function WallpaperCard({ item, index, isHorizontal, skelBg, colors, downloadingId, onPress, onDownload, t }: WallpaperCardProps) {
+  const imageUrl = resolveApiMediaUrl(item.url);
+  const thumbUrl = supabaseThumbnailUrl(imageUrl, { width: 600, quality: 25, resize: 'cover' });
+  const hasDifferentThumb = thumbUrl !== null && thumbUrl !== imageUrl;
+  const [src, setSrc] = useState<string | null>(hasDifferentThumb ? thumbUrl : imageUrl);
+  const [imageLoading, setImageLoading] = useState(true);
+  const didFallback = useRef(false);
+
+  const isDownloading = downloadingId === item.id;
+  const isBlocked = downloadingId != null && !isDownloading;
+  const cardWidth = isHorizontal ? HORIZONTAL_CARD_WIDTH : CARD_WIDTH;
+
+  const handleError = useCallback(() => {
+    if (!didFallback.current && imageUrl && src !== imageUrl) {
+      didFallback.current = true;
+      setSrc(imageUrl);
+    } else {
+      setImageLoading(false);
+    }
+  }, [imageUrl, src]);
+
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 40).duration(320)}>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={[styles.card, { width: cardWidth }]}
+        onPress={() => onPress(item)}
+        accessibilityRole="button"
+        accessibilityLabel={item.title ?? t('wallpapers.title')}>
+        <View style={[
+          isHorizontal ? styles.horizontalImage : styles.verticalImage,
+          { backgroundColor: skelBg },
+        ]}>
+          {src ? (
+            <Image
+              source={{ uri: src }}
+              style={StyleSheet.absoluteFillObject}
+              contentFit="cover"
+              transition={300}
+              cachePolicy="memory-disk"
+              priority={index < 6 ? 'high' : 'normal'}
+              recyclingKey={item.id}
+              onLoadStart={() => setImageLoading(true)}
+              onLoad={() => setImageLoading(false)}
+              onError={handleError}
+            />
+          ) : (
+            <View style={[StyleSheet.absoluteFillObject, styles.imagePlaceholder]}>
+              <Ionicons name="image-outline" size={28} color={colors.icon} />
+            </View>
+          )}
+
+          {imageLoading && src ? (
+            <View style={styles.cardLoader} pointerEvents="none">
+              <ActivityIndicator size="small" color="rgba(255,255,255,0.7)" />
+            </View>
+          ) : null}
+
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.65)']}
+            style={styles.cardGradient}
+            pointerEvents="none"
+          />
+
+          {item.title ? (
+            <ThemedText style={styles.cardTitle} numberOfLines={2} lightColor="#fff" darkColor="#fff">
+              {item.title}
+            </ThemedText>
+          ) : null}
+
+          <TouchableOpacity
+            style={styles.downloadFab}
+            activeOpacity={0.8}
+            disabled={isDownloading || isBlocked}
+            onPress={() => onDownload(item)}
+            accessibilityRole="button"
+            accessibilityLabel={t('wallpapers.download')}>
+            <BlurView intensity={40} tint="dark" style={styles.downloadFabBlur}>
+              {isDownloading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="download-outline" size={18} color="#fff" style={{ opacity: isBlocked ? 0.4 : 1 }} />
+              )}
+            </BlurView>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 export default function WallpapersScreen() {
   const { t } = useTranslation();
@@ -178,72 +282,20 @@ export default function WallpapersScreen() {
     </View>
   );
 
-  const renderCard = (item: Wallpaper, index: number, isHorizontal: boolean) => {
-    const imageUrl = resolveApiMediaUrl(item.url);
-    const isDownloading = downloadingId === item.id;
-    const isBlocked = downloadingId != null && !isDownloading;
-    const cardWidth = isHorizontal ? HORIZONTAL_CARD_WIDTH : CARD_WIDTH;
-
-    return (
-      <Animated.View key={item.id} entering={FadeInDown.delay(index * 40).duration(320)}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[styles.card, { width: cardWidth }]}
-          onPress={() => openPreview(item)}
-          accessibilityRole="button"
-          accessibilityLabel={item.title ?? t('wallpapers.title')}>
-          <View style={[
-            isHorizontal ? styles.horizontalImage : styles.verticalImage,
-            { backgroundColor: skelBg },
-          ]}>
-            {imageUrl ? (
-              <Image
-                source={{ uri: imageUrl }}
-                style={StyleSheet.absoluteFillObject}
-                contentFit="cover"
-                transition={300}
-                cachePolicy="memory-disk"
-                priority={index < 6 ? 'high' : 'normal'}
-                recyclingKey={item.id}
-              />
-            ) : (
-              <View style={[StyleSheet.absoluteFillObject, styles.imagePlaceholder]}>
-                <Ionicons name="image-outline" size={28} color={colors.icon} />
-              </View>
-            )}
-
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.65)']}
-              style={styles.cardGradient}
-              pointerEvents="none"
-            />
-
-            {item.title ? (
-              <ThemedText style={styles.cardTitle} numberOfLines={2} lightColor="#fff" darkColor="#fff">
-                {item.title}
-              </ThemedText>
-            ) : null}
-
-            <TouchableOpacity
-              style={styles.downloadFab}
-              activeOpacity={0.8}
-              disabled={isDownloading || isBlocked}
-              onPress={() => void handleDownload(item)}
-              accessibilityRole="button"
-              accessibilityLabel={t('wallpapers.download')}>
-              <BlurView intensity={40} tint="dark" style={styles.downloadFabBlur}>
-                {isDownloading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="download-outline" size={18} color="#fff" style={{ opacity: isBlocked ? 0.4 : 1 }} />
-                )}
-              </BlurView>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
+  const renderCard = (item: Wallpaper, index: number, isHorizontal: boolean) => (
+    <WallpaperCard
+      key={item.id}
+      item={item}
+      index={index}
+      isHorizontal={isHorizontal}
+      skelBg={skelBg}
+      colors={colors}
+      downloadingId={downloadingId}
+      onPress={openPreview}
+      onDownload={(w) => void handleDownload(w)}
+      t={t}
+    />
+  );
 
   const renderSectionHeader = ({ section }: { section: SectionData }) => (
     <View style={styles.sectionHeader}>
@@ -276,6 +328,7 @@ export default function WallpapersScreen() {
   };
 
   const previewUrl = previewItem ? resolveApiMediaUrl(previewItem.url) : null;
+  const previewThumbUrl = supabaseThumbnailUrl(previewUrl, { width: 800, quality: 30, resize: 'cover' });
   const isPreviewDownloading = previewItem != null && downloadingId === previewItem.id;
   const previewIsHorizontal = previewItem?.orientation === 'horizontal';
 
@@ -327,8 +380,11 @@ export default function WallpapersScreen() {
             {previewUrl ? (
               <Image
                 source={{ uri: previewUrl }}
+                placeholder={previewThumbUrl ? { uri: previewThumbUrl } : undefined}
+                placeholderContentFit={previewIsHorizontal ? 'contain' : 'cover'}
                 style={StyleSheet.absoluteFillObject}
                 contentFit={previewIsHorizontal ? 'contain' : 'cover'}
+                transition={400}
                 cachePolicy="memory-disk"
                 priority="high"
               />
@@ -472,6 +528,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardLoader: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },

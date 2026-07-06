@@ -1,10 +1,11 @@
+import { LegalDocModal } from '@/components/legal-doc-modal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +22,8 @@ export default function PrivacySecurityScreen() {
   const textSub = colors.icon;
   const headerBg = isDark ? '#1c1c1e' : '#fff';
   const headerBorder = isDark ? '#2a2a2a' : '#EDF0F5';
+
+  const [legalType, setLegalType] = useState<'terms' | 'privacy' | null>(null);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -102,6 +105,7 @@ export default function PrivacySecurityScreen() {
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.7}
+            onPress={() => setLegalType('privacy')}
             accessibilityRole="button"
             accessibilityLabel={t('privacySecurity.privacyPolicy')}>
             <View style={[styles.rowIcon, { backgroundColor: colors.tint + '18' }]}>
@@ -121,6 +125,7 @@ export default function PrivacySecurityScreen() {
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.7}
+            onPress={() => setLegalType('terms')}
             accessibilityRole="button"
             accessibilityLabel={t('privacySecurity.terms')}>
             <View style={[styles.rowIcon, { backgroundColor: colors.tint + '18' }]}>
@@ -138,6 +143,7 @@ export default function PrivacySecurityScreen() {
 
 
       </ScrollView>
+      <LegalDocModal type={legalType} onClose={() => setLegalType(null)} />
     </ThemedView>
   );
 }
