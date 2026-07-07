@@ -132,13 +132,13 @@
     "viewAllFeatured": "Ver todos",
     "emptyFeatured": "Todavía no hay destacados para mostrar",
     "categories": {
+      "senderos": "Senderos",
       "turistico": "Turístico",
       "gastronomy": "Gastronomía",
       "viewpoints": "Miradores",
       "nature": "Naturaleza",
       "heritage": "Patrimonio",
       "history": "Historia",
-      "coast": "Costa y mar",
       "culture": "Cultura",
       "other": "Otros"
     }

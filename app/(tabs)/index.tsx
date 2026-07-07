@@ -36,11 +36,11 @@ interface CategoryDef {
 }
 
 const CATEGORIES: CategoryDef[] = [
+  { key: 'senderos', labelKey: 'homeTab.categories.senderos', icon: 'walk-outline', bg: '#DCFCE7', fg: '#16A34A', filterKind: ['trail'], filterCategory: [] },
   { key: 'turistico', labelKey: 'homeTab.categories.turistico', icon: 'compass-outline', bg: '#E0E7FF', fg: '#4F46E5', filterKind: ['place'], filterCategory: ['turistico'] },
   { key: 'nature', labelKey: 'homeTab.categories.nature', icon: 'leaf-outline', bg: '#FEF3C7', fg: '#CA8A04', filterKind: ['place'], filterCategory: ['naturaleza'] },
   { key: 'heritage', labelKey: 'homeTab.categories.heritage', icon: 'business-outline', bg: '#EDE9FE', fg: '#7C3AED', filterKind: ['place'], filterCategory: ['patrimonio'] },
   { key: 'viewpoints', labelKey: 'homeTab.categories.viewpoints', icon: 'telescope-outline', bg: '#FDE4EC', fg: '#DB2777', filterKind: ['place'], filterCategory: ['miradores'] },
-  { key: 'coast', labelKey: 'homeTab.categories.coast', icon: 'boat-outline', bg: '#DBEAFE', fg: '#2563EB', filterKind: ['place'], filterCategory: ['costa'] },
   { key: 'culture', labelKey: 'homeTab.categories.culture', icon: 'color-palette-outline', bg: '#F3E8FF', fg: '#9333EA', filterKind: ['place'], filterCategory: ['cultura'] },
   { key: 'gastronomy', labelKey: 'homeTab.categories.gastronomy', icon: 'restaurant-outline', bg: '#FFE4D5', fg: '#EA580C', filterKind: ['place'], filterCategory: ['gastronomia'] },
   { key: 'other', labelKey: 'homeTab.categories.other', icon: 'ellipsis-horizontal-circle-outline', bg: '#E2E8F0', fg: '#475569', filterKind: ['place'], filterCategory: ['otros'] },
@@ -153,7 +153,7 @@ function HomeContent() {
               const { y, height } = e.nativeEvent.layout;
               setSearchTop(HERO_TOP + y + height + 10);
             }}>
-            <ThemedText style={styles.heroGreeting} lightColor="#fff" darkColor="#fff">
+            <ThemedText style={styles.heroGreeting} lightColor="#fff" darkColor="#fff" numberOfLines={2}>
               {greeting}
             </ThemedText>
             <ThemedText style={styles.heroSubtitle} lightColor="#fff" darkColor="#fff">
@@ -286,6 +286,7 @@ const styles = StyleSheet.create({
   },
   heroGreeting: {
     fontSize: 28,
+    lineHeight: 38,
     fontWeight: '500',
     textShadowColor: 'rgba(0,0,0,0.45)',
     textShadowOffset: { width: 0, height: 1 },
