@@ -1,6 +1,19 @@
 import { Trail } from '@/constants/mock-trails';
-import { BackendPlaceListItem, BackendTrail, fetchPlacesList, fetchTrails } from '@/services/api';
+import {
+  BackendPlaceListItem,
+  BackendTrail,
+  FeaturedItem,
+  FeaturedPlaceItem,
+  FeaturedTrailItem,
+  fetchFeaturedItems,
+  fetchPlacesList,
+  fetchTrails,
+} from '@/services/api';
 import { create } from 'zustand';
+
+export type FeaturedTrail = Trail & { kind: 'trail'; featuredItemId: string };
+export type FeaturedPlace = FeaturedPlaceItem & { featuredItemId: string };
+export type FeaturedListItem = FeaturedTrail | FeaturedPlace;
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
 
@@ -57,13 +70,41 @@ export function mapBackendTrail(t: BackendTrail): Trail {
   };
 }
 
+function mapFeaturedTrailItem(item: FeaturedTrailItem): FeaturedTrail {
+  const images = item.thumbnail_url ? [item.thumbnail_url] : [PLACEHOLDER_IMAGE];
+  return {
+    id: item.id,
+    name: item.name || item.region || item.slug || 'Sendero',
+    difficulty: DIFFICULTY_MAP[item.difficulty] ?? 'Fácil',
+    distance: item.distance_km != null ? `${item.distance_km} km` : '-',
+    distanceKm: item.distance_km ?? 0,
+    duration: formatDuration(item.duration_minutes),
+    elevationGain: '-',
+    type: ROUTE_TYPE_MAP[item.route_type ?? ''] ?? item.route_type ?? 'Trekking',
+    image: images[0],
+    images,
+    description: item.description ?? '',
+    featured: true,
+    rating: 0,
+    reviewCount: 0,
+    coordinate: { latitude: -54.8019, longitude: -68.303 },
+    kind: 'trail',
+    featuredItemId: item.featured_item_id,
+  };
+}
+
+function mapFeaturedItem(item: FeaturedItem): FeaturedListItem {
+  if (item.kind === 'trail') return mapFeaturedTrailItem(item);
+  return { ...item, featuredItemId: item.featured_item_id };
+}
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
 
 interface TrailsStore {
-  // Senderos destacados (para el bottom sheet)
-  featuredTrails: Trail[];
+  // Destacados (senderos + puntos turísticos, orden curado desde Partners) — para el home y el bottom sheet del mapa
+  featured: FeaturedListItem[];
   loadingFeatured: boolean;
   // Todos los senderos con paginación (para la vista de lista)
   trails: Trail[];
@@ -79,7 +120,7 @@ interface TrailsStore {
   searchQuery: string;
   recentSearches: string[];
   // Acciones
-  fetchFeaturedTrails: () => Promise<void>;
+  fetchFeatured: () => Promise<void>;
   fetchTrails: (reset?: boolean) => Promise<void>;
   loadMoreTrails: () => Promise<void>;
   fetchPlaces: () => Promise<void>;
@@ -92,7 +133,7 @@ interface TrailsStore {
 export type { BackendPlaceListItem };
 
 export const useTrailsStore = create<TrailsStore>((set, get) => ({
-  featuredTrails: [],
+  featured: [],
   loadingFeatured: false,
   trails: [],
   total: 0,
@@ -111,14 +152,14 @@ export const useTrailsStore = create<TrailsStore>((set, get) => ({
     'Paso Garibaldi',
   ],
 
-  /** Carga los senderos destacados para el bottom sheet del mapa */
-  fetchFeaturedTrails: async () => {
+  /** Carga los destacados (senderos + puntos turísticos) para el home y el bottom sheet del mapa */
+  fetchFeatured: async () => {
     set({ loadingFeatured: true });
     try {
-      const data = await fetchTrails({ limit: 4 });
-      set({ featuredTrails: data.trails.map(mapBackendTrail) });
+      const data = await fetchFeaturedItems();
+      set({ featured: data.map(mapFeaturedItem) });
     } catch (e) {
-      console.error('fetchFeaturedTrails error', e);
+      console.error('fetchFeatured error', e);
     } finally {
       set({ loadingFeatured: false });
     }

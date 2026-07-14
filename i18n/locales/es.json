@@ -128,19 +128,18 @@
     "searchPlaceholder": "Buscar lugares, actividades...",
     "categoriesTitle": "Explorá por categorías",
     "viewAll": "Ver todas",
-    "featuredTitle": "Lugares destacados",
+    "featuredTitle": "Destacados",
     "viewAllFeatured": "Ver todos",
     "emptyFeatured": "Todavía no hay destacados para mostrar",
     "categories": {
       "senderos": "Senderos",
-      "turistico": "Turístico",
+      "turismo": "Turismo",
       "gastronomy": "Gastronomía",
       "viewpoints": "Miradores",
       "nature": "Naturaleza",
-      "heritage": "Patrimonio",
       "history": "Historia",
-      "culture": "Cultura",
-      "other": "Otros"
+      "hospedaje": "Hospedaje",
+      "compras": "Compras"
     }
   },
   "map": {
@@ -371,10 +370,10 @@
     "pt": "Português"
   },
   "trailsSheet": {
-    "title": "Senderos para ti",
+    "title": "Destacados",
     "titleNearby": "También cerca tuyo",
-    "subtitle_one": "{{count}} sendero destacado",
-    "subtitle_other": "{{count}} senderos destacados",
+    "subtitle_one": "{{count}} destacado",
+    "subtitle_other": "{{count}} destacados",
     "subtitleNearby_one": "{{count}} recomendado en la zona",
     "subtitleNearby_other": "{{count}} recomendados en la zona",
     "viewAll": "Ver todos",

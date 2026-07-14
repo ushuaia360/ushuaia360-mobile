@@ -128,19 +128,18 @@
     "searchPlaceholder": "Search places, activities...",
     "categoriesTitle": "Explore by category",
     "viewAll": "View all",
-    "featuredTitle": "Featured places",
+    "featuredTitle": "Featured",
     "viewAllFeatured": "View all",
     "emptyFeatured": "No featured places to show yet",
     "categories": {
-      "turistico": "Sightseeing",
+      "turismo": "Tourism",
       "gastronomy": "Food & drink",
       "viewpoints": "Viewpoints",
       "nature": "Nature",
-      "heritage": "Heritage",
       "history": "History",
       "senderos": "Trails",
-      "culture": "Culture",
-      "other": "Other"
+      "hospedaje": "Lodging",
+      "compras": "Shopping"
     }
   },
   "map": {
@@ -371,10 +370,10 @@
     "pt": "Português"
   },
   "trailsSheet": {
-    "title": "Trails for you",
+    "title": "Featured",
     "titleNearby": "Also near you",
-    "subtitle_one": "{{count}} featured trail",
-    "subtitle_other": "{{count}} featured trails",
+    "subtitle_one": "{{count}} featured",
+    "subtitle_other": "{{count}} featured",
     "subtitleNearby_one": "{{count}} recommended nearby",
     "subtitleNearby_other": "{{count}} recommended nearby",
     "viewAll": "View all",

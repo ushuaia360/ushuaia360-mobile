@@ -1,7 +1,13 @@
 import { PANNELLUM_INLINE_CSS, PANNELLUM_INLINE_JS } from '@/components/panorama-pannellum-inline';
-import { useMemo } from 'react';
+import * as FileSystem from 'expo-file-system/legacy';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import WebView from 'react-native-webview';
+
+function directoryOf(fileUri: string): string {
+  const idx = fileUri.lastIndexOf('/');
+  return fileUri.slice(0, idx + 1);
+}
 
 function buildPannellumHtml(imageUrl: string, panoramaHalf: boolean): string {
   const config: Record<string, unknown> = {
@@ -89,16 +95,52 @@ export type PanoramaWebViewProps = {
 
 export default function PanoramaWebView({ uri, panoramaHalf = false, style }: PanoramaWebViewProps) {
   const html = useMemo(() => buildPannellumHtml(uri, panoramaHalf), [uri, panoramaHalf]);
+  const isLocalFile = uri.startsWith('file://');
+
+  // WKWebView loaded via `source={{ html }}` (loadHTMLString) never gets local
+  // file-system read access, even with a file:// baseURL — so pannellum's XHR
+  // to fetch an offline `file://` panorama fails with its own fileAccessError.
+  // Writing the HTML to disk and loading it via `source={{ uri }}` lets iOS use
+  // loadFileURL:allowingReadAccessToURL:, which actually grants that access.
+  const [localHtmlUri, setLocalHtmlUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLocalFile) {
+      setLocalHtmlUri(null);
+      return;
+    }
+    let cancelled = false;
+    const dest = `${directoryOf(uri)}__panorama_viewer.html`;
+    FileSystem.writeAsStringAsync(dest, html)
+      .then(() => {
+        if (!cancelled) setLocalHtmlUri(dest);
+      })
+      .catch(() => {
+        if (!cancelled) setLocalHtmlUri(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLocalFile, uri, html]);
+
+  if (isLocalFile && !localHtmlUri) {
+    return <View style={[styles.wrap, style]} />;
+  }
+
   return (
     <View style={[styles.wrap, style]}>
       <WebView
         key={uri}
-        source={{ html }}
+        source={isLocalFile && localHtmlUri ? { uri: localHtmlUri } : { html }}
+        allowingReadAccessToURL={isLocalFile ? directoryOf(uri) : undefined}
         style={styles.web}
         originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled
         allowsInlineMediaPlayback
+        allowFileAccess
+        allowFileAccessFromFileURLs
+        allowUniversalAccessFromFileURLs
         mixedContentMode="always"
         setSupportMultipleWindows={false}
         bounces={false}

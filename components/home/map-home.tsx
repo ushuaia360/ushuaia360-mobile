@@ -757,8 +757,12 @@ export default function MapHome() {
         <TrailsBottomSheet
           selectedMapMarker={selectedMapMarker}
           onClearMapMarker={() => setSelectedMapMarker(null)}
-          onTrailPress={(trail) =>
-            router.push({ pathname: '/trails/[id]', params: { id: trail.id } } as any)
+          onItemPress={(item) =>
+            router.push(
+              item.kind === 'place'
+                ? ({ pathname: '/places/[id]', params: { id: item.id } } as any)
+                : ({ pathname: '/trails/[id]', params: { id: item.id } } as any),
+            )
           }
         />
       </View>

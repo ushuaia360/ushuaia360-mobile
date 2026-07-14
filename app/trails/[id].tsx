@@ -397,7 +397,7 @@ export default function TrailDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const trailId = typeof id === 'string' ? id : undefined;
 
-  const { trails, featuredTrails, fetchTrails, loading } = useTrailsStore();
+  const { trails, featured, fetchTrails, loading } = useTrailsStore();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const pathname = usePathname();
@@ -479,9 +479,11 @@ export default function TrailDetailScreen() {
     if (!trailId) return undefined;
     return (
       trails.find((t) => t.id === trailId) ??
-      featuredTrails.find((t) => t.id === trailId)
+      featured.find((item): item is typeof featured[number] & { kind: 'trail' } =>
+        item.kind === 'trail' && item.id === trailId,
+      )
     );
-  }, [trailId, trails, featuredTrails]);
+  }, [trailId, trails, featured]);
 
   const [trailDetail, setTrailDetail] = useState<TrailDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(() => Boolean(trailId));

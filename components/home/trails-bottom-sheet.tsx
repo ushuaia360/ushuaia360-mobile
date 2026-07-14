@@ -1,9 +1,8 @@
 import { ThemedText } from "@/components/themed-text";
-import { Trail } from "@/constants/mock-trails";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useHomeStore } from "@/store/home-store";
-import { useTrailsStore } from "@/store/trails-store";
+import { FeaturedListItem, useTrailsStore } from "@/store/trails-store";
 import type { MapMarker } from "@/services/api";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -11,15 +10,16 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import MapMarkerBottomCard from "./map-marker-bottom-card";
 import TrailFeaturedCard from "./trail-featured-card";
+import PlaceFeaturedCard from "./place-featured-card";
 
 interface Props {
-  onTrailPress?: (trail: Trail) => void;
+  onItemPress?: (item: FeaturedListItem) => void;
   selectedMapMarker?: MapMarker | null;
   onClearMapMarker?: () => void;
 }
 
 export default function TrailsBottomSheet({
-  onTrailPress,
+  onItemPress,
   selectedMapMarker,
   onClearMapMarker,
 }: Props) {
@@ -28,12 +28,12 @@ export default function TrailsBottomSheet({
   const colors = Colors[colorScheme ?? "light"];
   const isDark = colorScheme === "dark";
 
-  const { featuredTrails, loadingFeatured, fetchFeaturedTrails, fetchTrails } = useTrailsStore();
+  const { featured, loadingFeatured, fetchFeatured, fetchTrails } = useTrailsStore();
   const { setMode, mapPanning, bottomSheetIndex, setBottomSheetIndex } = useHomeStore();
 
   useEffect(() => {
-    fetchFeaturedTrails();
-  }, [fetchFeaturedTrails]);
+    fetchFeatured();
+  }, [fetchFeatured]);
 
   useEffect(() => {
     if (selectedMapMarker) {
@@ -110,8 +110,8 @@ export default function TrailsBottomSheet({
             </ThemedText>
             <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
               {selectedMapMarker
-                ? t("trailsSheet.subtitleNearby", { count: featuredTrails.length })
-                : t("trailsSheet.subtitle", { count: featuredTrails.length })}
+                ? t("trailsSheet.subtitleNearby", { count: featured.length })
+                : t("trailsSheet.subtitle", { count: featured.length })}
             </ThemedText>
           </View>
           <TouchableOpacity
@@ -136,13 +136,21 @@ export default function TrailsBottomSheet({
           {loadingFeatured ? (
             <ActivityIndicator style={{ marginVertical: 24 }} />
           ) : (
-            featuredTrails.map((trail) => (
-              <TrailFeaturedCard
-                key={trail.id}
-                trail={trail}
-                onPress={onTrailPress}
-              />
-            ))
+            featured.map((item) =>
+              item.kind === "trail" ? (
+                <TrailFeaturedCard
+                  key={`trail-${item.id}`}
+                  trail={item}
+                  onPress={() => onItemPress?.(item)}
+                />
+              ) : (
+                <PlaceFeaturedCard
+                  key={`place-${item.id}`}
+                  place={item}
+                  onPress={() => onItemPress?.(item)}
+                />
+              ),
+            )
           )}
         </View>
 

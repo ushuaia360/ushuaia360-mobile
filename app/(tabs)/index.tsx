@@ -11,9 +11,10 @@ import { toTitleCase } from '@/lib/title-case';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
 import { useHomeStore } from '@/store/home-store';
-import { Trail } from '@/constants/mock-trails';
-import { useTrailsStore } from '@/store/trails-store';
+import { formatPlaceCategoryLabel } from '@/lib/place-category-map';
+import { FeaturedListItem, useTrailsStore } from '@/store/trails-store';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -21,7 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200';
+const HERO_IMAGE = require('@/assets/images/bannerinicio.jpeg');
 /** Debe coincidir con `styles.hero.top` — usado para calcular el gap dinámico con la searchbar. */
 const HERO_TOP = -36;
 
@@ -37,37 +38,52 @@ interface CategoryDef {
 
 const CATEGORIES: CategoryDef[] = [
   { key: 'senderos', labelKey: 'homeTab.categories.senderos', icon: 'walk-outline', bg: '#DCFCE7', fg: '#16A34A', filterKind: ['trail'], filterCategory: [] },
-  { key: 'turistico', labelKey: 'homeTab.categories.turistico', icon: 'compass-outline', bg: '#E0E7FF', fg: '#4F46E5', filterKind: ['place'], filterCategory: ['turistico'] },
+  { key: 'turismo', labelKey: 'homeTab.categories.turismo', icon: 'compass-outline', bg: '#E0E7FF', fg: '#4F46E5', filterKind: ['place'], filterCategory: ['turismo'] },
   { key: 'nature', labelKey: 'homeTab.categories.nature', icon: 'leaf-outline', bg: '#FEF3C7', fg: '#CA8A04', filterKind: ['place'], filterCategory: ['naturaleza'] },
-  { key: 'heritage', labelKey: 'homeTab.categories.heritage', icon: 'business-outline', bg: '#EDE9FE', fg: '#7C3AED', filterKind: ['place'], filterCategory: ['patrimonio'] },
+  { key: 'history', labelKey: 'homeTab.categories.history', icon: 'business-outline', bg: '#EDE9FE', fg: '#7C3AED', filterKind: ['place'], filterCategory: ['historia'] },
   { key: 'viewpoints', labelKey: 'homeTab.categories.viewpoints', icon: 'telescope-outline', bg: '#FDE4EC', fg: '#DB2777', filterKind: ['place'], filterCategory: ['miradores'] },
-  { key: 'culture', labelKey: 'homeTab.categories.culture', icon: 'color-palette-outline', bg: '#F3E8FF', fg: '#9333EA', filterKind: ['place'], filterCategory: ['cultura'] },
   { key: 'gastronomy', labelKey: 'homeTab.categories.gastronomy', icon: 'restaurant-outline', bg: '#FFE4D5', fg: '#EA580C', filterKind: ['place'], filterCategory: ['gastronomia'] },
-  { key: 'other', labelKey: 'homeTab.categories.other', icon: 'ellipsis-horizontal-circle-outline', bg: '#E2E8F0', fg: '#475569', filterKind: ['place'], filterCategory: ['otros'] },
+  { key: 'hospedaje', labelKey: 'homeTab.categories.hospedaje', icon: 'bed-outline', bg: '#CCFBF1', fg: '#0D9488', filterKind: ['place'], filterCategory: ['hospedaje'] },
+  { key: 'compras', labelKey: 'homeTab.categories.compras', icon: 'bag-handle-outline', bg: '#FFE4E6', fg: '#E11D48', filterKind: ['place'], filterCategory: ['compras'] },
 ];
 
-function FeaturedCard({ trail, large }: { trail: Trail; large?: boolean }) {
+function FeaturedCard({ item, large }: { item: FeaturedListItem; large?: boolean }) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const token = useAuthStore((s) => s.token);
   const pathname = usePathname();
-  const liked = useFavoritesStore((s) => s.isFavorite(trail.id));
+  const isPlace = item.kind === 'place';
+  const liked = useFavoritesStore((s) => (isPlace ? s.isPlaceFavorite(item.id) : s.isFavorite(item.id)));
   const toggleTrailFavorite = useFavoritesStore((s) => s.toggleTrail);
+  const togglePlaceFavorite = useFavoritesStore((s) => s.togglePlace);
 
   const onHeartPress = async () => {
     if (!token) {
       redirectToLogin(pathname || '/(tabs)');
       return;
     }
-    await toggleTrailFavorite(trail.id, token, !liked);
+    if (isPlace) {
+      await togglePlaceFavorite(item.id, token, !liked);
+    } else {
+      await toggleTrailFavorite(item.id, token, !liked);
+    }
   };
+
+  const image = isPlace ? item.thumbnail_url ?? undefined : item.image;
+  const name = isPlace ? item.name ?? 'Punto turístico' : item.name;
 
   return (
     <TouchableOpacity
       style={[large ? styles.featuredLarge : styles.featuredSmall, { backgroundColor: isDark ? '#1c1c1e' : '#fff' }]}
       activeOpacity={0.9}
-      onPress={() => router.push({ pathname: '/trails/[id]', params: { id: trail.id } } as any)}>
-      <TrailImage uri={trail.image} style={StyleSheet.absoluteFillObject as object} contentFit="cover" />
+      onPress={() =>
+        router.push(
+          isPlace
+            ? ({ pathname: '/places/[id]', params: { id: item.id } } as any)
+            : ({ pathname: '/trails/[id]', params: { id: item.id } } as any),
+        )
+      }>
+      <TrailImage uri={image} style={StyleSheet.absoluteFillObject as object} contentFit="cover" />
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.75)']}
         style={StyleSheet.absoluteFillObject}
@@ -85,21 +101,32 @@ function FeaturedCard({ trail, large }: { trail: Trail; large?: boolean }) {
           numberOfLines={large ? 1 : 2}
           lightColor="#fff"
           darkColor="#fff">
-          {toTitleCase(trail.name)}
+          {toTitleCase(name ?? '')}
         </ThemedText>
         <View style={styles.featuredStats}>
-          <View style={styles.featuredStat}>
-            <Ionicons name="map-outline" size={12} color="rgba(255,255,255,0.9)" />
-            <ThemedText style={styles.featuredStatText} lightColor="#fff" darkColor="#fff">
-              {trail.distance}
-            </ThemedText>
-          </View>
-          <View style={styles.featuredStat}>
-            <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.9)" />
-            <ThemedText style={styles.featuredStatText} lightColor="#fff" darkColor="#fff">
-              {trail.duration}
-            </ThemedText>
-          </View>
+          {isPlace ? (
+            <View style={styles.featuredStat}>
+              <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.9)" />
+              <ThemedText style={styles.featuredStatText} lightColor="#fff" darkColor="#fff">
+                {formatPlaceCategoryLabel(item.category) || item.region || 'Punto turístico'}
+              </ThemedText>
+            </View>
+          ) : (
+            <>
+              <View style={styles.featuredStat}>
+                <Ionicons name="map-outline" size={12} color="rgba(255,255,255,0.9)" />
+                <ThemedText style={styles.featuredStatText} lightColor="#fff" darkColor="#fff">
+                  {item.distance}
+                </ThemedText>
+              </View>
+              <View style={styles.featuredStat}>
+                <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.9)" />
+                <ThemedText style={styles.featuredStatText} lightColor="#fff" darkColor="#fff">
+                  {item.duration}
+                </ThemedText>
+              </View>
+            </>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -115,12 +142,12 @@ function HomeContent() {
 
   const user = useAuthStore((s) => s.user);
   const { setMode, setPendingListFilters } = useHomeStore();
-  const { featuredTrails, loadingFeatured, fetchFeaturedTrails } = useTrailsStore();
+  const { featured, loadingFeatured, fetchFeatured } = useTrailsStore();
   const [searchTop, setSearchTop] = useState(top + 44);
 
   useEffect(() => {
-    if (featuredTrails.length === 0) fetchFeaturedTrails();
-  }, [featuredTrails.length, fetchFeaturedTrails]);
+    if (featured.length === 0) fetchFeatured();
+  }, [featured.length, fetchFeatured]);
 
   const goToList = (filters?: { filterKind: string[]; filterCategory: string[] }) => {
     setPendingListFilters({
@@ -134,14 +161,14 @@ function HomeContent() {
 
   const firstName = user?.full_name?.trim().split(' ')[0];
   const greeting = firstName ? t('homeTab.greetingNamed', { name: firstName }) : t('homeTab.greeting');
-  const destacados = featuredTrails.slice(0, 3);
+  const destacados = featured.slice(0, 3);
 
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero */}
         <View style={styles.hero}>
-          <TrailImage uri={HERO_IMAGE} style={styles.heroImage as object} contentFit="cover" />
+          <Image source={HERO_IMAGE} style={styles.heroImage as object} contentFit="cover" />
           <LinearGradient
             colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.55)']}
             style={styles.heroImage}
@@ -227,10 +254,10 @@ function HomeContent() {
             </ThemedText>
           ) : (
             <View style={styles.featuredWrap}>
-              {destacados[0] && <FeaturedCard trail={destacados[0]} large />}
+              {destacados[0] && <FeaturedCard item={destacados[0]} large />}
               <View style={styles.featuredRow}>
-                {destacados.slice(1, 3).map((trail) => (
-                  <FeaturedCard key={trail.id} trail={trail} />
+                {destacados.slice(1, 3).map((item) => (
+                  <FeaturedCard key={`${item.kind}-${item.id}`} item={item} />
                 ))}
               </View>
             </View>

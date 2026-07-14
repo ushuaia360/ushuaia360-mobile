@@ -782,6 +782,45 @@ export async function fetchMapMarkers(): Promise<MapMarker[]> {
   return data.markers ?? [];
 }
 
+// ── Destacados (Partners) ──────────────────────────────────────────────────────
+
+export interface FeaturedTrailItem {
+  featured_item_id: string;
+  order_index: number;
+  kind: 'trail';
+  id: string;
+  slug: string;
+  name: string | null;
+  difficulty: 'easy' | 'medium' | 'hard';
+  route_type?: 'circular' | 'lineal' | 'ida_vuelta' | null;
+  region?: string | null;
+  distance_km: number | null;
+  duration_minutes: number | null;
+  description?: string | null;
+  thumbnail_url: string | null;
+}
+
+export interface FeaturedPlaceItem {
+  featured_item_id: string;
+  order_index: number;
+  kind: 'place';
+  id: string;
+  slug: string;
+  name: string | null;
+  category: string | null;
+  region: string | null;
+  country?: string | null;
+  description: string | null;
+  thumbnail_url: string | null;
+}
+
+export type FeaturedItem = FeaturedTrailItem | FeaturedPlaceItem;
+
+export async function fetchFeaturedItems(): Promise<FeaturedItem[]> {
+  const data = await apiRequest<{ items: FeaturedItem[] }>('/featured');
+  return data.items ?? [];
+}
+
 /** Medios de un lugar (misma forma que puntos de sendero, sin trail_point_id). */
 export interface PlacePointMedia {
   id: string;

@@ -8,49 +8,56 @@ type IonName = ComponentProps<typeof Ionicons>['name'];
  * @see ushuaia360-frontend `placeCategories.ts`
  */
 export type PlaceCategoryKey =
-  | 'turistico'
+  | 'turismo'
   | 'naturaleza'
-  | 'patrimonio'
+  | 'historia'
   | 'miradores'
   | 'costa'
-  | 'cultura'
   | 'gastronomia'
+  | 'hospedaje'
+  | 'compras'
   | 'otros';
 
-/** Orden canónico en el que se muestran las categorías (grid del home, filtros, etc). */
+/**
+ * Orden canónico en el que se muestran las categorías (grid del home, filtros, etc).
+ * "otros" queda fuera a propósito: sigue existiendo como fallback interno de
+ * `normalizePlaceCategoryKey` para datos nulos/sin match, pero no es una opción navegable.
+ */
 export const PLACE_CATEGORY_ORDER: PlaceCategoryKey[] = [
-  'turistico',
+  'turismo',
   'naturaleza',
-  'patrimonio',
+  'historia',
   'miradores',
   'costa',
-  'cultura',
   'gastronomia',
-  'otros',
+  'hospedaje',
+  'compras',
 ];
 
 const VISUAL: Record<
   PlaceCategoryKey,
   { icon: IonName; pinColor: string; pinColorDark: string }
 > = {
-  turistico: { icon: 'compass', pinColor: '#4f46e5', pinColorDark: '#818cf8' },
+  turismo: { icon: 'compass', pinColor: '#4f46e5', pinColorDark: '#818cf8' },
   naturaleza: { icon: 'leaf', pinColor: '#059669', pinColorDark: '#34d399' },
-  patrimonio: { icon: 'library', pinColor: '#d97706', pinColorDark: '#fbbf24' },
+  historia: { icon: 'library', pinColor: '#d97706', pinColorDark: '#fbbf24' },
   miradores: { icon: 'eye', pinColor: '#0284c7', pinColorDark: '#38bdf8' },
   costa: { icon: 'water', pinColor: '#0891b2', pinColorDark: '#22d3ee' },
-  cultura: { icon: 'color-palette', pinColor: '#7c3aed', pinColorDark: '#a78bfa' },
   gastronomia: { icon: 'restaurant', pinColor: '#ea580c', pinColorDark: '#fb923c' },
+  hospedaje: { icon: 'bed', pinColor: '#0d9488', pinColorDark: '#2dd4bf' },
+  compras: { icon: 'bag-handle', pinColor: '#e11d48', pinColorDark: '#fb7185' },
   otros: { icon: 'location', pinColor: '#6b7280', pinColorDark: '#9ca3af' },
 };
 
 const KEY_LABEL: Record<PlaceCategoryKey, string> = {
-  turistico: 'Turístico',
+  turismo: 'Turismo',
   naturaleza: 'Naturaleza',
-  patrimonio: 'Patrimonio e historia',
+  historia: 'Historia',
   miradores: 'Miradores',
   costa: 'Costa y mar',
-  cultura: 'Cultura',
   gastronomia: 'Gastronomía',
+  hospedaje: 'Hospedaje',
+  compras: 'Compras',
   otros: 'Otros',
 };
 
@@ -63,6 +70,8 @@ const SLUGS = new Set<string>(Object.keys(VISUAL));
 
 /**
  * Pasa `category` tal cual venga del API (slug, etiqueta, mayúsculas).
+ * Incluye compatibilidad con slugs antiguos (turistico, patrimonio, cultura)
+ * que ya no se ofrecen como opción pero pueden existir en registros previos.
  */
 export function normalizePlaceCategoryKey(
   raw: string | null | undefined,
@@ -76,14 +85,15 @@ export function normalizePlaceCategoryKey(
 
   if (SLUGS.has(t)) return t as PlaceCategoryKey;
 
-  if (t.includes('turis')) return 'turistico';
+  if (t.includes('turis')) return 'turismo';
   if (t.includes('naturaleza')) return 'naturaleza';
-  if (t.includes('patrimonio') || t.includes('historia')) return 'patrimonio';
+  if (t.includes('patrimonio') || t.includes('historia')) return 'historia';
   if (t.includes('mirador')) return 'miradores';
   if (t.includes('costa') || t.includes(' mar')) return 'costa';
-  if (t.includes('cultura')) return 'cultura';
   if (t.includes('gastronom')) return 'gastronomia';
-  if (t === 'otros' || t.includes('otro')) return 'otros';
+  if (t.includes('hospedaje') || t.includes('hotel') || t.includes('alojamiento')) return 'hospedaje';
+  if (t.includes('servicio') || t.includes('compra')) return 'compras';
+  if (t === 'otros' || t.includes('otro') || t.includes('cultura')) return 'otros';
 
   return 'otros';
 }
