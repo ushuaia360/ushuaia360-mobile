@@ -22,7 +22,7 @@ import {
   trailHistoryEntryStartedAt,
 } from '@/services/api';
 import { saveRecordedPath } from '@/lib/recorded-trail-path';
-import { useWatchUserLocation } from '@/hooks/use-watch-user-location';
+import { startTrailLocationTracking, stopTrailLocationTracking } from '@/lib/trail-location-tracking';
 import { useAuthStore } from '@/store/auth-store';
 import {
   type ActiveTrailEmergencyPoint,
@@ -33,7 +33,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Tabs, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, BackHandler, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function formatElapsed(seconds: number): string {
@@ -136,32 +136,32 @@ export default function TrailRecorridoScreen() {
     return () => { cancelled = true; };
   }, [hydrated, session?.historyEntryId, session?.beganRecorridoSynced, token, updateActiveSession]);
 
-  const [isPaused, setIsPaused] = useState(false);
-
   // ─── Grabación GPS ────────────────────────────────────────────
-  const [localRecordedPath, setLocalRecordedPath] = useState<
-    { latitude: number; longitude: number }[]
-  >(() => session?.recordedPath ?? []);
+  // La grabación corre vía `expo-location` background updates (ver `lib/trail-recording-task.ts`),
+  // no un watch en foreground: sigue con la app minimizada o la pantalla bloqueada, y solo se
+  // detiene si el usuario toca "pausar" (`isPaused`, persistido en la sesión).
+  const isPaused = session?.paused ?? false;
+  const localRecordedPath = session?.recordedPath ?? [];
 
-  const geoFix = useWatchUserLocation(Platform.OS !== 'web');
-  const prevGeoFixRef = useRef<{ latitude: number; longitude: number } | null>(null);
-  const pointsSinceSaveRef = useRef(0);
+  const setIsPaused = useCallback(
+    (paused: boolean) => {
+      void updateActiveSession({ paused });
+      if (paused) {
+        void stopTrailLocationTracking();
+      } else {
+        void startTrailLocationTracking();
+      }
+    },
+    [updateActiveSession],
+  );
 
+  // Arranca (o retoma, de forma idempotente) la grabación en background al entrar a la pantalla
+  // con una sesión activa no pausada — cubre tanto el inicio del recorrido como reabrir la app
+  // tras haberla minimizado.
   useEffect(() => {
-    if (!geoFix || isPaused) return;
-    const { latitude, longitude } = geoFix;
-    const prev = prevGeoFixRef.current;
-    if (prev && prev.latitude === latitude && prev.longitude === longitude) return;
-    prevGeoFixRef.current = { latitude, longitude };
-    setLocalRecordedPath((existing) => [...existing, { latitude, longitude }]);
-    pointsSinceSaveRef.current += 1;
-  }, [geoFix, isPaused]);
-
-  useEffect(() => {
-    if (pointsSinceSaveRef.current < 20 || localRecordedPath.length === 0) return;
-    pointsSinceSaveRef.current = 0;
-    void updateActiveSession({ recordedPath: localRecordedPath });
-  }, [localRecordedPath, updateActiveSession]);
+    if (!session || session.paused) return;
+    void startTrailLocationTracking();
+  }, [session?.historyEntryId, session?.paused]);
 
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const [celebrationTrailName, setCelebrationTrailName] = useState('');
@@ -252,6 +252,7 @@ export default function TrailRecorridoScreen() {
             serverHistoryEntryId: serverIdAfterStart,
           });
           await removeSessionByHistoryId(snapBefore.historyEntryId);
+          void stopTrailLocationTracking();
           router.replace('/(tabs)' as any);
           setTimeout(() => {
             appAlert(
@@ -278,6 +279,7 @@ export default function TrailRecorridoScreen() {
     const hid = session?.historyEntryId;
     void (async () => {
       if (hid) await removeSessionByHistoryId(hid);
+      void stopTrailLocationTracking();
       router.replace('/(tabs)' as any);
     })();
   };

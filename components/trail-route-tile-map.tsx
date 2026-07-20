@@ -5,6 +5,7 @@ import {
   mapPixelToLatLon,
   type MapPanState,
 } from '@/lib/map-projection';
+import { offlineTileFileUri, type TileTheme } from '@/lib/offline-tile-cache';
 import { poiTypeIcon } from '@/lib/poi-icons';
 import {
   calcTilesLikeHome,
@@ -127,6 +128,13 @@ interface Props {
   onMapPressAt?: (latitude: number, longitude: number) => void;
   /** Zoom externo (p. ej. sincronizar dos instancias del mapa) */
   focusTarget?: MapFocusTarget | null;
+  /**
+   * Sendero descargado para uso offline: id + claves de tiles ya cacheadas localmente
+   * (ver `lib/offline-tile-cache.ts`). Si un tile está en `offlineTileKeys`, se sirve desde
+   * disco en vez de pedirlo a CartoDB (relevante en Android/web; iOS usa mapa nativo).
+   */
+  offlineTrailId?: string | null;
+  offlineTileKeys?: Set<string> | null;
 }
 
 const LOCATION_PIN = 28;
@@ -148,6 +156,8 @@ export default function TrailRouteTileMap({
   onPoiPress,
   onMapPressAt,
   focusTarget,
+  offlineTrailId,
+  offlineTileKeys,
 }: Props) {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [userTileState, setUserTileState] = useState<MapPanState | null>(null);
@@ -155,6 +165,7 @@ export default function TrailRouteTileMap({
   const baseUrl = isDark
     ? 'https://a.basemaps.cartocdn.com/dark_all'
     : 'https://a.basemaps.cartocdn.com/light_all';
+  const tileTheme: TileTheme = isDark ? 'dark' : 'light';
 
   const routeForDraw = useMemo(
     () => decimateRoute(routeCoordinates, MAX_ROUTE_VERTICES),
@@ -462,10 +473,15 @@ export default function TrailRouteTileMap({
         }
       }}>
       <View style={styles.tileLayer} pointerEvents="none">
-        {tiles.map((t, i) => (
+        {tiles.map((t, i) => {
+          const localUri =
+            offlineTrailId && offlineTileKeys?.has(t.key)
+              ? offlineTileFileUri(offlineTrailId, tileTheme, t.key)
+              : null;
+          return (
           <Image
             key={t.key}
-            source={{ uri: t.url }}
+            source={{ uri: localUri ?? t.url }}
             style={[styles.tile, { left: t.posX, top: t.posY }]}
             cachePolicy="memory-disk"
             transition={0}
@@ -486,7 +502,8 @@ export default function TrailRouteTileMap({
                 : undefined
             }
           />
-        ))}
+          );
+        })}
       </View>
 
       {(showRouteLine || recordedPathPixelPolyline.length > 0) && size.w >= MIN_LAYOUT && size.h >= MIN_LAYOUT && (

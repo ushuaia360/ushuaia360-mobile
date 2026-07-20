@@ -21,6 +21,12 @@ export class ApiHttpError extends Error {
   }
 }
 
+/**
+ * Con internet muy lento `fetch` puede tardar minutos en fallar (no hay timeout nativo);
+ * esto dejaba la splash screen colgada esperando `/auth/me-app` en `authStore.initialize()`.
+ */
+const REQUEST_TIMEOUT_MS = 10_000;
+
 function parseJsonOrEmpty(text: string): Record<string, unknown> {
   try {
     const v = JSON.parse(text) as unknown;
@@ -56,11 +62,19 @@ export async function apiRequestWithServerTime<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const ac = new AbortController();
+  const timeout = setTimeout(() => ac.abort(), REQUEST_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ac.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const serverNowMs = parseHttpDateHeaderMs(res);
 

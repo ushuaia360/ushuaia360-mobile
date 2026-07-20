@@ -1,4 +1,5 @@
 import { useActiveTrailSessionStore } from '@/store/active-trail-session-store';
+import { stopTrailLocationTracking } from '@/lib/trail-location-tracking';
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiHttpError, apiRequest, updateProfile as apiUpdateProfile, type UpdateProfileParams } from '@/services/api';
@@ -80,6 +81,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const token = await AsyncStorage.getItem(TOKEN_KEY);
       if (!token) {
         await useActiveTrailSessionStore.getState().clearSession();
+        void stopTrailLocationTracking();
         set({ isInitialized: true });
         return;
       }
@@ -94,6 +96,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           await AsyncStorage.removeItem(TOKEN_KEY);
           await AsyncStorage.removeItem(USER_CACHE_KEY);
           await useActiveTrailSessionStore.getState().clearSession();
+          void stopTrailLocationTracking();
           set({ token: null, user: null, isInitialized: true });
           return;
         }
@@ -113,6 +116,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await AsyncStorage.removeItem(TOKEN_KEY);
       await AsyncStorage.removeItem(USER_CACHE_KEY);
       await useActiveTrailSessionStore.getState().clearSession();
+      void stopTrailLocationTracking();
       set({ token: null, user: null, isInitialized: true });
     }
   },
@@ -238,6 +242,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     await AsyncStorage.removeItem(TOKEN_KEY);
     await AsyncStorage.removeItem(USER_CACHE_KEY);
     await useActiveTrailSessionStore.getState().clearSession();
+    void stopTrailLocationTracking();
     set({ token: null, user: null });
   },
 }));

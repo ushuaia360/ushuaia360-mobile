@@ -3,15 +3,24 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Trail } from '@/constants/mock-trails';
 import { SB_INPUT_HEIGHT } from '@/constants/search-layout';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useNetworkReachable } from '@/hooks/use-network-reachable';
+import { recheckNetworkReachable, useNetworkReachable } from '@/hooks/use-network-reachable';
 import { useHomeStore } from '@/store/home-store';
 import { BackendPlaceListItem, useTrailsStore } from '@/store/trails-store';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Animated, FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  FlatList,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FiltersOverlay from './filters-overlay';
@@ -96,6 +105,16 @@ export default function ListHome() {
   const [filterRouteType, setFilterRouteType] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([recheckNetworkReachable(), fetchTrails(true), fetchPlaces()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchTrails, fetchPlaces]);
 
   // Filtros pendientes desde el Home (p. ej. tap en una categoría)
   useFocusEffect(useCallback(() => {
@@ -240,6 +259,9 @@ export default function ListHome() {
           renderItem={renderItem}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={Palette.primary} />
+          }
           // ── Paginación ──
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.4}

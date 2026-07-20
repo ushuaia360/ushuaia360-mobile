@@ -3,9 +3,9 @@ import OfflineHomePlaceholder from '@/components/home/offline-home-placeholder';
 import TrailImage from '@/components/home/trail-image';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useNetworkReachable } from '@/hooks/use-network-reachable';
+import { recheckNetworkReachable, useNetworkReachable } from '@/hooks/use-network-reachable';
 import { redirectToLogin } from '@/lib/needAuth';
 import { toTitleCase } from '@/lib/title-case';
 import { useAuthStore } from '@/store/auth-store';
@@ -17,9 +17,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HERO_IMAGE = require('@/assets/images/bannerinicio.jpeg');
@@ -144,10 +144,20 @@ function HomeContent() {
   const { setMode, setPendingListFilters } = useHomeStore();
   const { featured, loadingFeatured, fetchFeatured } = useTrailsStore();
   const [searchTop, setSearchTop] = useState(top + 44);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (featured.length === 0) fetchFeatured();
   }, [featured.length, fetchFeatured]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([recheckNetworkReachable(), fetchFeatured()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchFeatured]);
 
   const goToList = (filters?: { filterKind: string[]; filterCategory: string[] }) => {
     setPendingListFilters({
@@ -165,7 +175,12 @@ function HomeContent() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={Palette.primary} />
+        }>
         {/* Hero */}
         <View style={styles.hero}>
           <Image source={HERO_IMAGE} style={styles.heroImage as object} contentFit="cover" />

@@ -85,6 +85,18 @@ function getWebInitialReachable(): boolean | null {
   return onLine;
 }
 
+/**
+ * Fuerza un chequeo inmediato (p. ej. pull-to-refresh o botón "reintentar"), sin esperar
+ * al próximo tick del poll de 10s. Notifica a todos los suscriptores activos del hook.
+ */
+export async function recheckNetworkReachable(): Promise<void> {
+  if (Platform.OS === 'web') {
+    if (typeof navigator !== 'undefined') notifyReachable(navigator.onLine);
+    return;
+  }
+  await pingAndNotify();
+}
+
 /** `null` = comprobando (solo nativo, antes del primer ping); `true`/`false` = resultado hacia el API. */
 export function useNetworkReachable(): boolean | null {
   const [reachable, setReachable] = useState<boolean | null>(() =>

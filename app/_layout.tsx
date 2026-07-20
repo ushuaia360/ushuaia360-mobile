@@ -8,6 +8,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import '@/i18n';
+// Registra la tarea de grabación de ubicación en segundo plano (debe ejecutarse en scope
+// global, no dentro de un componente) — ver `lib/trail-recording-task.ts`.
+import '@/lib/trail-recording-task';
 import MaintenanceOverlay from '@/components/maintenance-overlay';
 import UpdateRequiredModal from '@/components/update-required-modal';
 import SearchPanel from '@/components/home/search-panel';

@@ -16,8 +16,6 @@ import {
 import { redirectToLogin } from '@/lib/needAuth';
 import { poiTypeIcon } from '@/lib/poi-icons';
 import { appAlert } from '@/lib/app-alert';
-import { loadRecordedPath } from '@/lib/recorded-trail-path';
-import { fetchTrailRecordedPath } from '@/services/api';
 import { isLikelyNetworkError, shouldQueueTrailCompletionError } from '@/lib/network-error';
 import { cacheTrailDetailMediaForOffline } from '@/lib/offline-media-cache';
 import { canDownloadForOffline } from '@/lib/offline-download-gate';
@@ -27,6 +25,11 @@ import {
   loadTrailOfflinePack,
   removeManualTrailDownload,
 } from '@/lib/offline-pack';
+import {
+  downloadTrailOfflineTiles,
+  listCachedTileKeys,
+  removeTrailOfflineTiles,
+} from '@/lib/offline-tile-cache';
 import { normalizeSessionStartedAtToISO } from '@/lib/session-started-at';
 import { buildLineFromTrailPoints, normalizeTrailPointLocation } from '@/lib/trail-geo-normalize';
 import { alertLocationDenied, ensureTrailMapLocationPermission } from '@/lib/trail-location-permission';
@@ -488,9 +491,6 @@ export default function TrailDetailScreen() {
   const [trailDetail, setTrailDetail] = useState<TrailDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(() => Boolean(trailId));
   const [trailManualDownload, setTrailManualDownload] = useState(false);
-  const [savedRecordedPath, setSavedRecordedPath] = useState<
-    { latitude: number; longitude: number }[] | null
-  >(null);
 
   const refreshTrailManualDownload = useCallback(() => {
     if (!trailId) return;
@@ -503,19 +503,22 @@ export default function TrailDetailScreen() {
     }, [refreshTrailManualDownload]),
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!trailId) return;
-      void (async () => {
-        if (token && networkReachable === true) {
-          const fromServer = await fetchTrailRecordedPath(token, trailId);
-          if (fromServer) { setSavedRecordedPath(fromServer); return; }
-        }
-        const fromLocal = await loadRecordedPath(trailId);
-        setSavedRecordedPath(fromLocal);
-      })();
-    }, [trailId, token, networkReachable]),
-  );
+  /** Claves de tiles de mapa ya cacheados en disco para este sendero (tema actual). */
+  const [offlineTileKeys, setOfflineTileKeys] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!trailId || !trailManualDownload) {
+      setOfflineTileKeys(null);
+      return;
+    }
+    let cancelled = false;
+    void listCachedTileKeys(trailId, isDark ? 'dark' : 'light').then((keys) => {
+      if (!cancelled) setOfflineTileKeys(keys);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [trailId, trailManualDownload, isDark]);
 
   const [trailDownloadBusy, setTrailDownloadBusy] = useState(false);
 
@@ -539,7 +542,9 @@ export default function TrailDetailScreen() {
             style: 'destructive',
             onPress: async () => {
               await removeManualTrailDownload(trailId);
+              await removeTrailOfflineTiles(trailId);
               setTrailManualDownload(false);
+              setOfflineTileKeys(null);
             },
           },
         ],
@@ -558,12 +563,28 @@ export default function TrailDetailScreen() {
       setTrailDetail(withLocalMedia);
       setTrailManualDownload(true);
       appAlert(t('trailDetail.downloadDoneTitle'), t('trailDetail.downloadDoneBody'));
+
+      // Mapa offline: mejor esfuerzo, no bloquea ni rompe la descarga si falla.
+      // `trail` (con su `coordinate`) se declara más abajo en el componente; usamos el mismo
+      // fallback fijo que `routeReference` para no depender de él acá y evitar un ciclo de dependencias.
+      const tileRef = withLocalMedia.map_point ?? { latitude: -54.8, longitude: -68.3 };
+      const tilePoints = (withLocalMedia.points ?? [])
+        .map((p) => normalizeTrailPointLocation(p.location))
+        .filter((c): c is { latitude: number; longitude: number } => c != null);
+      const coordsForTiles = [
+        ...buildTrailLineCoordinates(withLocalMedia, tileRef),
+        ...tilePoints,
+        ...(withLocalMedia.map_point ? [withLocalMedia.map_point] : []),
+      ];
+      void downloadTrailOfflineTiles(trailId, coordsForTiles).then(() =>
+        listCachedTileKeys(trailId, isDark ? 'dark' : 'light').then(setOfflineTileKeys),
+      );
     } catch {
       appAlert(t('trailDetail.downloadErrorTitle'), t('trailDetail.downloadErrorBody'));
     } finally {
       setTrailDownloadBusy(false);
     }
-  }, [trailId, trailDetail, user, trailManualDownload]);
+  }, [trailId, trailDetail, user, trailManualDownload, isDark]);
 
   useEffect(() => {
     if (!trailId) return;
@@ -1292,7 +1313,6 @@ export default function TrailDetailScreen() {
                             <View style={styles.mapOverlay}>
                               <TrailRouteTileMap
                                 routeCoordinates={lineCoordinates}
-                                recordedPath={savedRecordedPath ?? undefined}
                                 interestPoints={interestPointsForMap}
                                 mainPoint={mapPointForMap}
                                 fallbackCenter={trail.coordinate}
@@ -1303,6 +1323,8 @@ export default function TrailDetailScreen() {
                                 focusTarget={mapFocus}
                                 onPoiPress={handleMapPoiPress}
                                 onMapPressAt={handleMapPressAt}
+                                offlineTrailId={trailManualDownload ? trailId : undefined}
+                                offlineTileKeys={offlineTileKeys}
                               />
                             </View>
                             <TouchableOpacity
@@ -1678,7 +1700,6 @@ export default function TrailDetailScreen() {
                 <View style={styles.mapFullscreenBody}>
                   <TrailRouteTileMap
                     routeCoordinates={lineCoordinates}
-                    recordedPath={savedRecordedPath ?? undefined}
                     interestPoints={interestPointsForMap}
                     mainPoint={mapPointForMap}
                     fallbackCenter={trail.coordinate}
@@ -1689,6 +1710,8 @@ export default function TrailDetailScreen() {
                     focusTarget={mapFocus}
                     onPoiPress={handleMapPoiPress}
                     onMapPressAt={handleMapPressAt}
+                    offlineTrailId={trailManualDownload ? trailId : undefined}
+                    offlineTileKeys={offlineTileKeys}
                   />
                 </View>
 

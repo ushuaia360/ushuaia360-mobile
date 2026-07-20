@@ -35,6 +35,8 @@ export interface ActiveTrailSessionSnapshot {
   mainPoint: { latitude: number; longitude: number } | null;
   fallbackCenter: { latitude: number; longitude: number };
   minimized: boolean;
+  /** Grabación en pausa (solo por acción explícita del usuario, nunca por backgrounding). */
+  paused?: boolean;
   /**
    * `false` / ausente: hay que llamar a `begin-recorrido` y alinear `started_at` con el servidor.
    * `true`: ya sincronizado.

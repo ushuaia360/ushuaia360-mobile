@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Reemplazá con los IDs reales una vez publicada la app
 const IOS_APP_STORE_URL = 'https://apps.apple.com/app/id0000000000';
-const ANDROID_PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.ushuaia360.ios';
+const ANDROID_PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.ushuaia360';
 
 interface Props {
   title: string;
