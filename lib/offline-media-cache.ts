@@ -127,10 +127,22 @@ async function downloadUrlsToMap(
   for (const absUrl of urls) {
     try {
       const dest = await localFileUriForDownloadedUrl(absUrl, entityFolder, entityId);
-      const existing = await FileSystem.getInfoAsync(dest);
+      let existing = await FileSystem.getInfoAsync(dest);
+      // Una descarga previa interrumpida (app a segundo plano, señal débil) puede dejar
+      // un archivo de 0 bytes que `exists` no distingue de uno válido; sin este chequeo
+      // queda cacheado como "descargado" para siempre y nunca se reintenta.
+      if (existing.exists && existing.size === 0) {
+        await FileSystem.deleteAsync(dest, { idempotent: true });
+        existing = await FileSystem.getInfoAsync(dest);
+      }
       if (!existing.exists) {
         const res = await FileSystem.downloadAsync(absUrl, dest);
         if (res.status >= 400) {
+          await FileSystem.deleteAsync(dest, { idempotent: true });
+          continue;
+        }
+        const written = await FileSystem.getInfoAsync(dest);
+        if (!written.exists || written.size === 0) {
           await FileSystem.deleteAsync(dest, { idempotent: true });
           continue;
         }

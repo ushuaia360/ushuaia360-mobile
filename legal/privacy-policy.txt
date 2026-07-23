@@ -1,0 +1,96 @@
+POLÍTICA DE PRIVACIDAD DE USHUAIA360
+
+Última actualización: [FECHA]
+
+1. INTRODUCCIÓN Y RESPONSABLE DEL TRATAMIENTO
+
+Esta Política de Privacidad describe cómo [RAZÓN SOCIAL], con domicilio en [DIRECCIÓN], Ushuaia, Tierra del Fuego, Argentina (en adelante, "Ushuaia360", "nosotros" o "la app"), recopila, utiliza, almacena y protege los datos personales de las personas usuarias (en adelante, "vos" o "el usuario") de la aplicación móvil Ushuaia360 y sus servicios asociados.
+
+Al crear una cuenta o utilizar la app aceptás las prácticas descritas en esta Política. Si no estás de acuerdo, te pedimos que no utilices Ushuaia360.
+
+Tratamos tus datos conforme a la Ley N.º 25.326 de Protección de Datos Personales de la República Argentina y, en la medida en que resulte aplicable a usuarios de otras regiones, conforme a los principios del Reglamento General de Protección de Datos (RGPD) de la Unión Europea.
+
+2. DATOS QUE RECOPILAMOS
+
+2.1. Datos que nos proporcionás directamente
+- Datos de registro: nombre completo, correo electrónico y contraseña (almacenada de forma cifrada, nunca en texto plano).
+- Datos de autenticación con terceros: si te registrás con Google o Apple, recibimos tu nombre, correo electrónico y un identificador único provisto por ese servicio.
+- Foto de perfil (avatar), en caso de que decidas subir una.
+- Idioma preferido de la app.
+- Contenido que generás: reseñas, calificaciones, comentarios y fotografías que subís para acompañar tus reseñas de senderos y lugares turísticos.
+- Comunicaciones que nos envíes (por ejemplo, consultas de soporte).
+
+2.2. Datos que recopilamos automáticamente
+- Ubicación GPS: con tu permiso, Ushuaia360 accede a tu ubicación mientras usás la app para mostrarte en el mapa y, durante una actividad de senderismo activa, para grabar tu recorrido (traza GPS), incluso cuando la app está en segundo plano o la pantalla apagada. Podés otorgar el permiso de ubicación "mientras usás la app" o "siempre"; este último es necesario únicamente para el registro de recorridos en segundo plano y podés desactivarlo en cualquier momento desde los ajustes de tu dispositivo.
+- Datos de uso: senderos y lugares que visitás, favoritos, historial de actividades, estadísticas personales (distancia recorrida, tiempo, desnivel), y las descargas offline que realizás.
+- Datos técnicos y del dispositivo: modelo de dispositivo, sistema operativo, identificadores de instalación, idioma del sistema y datos de diagnóstico de errores.
+- Estado de suscripción: si tenés una cuenta premium y su fecha de vencimiento. Los pagos de suscripciones se procesan a través de Apple App Store o Google Play; Ushuaia360 no almacena datos de tarjetas de pago.
+
+2.3. Datos de la cámara y la galería
+Si elegís adjuntar una foto a una reseña o guardar una imagen 360 como fondo de pantalla, accedemos a tu cámara o galería únicamente con tu autorización explícita y solo para esa acción puntual.
+
+3. FINALIDAD DEL TRATAMIENTO
+
+Usamos tus datos para:
+a) Crear y administrar tu cuenta, y autenticarte en la app.
+b) Mostrar senderos, lugares turísticos y contenido 360 relevantes, incluyendo tu posición en el mapa.
+c) Registrar y guardar tu historial de recorridos, estadísticas y favoritos.
+d) Permitir la descarga y el uso de senderos en modo offline.
+e) Publicar tus reseñas, calificaciones y fotos, y moderarlas cuando sea necesario.
+f) Gestionar tu suscripción premium y las funcionalidades asociadas.
+g) Enviarte comunicaciones operativas (verificación de cuenta, recuperación de contraseña, avisos de servicio) por correo electrónico.
+h) Mejorar la app, corregir errores y analizar el uso agregado del servicio.
+i) Cumplir obligaciones legales y prevenir usos fraudulentos o abusivos.
+j) En el futuro, y solo si activás esa funcionalidad, poner tu ubicación a disposición de servicios de emergencia o rescate en montaña ante una situación de riesgo. Esta funcionalidad, cuando esté disponible, será opcional y requerirá tu consentimiento expreso.
+
+La base legal para estos tratamientos es la ejecución del contrato de uso de la app, tu consentimiento (en particular para la ubicación en segundo plano y el acceso a cámara/galería) y nuestro interés legítimo en mantener y mejorar el servicio.
+
+4. CON QUIÉN COMPARTIMOS TUS DATOS
+
+No vendemos tus datos personales. Los compartimos únicamente con:
+- Proveedores de infraestructura y almacenamiento (Supabase) que alojan la base de datos y las imágenes que subís.
+- Proveedores de autenticación (Google Sign-In, Apple Sign In), cuando elegís registrarte con esos métodos.
+- Proveedor de envío de correos transaccionales (Resend), para verificación de cuenta y recuperación de contraseña.
+- Apple App Store y Google Play, para la gestión de compras y suscripciones premium.
+- Otros usuarios de la app, respecto de la información que decidís hacer pública: tu nombre, avatar, reseñas, calificaciones y fotos.
+- Autoridades públicas, cuando exista una obligación legal que lo requiera.
+
+Estos proveedores pueden encontrarse fuera de Argentina; en esos casos adoptamos las salvaguardas contractuales razonables para proteger tus datos durante la transferencia internacional.
+
+5. PLAZO DE CONSERVACIÓN
+
+Conservamos tus datos mientras tu cuenta permanezca activa. Si solicitás la eliminación de tu cuenta, borraremos o anonimizaremos tus datos personales en un plazo razonable, salvo que debamos conservar cierta información por obligaciones legales, para resolver disputas o para hacer cumplir nuestros acuerdos (por ejemplo, registros de facturación de suscripciones).
+
+6. TUS DERECHOS
+
+Como titular de tus datos, tenés derecho a:
+- Acceder a los datos personales que tenemos sobre vos.
+- Rectificar datos inexactos o incompletos.
+- Solicitar la supresión de tus datos ("derecho al olvido").
+- Oponerte a determinados tratamientos u otorgar u retirar tu consentimiento.
+- Solicitar la portabilidad de tus datos en un formato estructurado.
+- Limitar el tratamiento en determinadas circunstancias.
+
+Podés ejercer estos derechos escribiendo a [EMAIL DE CONTACTO]. También podés revocar el permiso de ubicación, cámara o galería en cualquier momento desde los ajustes de tu sistema operativo, y eliminar tu cuenta desde la sección "Perfil" de la app.
+
+Si considerás que no hemos atendido correctamente tu solicitud, podés presentar un reclamo ante la Agencia de Acceso a la Información Pública de Argentina (www.argentina.gob.ar/aaip).
+
+7. SEGURIDAD
+
+Aplicamos medidas técnicas y organizativas razonables para proteger tus datos, incluyendo cifrado de contraseñas, comunicación mediante conexiones seguras y control de acceso a nuestras bases de datos. Ningún sistema es completamente infalible; ante cualquier incidente de seguridad relevante te notificaremos conforme a la normativa aplicable.
+
+8. MENORES DE EDAD
+
+Ushuaia360 no está dirigida a menores de 13 años y no recopilamos deliberadamente datos de menores de esa edad. Si tomamos conocimiento de que hemos recopilado datos de un menor sin el consentimiento correspondiente de sus padres o tutores, procederemos a eliminarlos.
+
+9. UBICACIÓN Y SEGURIDAD EN EL SENDERO
+
+La información de ubicación que registra la app tiene fines informativos y de acompañamiento durante tu actividad; no sustituye tu propio criterio de seguridad ni los servicios oficiales de rescate y emergencia. Consultá también nuestros Términos y Condiciones para conocer las limitaciones de responsabilidad relacionadas con la actividad de senderismo.
+
+10. CAMBIOS EN ESTA POLÍTICA
+
+Podemos actualizar esta Política de Privacidad para reflejar cambios en la app o en la normativa aplicable. Te notificaremos los cambios relevantes dentro de la propia app y actualizaremos la fecha de "Última actualización" al inicio de este documento. El uso continuado de Ushuaia360 tras esos cambios implica tu aceptación de la política actualizada.
+
+11. CONTACTO
+
+Si tenés preguntas sobre esta Política de Privacidad o sobre el tratamiento de tus datos, escribinos a [EMAIL DE CONTACTO].

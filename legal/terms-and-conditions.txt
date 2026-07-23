@@ -1,0 +1,108 @@
+TÉRMINOS Y CONDICIONES DE USO DE USHUAIA360
+
+Última actualización: [FECHA]
+
+1. OBJETO Y ACEPTACIÓN
+
+Estos Términos y Condiciones (en adelante, "los Términos") regulan el acceso y uso de la aplicación móvil Ushuaia360 (en adelante, "la app" o "el Servicio"), operada por [RAZÓN SOCIAL], con domicilio en [DIRECCIÓN], Ushuaia, Tierra del Fuego, Argentina.
+
+Al registrarte o utilizar Ushuaia360 aceptás estos Términos en su totalidad. Si no estás de acuerdo, no debés usar la app. Para tratar tus datos personales aplicamos además nuestra Política de Privacidad, que forma parte integrante de este acuerdo.
+
+2. DESCRIPCIÓN DEL SERVICIO
+
+Ushuaia360 es una aplicación pensada para turistas y senderistas en Ushuaia y alrededores, que ofrece:
+- Información de senderos: distancia, dificultad, tiempo estimado, trazas GPS y puntos de interés a lo largo del recorrido.
+- Fotografías 360° en puntos estratégicos de senderos y lugares turísticos.
+- Un catálogo de lugares turísticos navegable por mapa o por lista.
+- Descarga de senderos para uso sin conexión a internet (modo offline), incluyendo mapa, traza GPS, información y fotos 360.
+- Cuentas de usuario con favoritos, historial de actividades, estadísticas personales, calificaciones y comentarios.
+- En el futuro, funcionalidades vinculadas a servicios de emergencia o rescate en montaña, que se activarán de forma opcional y se regirán por términos adicionales cuando estén disponibles.
+
+Nos reservamos el derecho de agregar, modificar o discontinuar funcionalidades del Servicio en cualquier momento, notificándolo cuando el cambio sea sustancial.
+
+3. REGISTRO DE CUENTA
+
+Para acceder a determinadas funciones debés crear una cuenta con tu correo electrónico y una contraseña, o mediante Google o Apple. Sos responsable de:
+- Proporcionar información veraz y mantenerla actualizada.
+- Mantener la confidencialidad de tus credenciales de acceso.
+- Toda actividad que ocurra en tu cuenta.
+
+Debés tener al menos 13 años para crear una cuenta. Si sos menor de 18 años, necesitás la autorización de tu padre, madre o tutor legal para usar la app.
+
+Podemos suspender o cancelar tu cuenta si detectamos uso fraudulento, suplantación de identidad, o incumplimiento de estos Términos.
+
+4. PLAN GRATUITO Y SUSCRIPCIÓN PREMIUM
+
+Ushuaia360 ofrece un modelo freemium:
+- El acceso a la información de senderos, mapas y contenido 360 en línea es gratuito.
+- La descarga offline de senderos está limitada a un (1) sendero gratuito; la descarga del resto de los senderos requiere una suscripción premium.
+- Las funcionalidades premium adicionales (si las hubiera) se indicarán claramente dentro de la app.
+
+Las suscripciones premium se contratan, cobran y renuevan a través de Apple App Store o Google Play, según el sistema operativo de tu dispositivo, y se rigen también por los términos de esos servicios. La renovación es automática salvo que la canceles antes de la fecha de renovación desde la configuración de tu cuenta de App Store o Google Play. Los reembolsos se gestionan según las políticas de Apple o Google, no directamente por Ushuaia360.
+
+5. CONTENIDO GENERADO POR EL USUARIO
+
+Al publicar reseñas, calificaciones, comentarios o fotografías en Ushuaia360 (en adelante, "Contenido de Usuario"), declarás que:
+- Sos titular de los derechos sobre ese contenido, o contás con autorización para publicarlo.
+- El contenido no infringe derechos de terceros, no es difamatorio, ofensivo, ilegal ni engañoso.
+
+Nos otorgás una licencia no exclusiva, mundial, gratuita y transferible para usar, reproducir, mostrar y distribuir tu Contenido de Usuario dentro de la app y en materiales promocionales de Ushuaia360, con atribución cuando sea razonablemente posible. Podés eliminar tu contenido en cualquier momento desde la app, sin perjuicio de copias ya distribuidas previamente.
+
+Nos reservamos el derecho de moderar, editar o eliminar cualquier Contenido de Usuario que incumpla estos Términos, sin necesidad de aviso previo.
+
+6. USO ACEPTABLE
+
+Al usar Ushuaia360 te comprometés a no:
+- Publicar información falsa sobre el estado, dificultad o seguridad de un sendero.
+- Subir contenido ofensivo, ilegal, violento o que vulnere derechos de terceros.
+- Intentar acceder sin autorización a sistemas, cuentas de otros usuarios o datos de la app.
+- Realizar ingeniería inversa, copiar o extraer de forma masiva la base de datos de senderos, mapas o contenido 360 de la app.
+- Usar la app con fines comerciales no autorizados por Ushuaia360.
+- Interferir con el funcionamiento normal del Servicio (por ejemplo, mediante bots, scraping automatizado o ataques de denegación de servicio).
+
+7. PROPIEDAD INTELECTUAL
+
+La app, su diseño, marca, base de datos de senderos, trazas GPS, fotografías 360 y demás contenido generado por Ushuaia360 (excluyendo el Contenido de Usuario) son propiedad de [RAZÓN SOCIAL] o de sus licenciantes, y están protegidos por las leyes de propiedad intelectual aplicables. Se te concede una licencia limitada, personal, no exclusiva e intransferible para usar la app conforme a estos Términos. Queda prohibida su reproducción, distribución o explotación comercial sin autorización previa por escrito.
+
+8. ADVERTENCIA SOBRE ACTIVIDADES DE MONTAÑA Y SENDERISMO
+
+Este es un punto especialmente importante: el senderismo y las actividades de montaña conllevan riesgos inherentes, incluyendo pero no limitado a caídas, condiciones climáticas cambiantes, desorientación, fauna silvestre, hipotermia y lesiones graves. Al usar Ushuaia360 reconocés y aceptás que:
+
+- La información de senderos, dificultad, tiempos estimados, trazas GPS y puntos de interés es de carácter orientativo. Puede contener errores, estar desactualizada o no reflejar el estado real del terreno, el clima o las condiciones de seguridad al momento de tu visita.
+- La precisión de la ubicación GPS depende de tu dispositivo, la cobertura de satélites y las condiciones del entorno (por ejemplo, bosque cerrado o terreno montañoso), y puede no ser exacta en todo momento.
+- Sos el único responsable de evaluar tu condición física, tu equipamiento, las condiciones climáticas y tu capacidad para completar un sendero antes de emprenderlo.
+- Ushuaia360 no reemplaza el asesoramiento de guías profesionales, autoridades locales de turismo o servicios oficiales de emergencia y rescate.
+- El modo offline te permite acceder a información sin conexión, pero no garantiza que dicha información esté completa o actualizada respecto de cambios recientes en el terreno.
+- Cualquier funcionalidad futura relacionada con servicios de emergencia o rescate se ofrecerá como una herramienta de asistencia adicional, no como un sustituto de las medidas de seguridad que debés tomar por tu cuenta ni de los servicios oficiales de emergencia (por ejemplo, llamar al número de emergencias local).
+
+Recomendamos siempre informar tu itinerario a un tercero, llevar equipo adecuado, verificar el pronóstico del tiempo y consultar fuentes oficiales antes de salir a un sendero.
+
+9. LIMITACIÓN DE RESPONSABILIDAD
+
+En la máxima medida permitida por la ley aplicable:
+- Ushuaia360 se ofrece "tal cual" y "según disponibilidad", sin garantías de ningún tipo, expresas o implícitas, sobre su exactitud, disponibilidad continua o ausencia de errores.
+- [RAZÓN SOCIAL] no será responsable por lesiones, daños, pérdidas o perjuicios de cualquier naturaleza derivados del uso de la app durante actividades de senderismo o montaña, incluyendo decisiones tomadas en base a la información provista por el Servicio.
+- No garantizamos que el Servicio esté libre de interrupciones, errores técnicos o disponibilidad de conectividad para las funciones que la requieren.
+- Nuestra responsabilidad total frente a vos, en caso de corresponder, no superará el monto que hayas abonado por suscripciones premium en los doce (12) meses previos al hecho que origina el reclamo.
+
+Nada en esta cláusula limita responsabilidades que no puedan excluirse conforme a la ley aplicable (por ejemplo, en casos de dolo o negligencia grave).
+
+10. DISPONIBILIDAD DEL SERVICIO
+
+Podemos suspender o modificar el Servicio, total o parcialmente, por mantenimiento, mejoras técnicas o causas ajenas a nuestro control (fallas de proveedores externos, cortes de conectividad, etc.), sin que ello genere derecho a compensación, salvo lo previsto por la normativa de protección al consumidor aplicable respecto de suscripciones ya pagas.
+
+11. SUSPENSIÓN Y CANCELACIÓN DE CUENTA
+
+Podés eliminar tu cuenta en cualquier momento desde la sección "Perfil" de la app. Podemos suspender o cancelar tu acceso al Servicio, con o sin previo aviso, si incumplís estos Términos, si tu conducta representa un riesgo para otros usuarios, o por requerimiento legal.
+
+12. MODIFICACIONES DE LOS TÉRMINOS
+
+Podemos actualizar estos Términos para reflejar cambios en el Servicio o en la normativa aplicable. Te notificaremos los cambios relevantes dentro de la app y actualizaremos la fecha de "Última actualización". El uso continuado de Ushuaia360 después de esos cambios implica tu aceptación de los Términos actualizados.
+
+13. LEY APLICABLE Y JURISDICCIÓN
+
+Estos Términos se rigen por las leyes de la República Argentina. Para cualquier controversia derivada de estos Términos, las partes se someten a la jurisdicción de los tribunales ordinarios de Ushuaia, Provincia de Tierra del Fuego, Antártida e Islas del Atlántico Sur, con renuncia a cualquier otro fuero que pudiera corresponder, sin perjuicio de los derechos irrenunciables que la normativa de defensa del consumidor pudiera otorgarte en tu domicilio.
+
+14. CONTACTO
+
+Ante cualquier consulta sobre estos Términos y Condiciones, podés escribirnos a [EMAIL DE CONTACTO].

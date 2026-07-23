@@ -9,6 +9,15 @@ function directoryOf(fileUri: string): string {
   return fileUri.slice(0, idx + 1);
 }
 
+function mimeFromUri(fileUri: string): string {
+  const m = fileUri.split('?')[0].match(/\.(jpe?g|png|webp|gif)$/i);
+  const ext = (m?.[1] ?? 'jpg').toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'gif') return 'image/gif';
+  return 'image/jpeg';
+}
+
 function buildPannellumHtml(imageUrl: string, panoramaHalf: boolean): string {
   const config: Record<string, unknown> = {
     type: 'equirectangular',
@@ -94,14 +103,19 @@ export type PanoramaWebViewProps = {
 };
 
 export default function PanoramaWebView({ uri, panoramaHalf = false, style }: PanoramaWebViewProps) {
-  const html = useMemo(() => buildPannellumHtml(uri, panoramaHalf), [uri, panoramaHalf]);
   const isLocalFile = uri.startsWith('file://');
+  const remoteHtml = useMemo(
+    () => (isLocalFile ? null : buildPannellumHtml(uri, panoramaHalf)),
+    [isLocalFile, uri, panoramaHalf],
+  );
 
-  // WKWebView loaded via `source={{ html }}` (loadHTMLString) never gets local
-  // file-system read access, even with a file:// baseURL — so pannellum's XHR
-  // to fetch an offline `file://` panorama fails with its own fileAccessError.
-  // Writing the HTML to disk and loading it via `source={{ uri }}` lets iOS use
-  // loadFileURL:allowingReadAccessToURL:, which actually grants that access.
+  // Pannellum loads equirectangular panoramas via XHR + blob and treats the load as
+  // failed unless `xhr.status === 200`. A `file://` XHR resolves with `status === 0`
+  // in WKWebView (there's no real HTTP transaction for local files), so it always hits
+  // pannellum's own fileAccessError for offline panoramas — independent of whether the
+  // WebView actually has read access to the file. Embedding the image as a `data:` URI
+  // sidesteps this: `data:` XHRs resolve with status 200. The HTML is still written to
+  // disk and loaded via `source={{ uri }}` (not `loadHTMLString`) to avoid its size cap.
   const [localHtmlUri, setLocalHtmlUri] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,18 +124,22 @@ export default function PanoramaWebView({ uri, panoramaHalf = false, style }: Pa
       return;
     }
     let cancelled = false;
-    const dest = `${directoryOf(uri)}__panorama_viewer.html`;
-    FileSystem.writeAsStringAsync(dest, html)
-      .then(() => {
+    (async () => {
+      try {
+        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+        const dataUri = `data:${mimeFromUri(uri)};base64,${base64}`;
+        const html = buildPannellumHtml(dataUri, panoramaHalf);
+        const dest = `${directoryOf(uri)}__panorama_viewer.html`;
+        await FileSystem.writeAsStringAsync(dest, html);
         if (!cancelled) setLocalHtmlUri(dest);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setLocalHtmlUri(null);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
-  }, [isLocalFile, uri, html]);
+  }, [isLocalFile, uri, panoramaHalf]);
 
   if (isLocalFile && !localHtmlUri) {
     return <View style={[styles.wrap, style]} />;
@@ -131,7 +149,7 @@ export default function PanoramaWebView({ uri, panoramaHalf = false, style }: Pa
     <View style={[styles.wrap, style]}>
       <WebView
         key={uri}
-        source={isLocalFile && localHtmlUri ? { uri: localHtmlUri } : { html }}
+        source={isLocalFile && localHtmlUri ? { uri: localHtmlUri } : { html: remoteHtml! }}
         allowingReadAccessToURL={isLocalFile ? directoryOf(uri) : undefined}
         style={styles.web}
         originWhitelist={['*']}
