@@ -3,9 +3,12 @@ import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
+import { formatPlaceCategoryLabel } from '@/lib/place-category-map';
 import {
   listManualDownloads,
+  removeManualPlaceDownload,
   removeManualTrailDownload,
+  type ManualPlaceEntry,
   type ManualTrailEntry,
 } from '@/lib/offline-pack';
 import { Ionicons } from '@expo/vector-icons';
@@ -53,7 +56,7 @@ const SHEET_HEIGHT = 220;
 // ── Delete modal ──────────────────────────────────────────────────────────────
 
 interface DeleteModalProps {
-  entry: ManualTrailEntry | null;
+  name: string;
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -61,7 +64,7 @@ interface DeleteModalProps {
   bottom: number;
 }
 
-function DeleteModal({ entry, visible, onClose, onConfirm, isDark, bottom }: DeleteModalProps) {
+function DeleteModal({ name, visible, onClose, onConfirm, isDark, bottom }: DeleteModalProps) {
   const sheetBg = isDark ? '#1c1c1e' : '#fff';
   const cancelBg = isDark ? '#2c2c2e' : '#f2f2f7';
   const cancelColor = isDark ? '#fff' : '#000';
@@ -114,7 +117,7 @@ function DeleteModal({ entry, visible, onClose, onConfirm, isDark, bottom }: Del
 
         {/* Trail name */}
         <ThemedText style={styles.sheetTrailName} numberOfLines={1}>
-          {entry?.detail.name ?? ''}
+          {name}
         </ThemedText>
         <ThemedText style={styles.sheetQuestion}>
           ¿Eliminás esta descarga?
@@ -141,6 +144,10 @@ function DeleteModal({ entry, visible, onClose, onConfirm, isDark, bottom }: Del
 
 // ── Screen ───────────────────────────────────────────────────────────────────
 
+type PendingDeletion =
+  | { kind: 'trail'; id: string; name: string }
+  | { kind: 'place'; id: string; name: string };
+
 export default function DownloadsScreen() {
   const { t } = useTranslation();
   const { top, bottom } = useSafeAreaInsets();
@@ -153,13 +160,15 @@ export default function DownloadsScreen() {
   const pageBg = isDark ? '#000' : '#fff';
 
   const [trailEntries, setTrailEntries] = useState<ManualTrailEntry[]>([]);
+  const [placeEntries, setPlaceEntries] = useState<ManualPlaceEntry[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [pendingEntry, setPendingEntry] = useState<ManualTrailEntry | null>(null);
+  const [pendingDeletion, setPendingDeletion] = useState<PendingDeletion | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const load = useCallback(async () => {
-    const { trails } = await listManualDownloads();
+    const { trails, places } = await listManualDownloads();
     setTrailEntries(trails);
+    setPlaceEntries(places);
   }, []);
 
   useFocusEffect(
@@ -177,7 +186,9 @@ export default function DownloadsScreen() {
     }
   }, [load]);
 
-  const total = trailEntries.length;
+  const totalTrails = trailEntries.length;
+  const totalPlaces = placeEntries.length;
+  const total = totalTrails + totalPlaces;
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -187,26 +198,30 @@ export default function DownloadsScreen() {
   const headerSubtitle =
     total === 0
       ? t('downloads.empty')
-      : t(total === 1 ? 'downloads.trailsSaved_one' : 'downloads.trailsSaved_other', { count: total });
+      : t(total === 1 ? 'downloads.itemsSaved_one' : 'downloads.itemsSaved_other', { count: total });
 
-  const openDeleteModal = (entry: ManualTrailEntry) => {
-    setPendingEntry(entry);
+  const openDeleteModal = (pending: PendingDeletion) => {
+    setPendingDeletion(pending);
     setModalVisible(true);
   };
 
   const closeModal = useCallback(() => {
     setModalVisible(false);
-    setPendingEntry(null);
+    setPendingDeletion(null);
   }, []);
 
   const confirmDelete = useCallback(async () => {
-    if (!pendingEntry) return;
-    const id = pendingEntry.id;
+    if (!pendingDeletion) return;
+    const { kind, id } = pendingDeletion;
     setModalVisible(false);
-    setPendingEntry(null);
-    await removeManualTrailDownload(id);
+    setPendingDeletion(null);
+    if (kind === 'trail') {
+      await removeManualTrailDownload(id);
+    } else {
+      await removeManualPlaceDownload(id);
+    }
     await load();
-  }, [pendingEntry, load]);
+  }, [pendingDeletion, load]);
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: pageBg }]}>
@@ -242,7 +257,7 @@ export default function DownloadsScreen() {
                 {t('downloads.sectionTrails')}
               </ThemedText>
               <View style={[styles.countBadge, { backgroundColor: colors.tint + '18' }]}>
-                <ThemedText style={[styles.countBadgeText, { color: colors.tint }]}>{total}</ThemedText>
+                <ThemedText style={[styles.countBadgeText, { color: colors.tint }]}>{totalTrails}</ThemedText>
               </View>
             </View>
 
@@ -311,7 +326,94 @@ export default function DownloadsScreen() {
 
                   <TouchableOpacity
                     style={styles.cardDelete}
-                    onPress={() => openDeleteModal(entry)}
+                    onPress={() =>
+                      openDeleteModal({
+                        kind: 'trail',
+                        id: entry.id,
+                        name: entry.detail.name ?? t('downloads.defaultTrailName'),
+                      })
+                    }
+                    hitSlop={12}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('downloads.removeTitle')}>
+                    <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </>
+        ) : null}
+
+        {placeEntries.length > 0 ? (
+          <>
+            {/* Section header */}
+            <View style={styles.sectionHeader}>
+              <ThemedText style={[styles.sectionTitle, { color: colors.icon }]}>
+                {t('downloads.sectionPlaces')}
+              </ThemedText>
+              <View style={[styles.countBadge, { backgroundColor: colors.tint + '18' }]}>
+                <ThemedText style={[styles.countBadgeText, { color: colors.tint }]}>{totalPlaces}</ThemedText>
+              </View>
+            </View>
+
+            {/* Place cards */}
+            {placeEntries.map((entry) => {
+              const thumb =
+                resolveApiMediaUrl(entry.place.image_urls?.[0] ?? null) ?? entry.place.image_urls?.[0] ?? '';
+              const categoryLabel = entry.place.category ? formatPlaceCategoryLabel(entry.place.category) : null;
+
+              return (
+                <View key={entry.id} style={[styles.card, { backgroundColor: cardBg }]}>
+                  <TouchableOpacity
+                    style={styles.cardMain}
+                    activeOpacity={0.85}
+                    onPress={() =>
+                      router.push({ pathname: '/places/[id]', params: { id: entry.id } } as never)
+                    }>
+
+                    {thumb ? (
+                      <ExpoImage
+                        source={{ uri: thumb }}
+                        style={styles.cardImg}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        transition={150}
+                      />
+                    ) : (
+                      <View style={[styles.cardImg, styles.cardImgPlaceholder, { backgroundColor: isDark ? '#2a2a2a' : '#e8eaed' }]}>
+                        <Ionicons name="location-outline" size={26} color={colors.icon} />
+                      </View>
+                    )}
+
+                    <View style={styles.cardInfo}>
+                      <ThemedText style={styles.cardTitle} numberOfLines={2}>
+                        {entry.place.name ?? t('downloads.defaultPlaceName')}
+                      </ThemedText>
+
+                      <View style={styles.cardMeta}>
+                        {categoryLabel ? (
+                          <View style={[styles.diffBadge, { backgroundColor: colors.tint + '22' }]}>
+                            <ThemedText style={[styles.diffLabel, { color: colors.tint }]}>{categoryLabel}</ThemedText>
+                          </View>
+                        ) : null}
+                        {entry.place.region ? (
+                          <ThemedText style={[styles.cardRegion, { color: colors.icon }]} numberOfLines={1}>
+                            {entry.place.region}
+                          </ThemedText>
+                        ) : null}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.cardDelete}
+                    onPress={() =>
+                      openDeleteModal({
+                        kind: 'place',
+                        id: entry.id,
+                        name: entry.place.name ?? t('downloads.defaultPlaceName'),
+                      })
+                    }
                     hitSlop={12}
                     accessibilityRole="button"
                     accessibilityLabel={t('downloads.removeTitle')}>
@@ -334,13 +436,13 @@ export default function DownloadsScreen() {
               Sin descargas
             </ThemedText>
             <ThemedText style={[styles.emptySub, { color: colors.icon }]}>
-              Guardá senderos para recorrerlos sin internet, incluso en las zonas más remotas.
+              Guardá senderos y lugares para recorrerlos sin internet, incluso en las zonas más remotas.
             </ThemedText>
 
             {/* Steps */}
             <View style={[styles.stepsCard, { backgroundColor: isDark ? '#1c1c1e' : '#f7f7f9' }]}>
               {[
-                { icon: 'search-outline' as const,         text: 'Encontrá un sendero' },
+                { icon: 'search-outline' as const,         text: 'Encontrá un sendero o lugar' },
                 { icon: 'arrow-down-circle-outline' as const, text: 'Tocá el botón de descarga' },
                 { icon: 'navigate-outline' as const,       text: 'Caminá sin conexión' },
               ].map((step, i, arr) => (
@@ -363,7 +465,7 @@ export default function DownloadsScreen() {
               style={[styles.ctaBtn, { backgroundColor: colors.tint }]}
               activeOpacity={0.85}
               onPress={() => router.replace('/(tabs)')}>
-              <ThemedText style={styles.ctaBtnText}>Explorar senderos</ThemedText>
+              <ThemedText style={styles.ctaBtnText}>Explorar</ThemedText>
               <Ionicons name="arrow-forward" size={16} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -371,7 +473,7 @@ export default function DownloadsScreen() {
       </ScrollView>
 
       <DeleteModal
-        entry={pendingEntry}
+        name={pendingDeletion?.name ?? ''}
         visible={modalVisible}
         onClose={closeModal}
         onConfirm={confirmDelete}

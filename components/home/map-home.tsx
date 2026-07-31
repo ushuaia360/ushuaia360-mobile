@@ -22,13 +22,14 @@ import {
 import { useWatchUserLocation } from '@/hooks/use-watch-user-location';
 import { homePinScaleFromRegionSpan, pinScaleFromTileZoom } from '@/lib/map-pin-scale';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
-import { loadMapMarkersSnapshot, saveMapMarkersSnapshot } from '@/lib/offline-pack';
+import { listManualDownloads, loadMapMarkersSnapshot, saveMapMarkersSnapshot } from '@/lib/offline-pack';
 import { fetchMapMarkers, type MapMarker } from '@/services/api';
 import MapView, { Marker, type Details, type Region } from 'react-native-maps';
 import { useHomeStore } from '@/store/home-store';
+import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -220,12 +221,33 @@ export default function MapHome() {
 
   const liveLocation = useWatchUserLocation(Platform.OS !== 'web');
   const networkReachable = useNetworkReachable();
+  const isOffline = networkReachable === false;
+
+  const [downloadedTrailIds, setDownloadedTrailIds] = useState<Set<string>>(new Set());
+
+  const loadDownloadedTrailIds = useCallback(async () => {
+    const { trails } = await listManualDownloads();
+    setDownloadedTrailIds(new Set(trails.map((t) => t.id)));
+  }, []);
+
+  /** Recarga la lista de descargas al volver a esta pestaña (p. ej. después de descargar un sendero desde su ficha). */
+  useFocusEffect(
+    useCallback(() => {
+      void loadDownloadedTrailIds();
+    }, [loadDownloadedTrailIds]),
+  );
+
+  // Sin conexión: solo mostramos pines de senderos descargados (los puntos turísticos no admiten descarga manual).
+  const visibleMapMarkers = useMemo(() => {
+    if (!isOffline) return mapMarkers;
+    return mapMarkers.filter((m) => m.kind === 'trail' && downloadedTrailIds.has(m.id));
+  }, [mapMarkers, isOffline, downloadedTrailIds]);
 
   const orderedMapMarkers = useMemo(() => {
-    const places = mapMarkers.filter((m): m is Extract<MapMarker, { kind: 'place' }> => m.kind === 'place');
-    const trails = mapMarkers.filter((m): m is Extract<MapMarker, { kind: 'trail' }> => m.kind === 'trail');
+    const places = visibleMapMarkers.filter((m): m is Extract<MapMarker, { kind: 'place' }> => m.kind === 'place');
+    const trails = visibleMapMarkers.filter((m): m is Extract<MapMarker, { kind: 'trail' }> => m.kind === 'trail');
     return [...places, ...trails];
-  }, [mapMarkers]);
+  }, [visibleMapMarkers]);
 
   useEffect(() => {
     fetchMapMarkers()
@@ -622,7 +644,7 @@ export default function MapHome() {
             ))}
           </View>
           <MapMarkersOverlay
-            markers={mapMarkers}
+            markers={visibleMapMarkers}
             mapState={committed}
             width={width}
             height={height}
@@ -640,6 +662,7 @@ export default function MapHome() {
         <SearchBar
           onPress={() => setSearchOpen(true)}
           isActive={searchOpen}
+          offline={isOffline}
           rightSlot={
             <TouchableOpacity
               style={styles.langBtn}
@@ -651,14 +674,6 @@ export default function MapHome() {
             </TouchableOpacity>
           }
         />
-        {networkReachable === false ? (
-          <View style={[styles.offlineBanner, { borderTopColor: isDark ? '#2a2a2a' : '#ececec' }]}>
-            <Ionicons name="cloud-offline-outline" size={14} color={colors.text} style={{ opacity: 0.65 }} />
-            <Text style={[styles.offlineBannerText, { color: colors.text }]} numberOfLines={2}>
-              {mapMarkers.length > 0 ? t('map.offline') : t('map.offlineNoCache')}
-            </Text>
-          </View>
-        ) : null}
       </View>
 
       {/* Debajo del BottomSheet «Senderos para ti» (misma idea que con el buscador en modal). */}
@@ -844,21 +859,6 @@ const styles = StyleSheet.create({
   },
   langBtnText: {
     fontSize: 22,
-  },
-  offlineBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    paddingTop: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  offlineBannerText: {
-    fontSize: 12,
-    lineHeight: 16,
-    opacity: 0.85,
-    flex: 1,
   },
   rightFabChrome: {
     position: 'absolute',

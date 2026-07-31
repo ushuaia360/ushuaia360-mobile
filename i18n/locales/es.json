@@ -119,7 +119,8 @@
     "noTrails": "No se encontraron resultados",
     "noConnectionList": "Sin conexión. No pudimos cargar el listado; probá el mapa con la última descarga guardada.",
     "viewMap": "Ver Mapa",
-    "searchPlaceholder": "Buscar..."
+    "searchPlaceholder": "Buscar...",
+    "searchOffline": "Sin conexión"
   },
   "homeTab": {
     "greeting": "¡Hola!",
@@ -186,11 +187,15 @@
     "title": "Descargas",
     "trailsSaved_one": "1 sendero guardado",
     "trailsSaved_other": "{{count}} senderos guardados",
-    "empty": "Guardá senderos desde el botón de descarga en la ficha del recorrido",
+    "itemsSaved_one": "1 elemento guardado",
+    "itemsSaved_other": "{{count}} elementos guardados",
+    "empty": "Guardá senderos y lugares desde el botón de descarga en su ficha",
     "sectionTrails": "Senderos",
+    "sectionPlaces": "Puntos de interés",
     "nothingDownloaded": "Nada descargado todavía",
-    "emptyBody": "En la ficha de un sendero, tocá el ícono de descarga cuando tengas conexión. Los puntos turísticos no se pueden guardar para uso sin conexión.",
+    "emptyBody": "En la ficha de un sendero o lugar, tocá el ícono de descarga cuando tengas conexión.",
     "defaultTrailName": "Sendero",
+    "defaultPlaceName": "Lugar",
     "removeTitle": "Quitar descarga",
     "removeBody": "¿Eliminar «{{name}}» del dispositivo?",
     "remove": "Quitar",
@@ -374,10 +379,15 @@
   "trailsSheet": {
     "title": "Destacados",
     "titleNearby": "También cerca tuyo",
+    "titleDownloaded": "Descargados",
     "subtitle_one": "{{count}} destacado",
     "subtitle_other": "{{count}} destacados",
     "subtitleNearby_one": "{{count}} recomendado en la zona",
     "subtitleNearby_other": "{{count}} recomendados en la zona",
+    "subtitleDownloaded_one": "{{count}} sendero descargado",
+    "subtitleDownloaded_other": "{{count}} senderos descargados",
+    "emptyDownloadedTitle": "Sin senderos descargados",
+    "emptyDownloadedBody": "Descargá un sendero desde su ficha, con conexión, para verlo acá y usarlo sin internet.",
     "viewAll": "Ver todos",
     "exploreAll": "Explorar todos los senderos"
   },
@@ -440,7 +450,19 @@
     "reviewValidationComment": "Escribí un comentario para enviar la reseña.",
     "reviewSubmitError": "Error al enviar la reseña",
     "reviewLoadMoreError": "Error al cargar más reseñas",
-    "viewMoreReviews": "Ver más reseñas ({{loaded}}/{{total}})"
+    "viewMoreReviews": "Ver más reseñas ({{loaded}}/{{total}})",
+    "premiumTitle": "Próximamente Premium",
+    "premiumBody": "La descarga para uso sin conexión estará disponible para cuentas Premium.",
+    "removeDownloadTitle": "Quitar descarga",
+    "removeDownloadBody": "¿Eliminar este lugar de tus descargas? No podrás abrirlo sin conexión.",
+    "removeDownloadBtn": "Quitar",
+    "downloadDoneTitle": "Listo",
+    "downloadDoneBody": "Lugar descargado. Lo encontrás en la pestaña Descargas.",
+    "downloadErrorTitle": "Error",
+    "downloadErrorBody": "No se pudo descargar. Comprobá tu conexión e intentá de nuevo.",
+    "downloaded": "Descargado",
+    "downloadAction": "Descargar",
+    "downloadManageLabel": "Gestión de descarga del lugar"
   },
   "trailRecorrido": {
     "noSession": "No hay un recorrido activo.",
@@ -467,6 +489,23 @@
     "backToList": "Volver al listado",
     "viewOnMap": "Ver en mapa",
     "contactWhatsApp": "Contactar por WhatsApp"
+  },
+  "weather": {
+    "title": "Clima de hoy",
+    "loadError": "No se pudo cargar el clima",
+    "min": "Mín. {{temp}}°",
+    "wind": "Viento {{speed}} km/h",
+    "codes": {
+      "clear": "Despejado",
+      "partlyCloudy": "Parcialmente nublado",
+      "cloudy": "Nublado",
+      "fog": "Neblina",
+      "drizzle": "Llovizna",
+      "rain": "Lluvia",
+      "snow": "Nieve",
+      "thunderstorm": "Tormenta",
+      "unknown": "Variable"
+    }
   },
   "mapCard": {
     "trail": "Sendero",

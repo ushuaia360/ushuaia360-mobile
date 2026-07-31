@@ -119,7 +119,8 @@
     "noTrails": "Nenhum resultado encontrado",
     "noConnectionList": "Sem conexão. Não foi possível carregar a lista; tente o mapa com o último download salvo.",
     "viewMap": "Ver Mapa",
-    "searchPlaceholder": "Buscar..."
+    "searchPlaceholder": "Buscar...",
+    "searchOffline": "Sem conexão"
   },
   "homeTab": {
     "greeting": "Olá!",
@@ -186,11 +187,15 @@
     "title": "Downloads",
     "trailsSaved_one": "1 trilha salva",
     "trailsSaved_other": "{{count}} trilhas salvas",
-    "empty": "Salve trilhas usando o botão de download na página da trilha",
+    "itemsSaved_one": "1 item salvo",
+    "itemsSaved_other": "{{count}} itens salvos",
+    "empty": "Salve trilhas e lugares usando o botão de download na página deles",
     "sectionTrails": "Trilhas",
+    "sectionPlaces": "Pontos de interesse",
     "nothingDownloaded": "Nada baixado ainda",
-    "emptyBody": "Na página de uma trilha, toque no ícone de download quando tiver conexão. Pontos turísticos não podem ser salvos para uso offline.",
+    "emptyBody": "Na página de uma trilha ou lugar, toque no ícone de download quando tiver conexão.",
     "defaultTrailName": "Trilha",
+    "defaultPlaceName": "Lugar",
     "removeTitle": "Remover download",
     "removeBody": "Excluir «{{name}}» do dispositivo?",
     "remove": "Remover",
@@ -374,10 +379,15 @@
   "trailsSheet": {
     "title": "Destaques",
     "titleNearby": "Também perto de você",
+    "titleDownloaded": "Baixados",
     "subtitle_one": "{{count}} destaque",
     "subtitle_other": "{{count}} destaques",
     "subtitleNearby_one": "{{count}} recomendada na área",
     "subtitleNearby_other": "{{count}} recomendadas na área",
+    "subtitleDownloaded_one": "{{count}} trilha baixada",
+    "subtitleDownloaded_other": "{{count}} trilhas baixadas",
+    "emptyDownloadedTitle": "Nenhuma trilha baixada",
+    "emptyDownloadedBody": "Baixe uma trilha na sua página, com conexão, para vê-la aqui e usá-la sem internet.",
     "viewAll": "Ver todas",
     "exploreAll": "Explorar todas as trilhas"
   },
@@ -440,7 +450,19 @@
     "reviewValidationComment": "Escreva um comentário para enviar sua avaliação.",
     "reviewSubmitError": "Erro ao enviar avaliação",
     "reviewLoadMoreError": "Erro ao carregar mais avaliações",
-    "viewMoreReviews": "Ver mais avaliações ({{loaded}}/{{total}})"
+    "viewMoreReviews": "Ver mais avaliações ({{loaded}}/{{total}})",
+    "premiumTitle": "Em breve Premium",
+    "premiumBody": "O download para uso offline estará disponível para contas Premium.",
+    "removeDownloadTitle": "Remover download",
+    "removeDownloadBody": "Excluir este lugar dos seus downloads? Não será possível abri-lo offline.",
+    "removeDownloadBtn": "Remover",
+    "downloadDoneTitle": "Pronto",
+    "downloadDoneBody": "Lugar baixado. Você o encontra na aba Downloads.",
+    "downloadErrorTitle": "Erro",
+    "downloadErrorBody": "Não foi possível baixar. Verifique sua conexão e tente novamente.",
+    "downloaded": "Baixado",
+    "downloadAction": "Baixar",
+    "downloadManageLabel": "Gerenciar download do lugar"
   },
   "trailRecorrido": {
     "noSession": "Nenhum percurso ativo.",
@@ -467,6 +489,23 @@
     "backToList": "Voltar à lista",
     "viewOnMap": "Ver no mapa",
     "contactWhatsApp": "Contatar pelo WhatsApp"
+  },
+  "weather": {
+    "title": "Clima de hoje",
+    "loadError": "Não foi possível carregar o clima",
+    "min": "Mín. {{temp}}°",
+    "wind": "Vento {{speed}} km/h",
+    "codes": {
+      "clear": "Céu limpo",
+      "partlyCloudy": "Parcialmente nublado",
+      "cloudy": "Nublado",
+      "fog": "Neblina",
+      "drizzle": "Garoa",
+      "rain": "Chuva",
+      "snow": "Neve",
+      "thunderstorm": "Tempestade",
+      "unknown": "Variável"
+    }
   },
   "mapCard": {
     "trail": "Trilha",

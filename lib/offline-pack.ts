@@ -12,8 +12,8 @@ const PLACES_KEY = 'offline_pack_places_v1';
 const MANUAL_TRAIL_IDS_KEY = 'offline_manual_trail_ids_v1';
 const MANUAL_PLACE_IDS_KEY = 'offline_manual_place_ids_v1';
 
-/** Los lugares (puntos turísticos) no admiten descarga manual; solo los senderos. */
-export const PLACE_MANUAL_DOWNLOAD_DISABLED = true;
+/** Los lugares (puntos turísticos) admiten descarga manual igual que los senderos. */
+export const PLACE_MANUAL_DOWNLOAD_DISABLED = false;
 
 type TrailPack = Record<string, TrailDetail>;
 type PlacePack = Record<string, BackendPlace>;

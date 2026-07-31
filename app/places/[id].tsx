@@ -7,16 +7,25 @@ import TrailRouteTileMap, {
 } from '@/components/trail-route-tile-map';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import WeatherSection from '@/components/weather-section';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import { imageUrlsToGallerySlides, placeMediaToGallerySlides } from '@/lib/gallery-slides';
 import { formatPlaceCategoryLabel, getPlaceCategoryVisual } from '@/lib/place-category-map';
 import { redirectToLogin } from '@/lib/needAuth';
+import { appAlert } from '@/lib/app-alert';
+import { canDownloadForOffline } from '@/lib/offline-download-gate';
+import { cachePlaceMediaForOffline } from '@/lib/offline-media-cache';
 import { pickReviewImagesToAppend } from '@/lib/review-image-picker';
 import { REVIEW_GALLERY_MAX_PHOTOS, REVIEWS_LIST_PAGE_SIZE } from '@/lib/review-constants';
 import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
-import { loadPlaceOfflinePack } from '@/lib/offline-pack';
+import {
+  addManualPlaceDownload,
+  isPlaceManuallyDownloaded,
+  loadPlaceOfflinePack,
+  removeManualPlaceDownload,
+} from '@/lib/offline-pack';
 import {
   createPlaceReview,
   fetchPlace,
@@ -29,11 +38,13 @@ import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
+import { useFocusEffect } from '@react-navigation/native';
 import { Stack, router, useLocalSearchParams, usePathname } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ActivityIndicator,
   BackHandler,
   Dimensions,
   FlatList,
@@ -172,6 +183,7 @@ export default function PlaceDetailScreen() {
   const placeId = typeof id === 'string' ? id : undefined;
   const pathname = usePathname();
   const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
   const placeFavorited = useFavoritesStore((s) => (placeId ? s.isPlaceFavorite(placeId) : false));
   const togglePlaceFavorite = useFavoritesStore((s) => s.togglePlace);
 
@@ -286,6 +298,63 @@ export default function PlaceDetailScreen() {
         : `geo:${latitude},${longitude}?q=${latitude},${longitude}(${encodeURIComponent(place.name ?? 'Lugar')})`;
     Linking.openURL(url).catch(() => {});
   }, [place, hasCoords]);
+
+  const [placeManualDownload, setPlaceManualDownload] = useState(false);
+  const [placeDownloadBusy, setPlaceDownloadBusy] = useState(false);
+
+  const refreshPlaceManualDownload = useCallback(() => {
+    if (!placeId) return;
+    void isPlaceManuallyDownloaded(placeId).then(setPlaceManualDownload);
+  }, [placeId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshPlaceManualDownload();
+    }, [refreshPlaceManualDownload]),
+  );
+
+  const handlePlaceOfflineDownload = useCallback(async () => {
+    if (!placeId) return;
+    if (!canDownloadForOffline(user)) {
+      appAlert(t('placeDetail.premiumTitle'), t('placeDetail.premiumBody'));
+      return;
+    }
+    if (placeManualDownload) {
+      appAlert(
+        t('placeDetail.removeDownloadTitle'),
+        t('placeDetail.removeDownloadBody'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('placeDetail.removeDownloadBtn'),
+            style: 'destructive',
+            onPress: async () => {
+              await removeManualPlaceDownload(placeId);
+              setPlaceManualDownload(false);
+            },
+          },
+        ],
+      );
+      return;
+    }
+    setPlaceDownloadBusy(true);
+    try {
+      let detail = place;
+      if (!detail) {
+        detail = await fetchPlace(placeId);
+        setPlace(detail);
+      }
+      const withLocalMedia = await cachePlaceMediaForOffline(detail);
+      await addManualPlaceDownload(withLocalMedia);
+      setPlace(withLocalMedia);
+      setPlaceManualDownload(true);
+      appAlert(t('placeDetail.downloadDoneTitle'), t('placeDetail.downloadDoneBody'));
+    } catch {
+      appAlert(t('placeDetail.downloadErrorTitle'), t('placeDetail.downloadErrorBody'));
+    } finally {
+      setPlaceDownloadBusy(false);
+    }
+  }, [placeId, place, user, placeManualDownload, t]);
 
   const refreshReviews = useCallback(async () => {
     if (!placeId) return;
@@ -410,24 +479,29 @@ export default function PlaceDetailScreen() {
       ) : showFullSkeleton ? (
         <View style={styles.scrollShell}>
           <View style={{ flex: 1, backgroundColor: isDark ? '#000' : '#fff' }}>
-            <View style={[styles.floatRow, { top: 12 }]} pointerEvents="box-none">
-              <TouchableOpacity
-                style={[styles.floatBtn, { backgroundColor: '#fff' }]}
-                onPress={() => router.back()}
-                hitSlop={12}>
-                <Ionicons name="chevron-back" size={22} color="#000" />
-              </TouchableOpacity>
-            </View>
             <View
               style={{
+                position: 'relative',
                 marginHorizontal: GALLERY_HORIZONTAL_MARGIN,
                 marginTop: galleryMarginTop,
-                width: GALLERY_SLIDE_WIDTH,
-                height: heroHeight,
-                backgroundColor: skelBlock,
-                borderRadius: 16,
-              }}
-            />
+              }}>
+              <View
+                style={{
+                  width: GALLERY_SLIDE_WIDTH,
+                  height: heroHeight,
+                  backgroundColor: skelBlock,
+                  borderRadius: 16,
+                }}
+              />
+              <View style={[styles.floatRow, { top: 12 }]} pointerEvents="box-none">
+                <TouchableOpacity
+                  style={[styles.floatBtn, { backgroundColor: '#fff' }]}
+                  onPress={() => router.back()}
+                  hitSlop={12}>
+                  <Ionicons name="chevron-back" size={22} color="#000" />
+                </TouchableOpacity>
+              </View>
+            </View>
             <View style={[styles.card, { marginHorizontal: 16, marginTop: 12, paddingBottom: 20, gap: 12 }]}>
               <View
                 style={{
@@ -702,6 +776,8 @@ export default function PlaceDetailScreen() {
                   iconColor={isOnline && reviewsTotal > 0 ? '#FFB800' : colors.tint}
                 />
               </View>
+
+              <WeatherSection latitude={mainPoint?.latitude} longitude={mainPoint?.longitude} />
 
               {place.description?.trim() ? (
                 <View style={styles.trailDescBlock}>
@@ -1045,27 +1121,14 @@ export default function PlaceDetailScreen() {
                   paddingTop: 22,
                   paddingBottom: bottom + 2,
                   backgroundColor: isDark ? '#1c1c1e' : '#fff',
-                  gap: isOnline ? 8 : 0,
+                  gap: 8,
                 },
               ]}>
-              {isOnline ? (
-                <TouchableOpacity
-                  style={[styles.trailFloatBtnPrimary, { backgroundColor: colors.tint }]}
-                  onPress={() => Share.share({ message: `Mirá este lugar: ${place.name ?? place.slug}` })}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                  accessibilityLabel="Compartir lugar">
-                  <Ionicons name="share-outline" size={20} color="#fff" />
-                  <ThemedText style={styles.trailFloatBtnPrimaryLabel} numberOfLines={1}>
-                    Compartir
-                  </ThemedText>
-                </TouchableOpacity>
-              ) : null}
               <TouchableOpacity
                 style={[
-                  styles.trailFloatBtnSecondary,
+                  styles.trailFloatBtnPrimary,
                   {
-                    borderColor: colors.tint,
+                    backgroundColor: colors.tint,
                     opacity: hasCoords ? 1 : 0.45,
                   },
                 ]}
@@ -1074,9 +1137,31 @@ export default function PlaceDetailScreen() {
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel="Abrir en mapas">
-                <Ionicons name="navigate-outline" size={20} color={colors.tint} />
-                <ThemedText style={styles.trailFloatBtnSecondaryLabel} numberOfLines={1}>
+                <Ionicons name="navigate-outline" size={20} color="#fff" />
+                <ThemedText style={styles.trailFloatBtnPrimaryLabel} numberOfLines={1}>
                   Cómo llegar
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.trailFloatBtnSecondary, { borderColor: colors.tint }]}
+                onPress={handlePlaceOfflineDownload}
+                disabled={placeDownloadBusy}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  placeManualDownload ? t('placeDetail.downloadManageLabel') : t('placeDetail.downloadAction')
+                }>
+                {placeDownloadBusy ? (
+                  <ActivityIndicator size="small" color={colors.tint} />
+                ) : (
+                  <Ionicons
+                    name={placeManualDownload ? 'checkmark-circle' : 'download-outline'}
+                    size={22}
+                    color={colors.tint}
+                  />
+                )}
+                <ThemedText style={styles.trailFloatBtnSecondaryLabel} numberOfLines={1}>
+                  {placeManualDownload ? t('placeDetail.downloaded') : t('placeDetail.downloadAction')}
                 </ThemedText>
               </TouchableOpacity>
             </View>
@@ -1191,7 +1276,7 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3 },
   floatRow: {
     position: 'absolute',
-    left: 12,
+    left: 20,
     right: 12,
     zIndex: 40,
     elevation: 24,

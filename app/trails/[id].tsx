@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import TrailGalleryLightbox from '@/components/trail-gallery-lightbox';
 import TrailRouteTileMap, { TRAIL_ROUTE_LINE_COLOR } from '@/components/trail-route-tile-map';
+import WeatherSection from '@/components/weather-section';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
@@ -1029,24 +1030,29 @@ export default function TrailDetailScreen() {
       ) : showFullSkeleton ? (
         <View style={styles.scrollShell}>
           <View style={{ flex: 1, backgroundColor: isDark ? '#000' : '#fff' }}>
-            <View style={[styles.floatRow, { top: 12 }]} pointerEvents="box-none">
-              <TouchableOpacity
-                style={[styles.floatBtn, { backgroundColor: '#fff' }]}
-                onPress={() => router.back()}
-                hitSlop={12}>
-                <Ionicons name="chevron-back" size={22} color="#000" />
-              </TouchableOpacity>
-            </View>
             <View
               style={{
+                position: 'relative',
                 marginHorizontal: GALLERY_HORIZONTAL_MARGIN,
                 marginTop: galleryMarginTop,
-                width: GALLERY_SLIDE_WIDTH,
-                height: heroHeight,
-                backgroundColor: skelBlock,
-                borderRadius: 16,
-              }}
-            />
+              }}>
+              <View
+                style={{
+                  width: GALLERY_SLIDE_WIDTH,
+                  height: heroHeight,
+                  backgroundColor: skelBlock,
+                  borderRadius: 16,
+                }}
+              />
+              <View style={[styles.floatRow, { top: 12 }]} pointerEvents="box-none">
+                <TouchableOpacity
+                  style={[styles.floatBtn, { backgroundColor: '#fff' }]}
+                  onPress={() => router.back()}
+                  hitSlop={12}>
+                  <Ionicons name="chevron-back" size={22} color="#000" />
+                </TouchableOpacity>
+              </View>
+            </View>
             <View style={[styles.card, { marginHorizontal: 16, marginTop: 12, paddingBottom: 20, gap: 12 }]}>
               <View
                 style={{
@@ -1252,6 +1258,8 @@ export default function TrailDetailScreen() {
                         iconColor={DIFFICULTY_COLOR[trail.difficulty] ?? colors.icon}
                       />
                     </View>
+
+                    <WeatherSection latitude={routeReference.latitude} longitude={routeReference.longitude} />
 
                     {detailLoading ? (
                       <>
@@ -2172,7 +2180,7 @@ const styles = StyleSheet.create({
 
   floatRow: {
     position: 'absolute',
-    left: 12,
+    left: 20,
     right: 12,
     zIndex: 40,
     elevation: 24,

@@ -3,15 +3,16 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTrailsStore } from "@/store/trails-store";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 interface Props {
   onPress?: () => void;
   isActive?: boolean;
   rightSlot?: React.ReactNode;
+  offline?: boolean;
 }
 
-export default function SearchBar({ onPress, isActive, rightSlot }: Props) {
+export default function SearchBar({ onPress, isActive, rightSlot, offline }: Props) {
   const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -20,22 +21,34 @@ export default function SearchBar({ onPress, isActive, rightSlot }: Props) {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.inputWrapper, isActive && { opacity: 0 }]}
-        onPress={() => onPress?.()}
-        activeOpacity={0.9}
+        style={[styles.inputWrapper, isActive && { opacity: 0 }, offline && styles.inputWrapperOffline]}
+        onPress={() => { if (!offline) onPress?.(); }}
+        activeOpacity={offline ? 1 : 0.9}
+        disabled={offline}
+        accessibilityState={{ disabled: !!offline }}
       >
-        <Ionicons name="search-outline" size={18} color="rgba(0,0,0,0.5)" />
-        <TextInput
-          style={styles.input}
-          placeholder={t('home.searchPlaceholder')}
-          placeholderTextColor="rgba(0,0,0,0.5)"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-          editable={false}
-          pointerEvents="none"
+        <Ionicons
+          name={offline ? "cloud-offline-outline" : "search-outline"}
+          size={18}
+          color="rgba(0,0,0,0.5)"
         />
+        {offline ? (
+          <Text style={styles.input} numberOfLines={1}>
+            {t('home.searchOffline')}
+          </Text>
+        ) : (
+          <TextInput
+            style={styles.input}
+            placeholder={t('home.searchPlaceholder')}
+            placeholderTextColor="rgba(0,0,0,0.5)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            editable={false}
+            pointerEvents="none"
+          />
+        )}
       </TouchableOpacity>
       {rightSlot ? <View style={styles.rightSlot}>{rightSlot}</View> : null}
     </View>
@@ -66,6 +79,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
+  },
+  inputWrapperOffline: {
+    opacity: 0.75,
   },
   input: {
     flex: 1,

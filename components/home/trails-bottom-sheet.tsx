@@ -1,11 +1,16 @@
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
+import type { Trail } from "@/constants/mock-trails";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useNetworkReachable } from "@/hooks/use-network-reachable";
+import { listManualDownloads } from "@/lib/offline-pack";
 import { useHomeStore } from "@/store/home-store";
-import { FeaturedListItem, useTrailsStore } from "@/store/trails-store";
+import { FeaturedListItem, mapBackendTrail, useTrailsStore } from "@/store/trails-store";
 import type { MapMarker } from "@/services/api";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import MapMarkerBottomCard from "./map-marker-bottom-card";
@@ -30,6 +35,28 @@ export default function TrailsBottomSheet({
 
   const { featured, loadingFeatured, fetchFeatured, fetchTrails } = useTrailsStore();
   const { setMode, mapPanning, bottomSheetIndex, setBottomSheetIndex } = useHomeStore();
+  const networkReachable = useNetworkReachable();
+  const isOffline = networkReachable === false;
+
+  const [downloadedTrails, setDownloadedTrails] = useState<Trail[]>([]);
+  const [loadingDownloaded, setLoadingDownloaded] = useState(false);
+
+  const loadDownloadedTrails = useCallback(async () => {
+    setLoadingDownloaded(true);
+    try {
+      const { trails } = await listManualDownloads();
+      setDownloadedTrails(trails.map((entry) => mapBackendTrail(entry.detail)));
+    } finally {
+      setLoadingDownloaded(false);
+    }
+  }, []);
+
+  /** Recarga «Descargados» al volver a esta pestaña (p. ej. después de descargar un sendero desde su ficha). */
+  useFocusEffect(
+    useCallback(() => {
+      if (isOffline) void loadDownloadedTrails();
+    }, [isOffline, loadDownloadedTrails]),
+  );
 
   useEffect(() => {
     fetchFeatured();
@@ -106,21 +133,29 @@ export default function TrailsBottomSheet({
         <View style={styles.header}>
           <View>
             <ThemedText style={styles.title}>
-              {selectedMapMarker ? t("trailsSheet.titleNearby") : t("trailsSheet.title")}
+              {isOffline
+                ? t("trailsSheet.titleDownloaded")
+                : selectedMapMarker
+                ? t("trailsSheet.titleNearby")
+                : t("trailsSheet.title")}
             </ThemedText>
             <ThemedText style={[styles.subtitle, { color: colors.icon }]}>
-              {selectedMapMarker
+              {isOffline
+                ? t("trailsSheet.subtitleDownloaded", { count: downloadedTrails.length })
+                : selectedMapMarker
                 ? t("trailsSheet.subtitleNearby", { count: featured.length })
                 : t("trailsSheet.subtitle", { count: featured.length })}
             </ThemedText>
           </View>
-          <TouchableOpacity
-            style={[styles.viewAllButton, { backgroundColor: colors.tint }]}
-            onPress={() => { fetchTrails(true); setMode("list"); }}
-            activeOpacity={0.8}
-          >
-            <ThemedText style={[styles.viewAllText, { color: "#fff" }]}>{t("trailsSheet.viewAll")}</ThemedText>
-          </TouchableOpacity>
+          {!isOffline ? (
+            <TouchableOpacity
+              style={[styles.viewAllButton, { backgroundColor: colors.tint }]}
+              onPress={() => { fetchTrails(true); setMode("list"); }}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={[styles.viewAllText, { color: "#fff" }]}>{t("trailsSheet.viewAll")}</ThemedText>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         {/* Divider */}
@@ -133,7 +168,29 @@ export default function TrailsBottomSheet({
 
         {/* Cards */}
         <View style={styles.cardList}>
-          {loadingFeatured ? (
+          {isOffline ? (
+            loadingDownloaded ? (
+              <ActivityIndicator style={{ marginVertical: 24 }} />
+            ) : downloadedTrails.length > 0 ? (
+              downloadedTrails.map((trail) => (
+                <TrailFeaturedCard
+                  key={`downloaded-${trail.id}`}
+                  trail={trail}
+                  onPress={() => onItemPress?.({ ...trail, kind: "trail", featuredItemId: trail.id })}
+                />
+              ))
+            ) : (
+              <View style={styles.emptyDownloads}>
+                <Ionicons name="cloud-offline-outline" size={30} color={colors.icon} />
+                <ThemedText style={[styles.emptyDownloadsTitle, { color: colors.text }]}>
+                  {t("trailsSheet.emptyDownloadedTitle")}
+                </ThemedText>
+                <ThemedText style={[styles.emptyDownloadsBody, { color: colors.icon }]}>
+                  {t("trailsSheet.emptyDownloadedBody")}
+                </ThemedText>
+              </View>
+            )
+          ) : loadingFeatured ? (
             <ActivityIndicator style={{ marginVertical: 24 }} />
           ) : (
             featured.map((item) =>
@@ -155,15 +212,17 @@ export default function TrailsBottomSheet({
         </View>
 
         {/* CTA button */}
-        <TouchableOpacity
-          style={[styles.ctaButton, { borderColor: colors.tint }]}
-          onPress={() => { fetchTrails(true); setMode("list"); }}
-          activeOpacity={0.85}
-        >
-          <ThemedText style={[styles.ctaText, { color: colors.tint }]}>
-            {t("trailsSheet.exploreAll")}
-          </ThemedText>
-        </TouchableOpacity>
+        {!isOffline ? (
+          <TouchableOpacity
+            style={[styles.ctaButton, { borderColor: colors.tint }]}
+            onPress={() => { fetchTrails(true); setMode("list"); }}
+            activeOpacity={0.85}
+          >
+            <ThemedText style={[styles.ctaText, { color: colors.tint }]}>
+              {t("trailsSheet.exploreAll")}
+            </ThemedText>
+          </TouchableOpacity>
+        ) : null}
       </BottomSheetScrollView>
     </BottomSheet>
   );
@@ -191,6 +250,22 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 40,
+  },
+  emptyDownloads: {
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingVertical: 20,
+    gap: 8,
+  },
+  emptyDownloadsTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  emptyDownloadsBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
   },
   header: {
     flexDirection: "row",

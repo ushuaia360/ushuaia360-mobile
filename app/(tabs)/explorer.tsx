@@ -13,7 +13,7 @@ export default function HomeScreen() {
     return <HomeConnectivityLoader />;
   }
 
-  if (reachable === false) {
+  if (reachable === false && mode === 'list') {
     return <OfflineHomePlaceholder />;
   }
 

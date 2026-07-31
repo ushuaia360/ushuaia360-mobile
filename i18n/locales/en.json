@@ -119,7 +119,8 @@
     "noTrails": "No results found",
     "noConnectionList": "No connection. Couldn't load the list; try the map with the last saved download.",
     "viewMap": "View Map",
-    "searchPlaceholder": "Search..."
+    "searchPlaceholder": "Search...",
+    "searchOffline": "No connection"
   },
   "homeTab": {
     "greeting": "Hi there!",
@@ -186,11 +187,15 @@
     "title": "Downloads",
     "trailsSaved_one": "1 trail saved",
     "trailsSaved_other": "{{count}} trails saved",
-    "empty": "Save trails using the download button on a trail's page",
+    "itemsSaved_one": "1 item saved",
+    "itemsSaved_other": "{{count}} items saved",
+    "empty": "Save trails and places using the download button on their page",
     "sectionTrails": "Trails",
+    "sectionPlaces": "Points of interest",
     "nothingDownloaded": "Nothing downloaded yet",
-    "emptyBody": "On a trail's page, tap the download icon when you have a connection. Points of interest cannot be saved for offline use.",
+    "emptyBody": "On a trail's or place's page, tap the download icon when you have a connection.",
     "defaultTrailName": "Trail",
+    "defaultPlaceName": "Place",
     "removeTitle": "Remove download",
     "removeBody": "Delete «{{name}}» from your device?",
     "remove": "Remove",
@@ -374,10 +379,15 @@
   "trailsSheet": {
     "title": "Featured",
     "titleNearby": "Also near you",
+    "titleDownloaded": "Downloaded",
     "subtitle_one": "{{count}} featured",
     "subtitle_other": "{{count}} featured",
     "subtitleNearby_one": "{{count}} recommended nearby",
     "subtitleNearby_other": "{{count}} recommended nearby",
+    "subtitleDownloaded_one": "{{count}} trail downloaded",
+    "subtitleDownloaded_other": "{{count}} trails downloaded",
+    "emptyDownloadedTitle": "No downloaded trails",
+    "emptyDownloadedBody": "Download a trail from its page while you have a connection to see it here and use it offline.",
     "viewAll": "View all",
     "exploreAll": "Explore all trails"
   },
@@ -440,7 +450,19 @@
     "reviewValidationComment": "Write a comment to submit your review.",
     "reviewSubmitError": "Error submitting review",
     "reviewLoadMoreError": "Error loading more reviews",
-    "viewMoreReviews": "View more reviews ({{loaded}}/{{total}})"
+    "viewMoreReviews": "View more reviews ({{loaded}}/{{total}})",
+    "premiumTitle": "Coming soon to Premium",
+    "premiumBody": "Offline downloads will be available for Premium accounts.",
+    "removeDownloadTitle": "Remove download",
+    "removeDownloadBody": "Delete this place from your downloads? You won't be able to open it offline.",
+    "removeDownloadBtn": "Remove",
+    "downloadDoneTitle": "Done",
+    "downloadDoneBody": "Place downloaded. You'll find it in the Downloads tab.",
+    "downloadErrorTitle": "Error",
+    "downloadErrorBody": "Couldn't download it. Check your connection and try again.",
+    "downloaded": "Downloaded",
+    "downloadAction": "Download",
+    "downloadManageLabel": "Manage place download"
   },
   "trailRecorrido": {
     "noSession": "No active route.",
@@ -467,6 +489,23 @@
     "backToList": "Back to list",
     "viewOnMap": "View on map",
     "contactWhatsApp": "Contact on WhatsApp"
+  },
+  "weather": {
+    "title": "Today's weather",
+    "loadError": "Couldn't load the weather",
+    "min": "Low {{temp}}°",
+    "wind": "Wind {{speed}} km/h",
+    "codes": {
+      "clear": "Clear sky",
+      "partlyCloudy": "Partly cloudy",
+      "cloudy": "Cloudy",
+      "fog": "Fog",
+      "drizzle": "Drizzle",
+      "rain": "Rain",
+      "snow": "Snow",
+      "thunderstorm": "Thunderstorm",
+      "unknown": "Variable"
+    }
   },
   "mapCard": {
     "trail": "Trail",
