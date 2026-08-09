@@ -20,7 +20,6 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import MapView, { Polyline as MapPolyline, Marker, type Region } from 'react-native-maps';
 import Svg, { Polygon, Polyline } from 'react-native-svg';
 
-const LOG_PREFIX = '[TrailRouteTileMap]';
 const MIN_LAYOUT = 32;
 
 const MAX_ROUTE_VERTICES = 400;
@@ -301,7 +300,6 @@ export default function TrailRouteTileMap({
     return { left: left - MAIN_PIN / 2, top: top - MAIN_PIN };
   }, [mainPoint, mapState, size.w, size.h]);
 
-  const tileErrorLogged = useRef(false);
   const iosMapRef = useRef<MapView>(null);
   const iosRegionRef = useRef<Region | null>(null);
   /** Delta de latitud actual (iOS, mapa nativo) — gatilla el re-render que oculta las flechas de sentido al alejar el zoom. */
@@ -340,43 +338,6 @@ export default function TrailRouteTileMap({
     });
     return () => cancelAnimationFrame(id);
   }, [size.w, size.h, allForFit]);
-
-  useEffect(() => {
-    if (!__DEV__) return;
-    if (Platform.OS === 'ios') return;
-    const sample = tiles.slice(0, 3);
-    console.log(LOG_PREFIX, {
-      layout: { w: size.w, h: size.h },
-      mapState,
-      baseUrlPrefix: baseUrl,
-      tilesCount: tiles.length,
-      sampleTiles: sample.map((t) => ({ key: t.key, posX: t.posX, posY: t.posY, url: t.url })),
-      routeInputCount: routeCoordinates.length,
-      routeForDrawCount: routeForDraw.length,
-      showRouteLine,
-      routePolylineLen: routePixelPolyline.length,
-      routePolylineHead: routePixelPolyline.slice(0, 80),
-      interestPointsCount: interestPoints.length,
-      poiLayoutsCount: poiLayouts.length,
-      poiSample: poiLayouts.slice(0, 3),
-      showMainMarker,
-      showFallbackPin,
-    });
-  }, [
-    baseUrl,
-    interestPoints.length,
-    mapState,
-    poiLayouts,
-    routeCoordinates.length,
-    routeForDraw.length,
-    routePixelPolyline,
-    showFallbackPin,
-    showMainMarker,
-    showRouteLine,
-    size.h,
-    size.w,
-    tiles,
-  ]);
 
   if (Platform.OS === 'ios') {
     return (
@@ -509,7 +470,7 @@ export default function TrailRouteTileMap({
         }
       }}>
       <View style={styles.tileLayer} pointerEvents="none">
-        {tiles.map((t, i) => {
+        {tiles.map((t) => {
           const localUri =
             offlineTrailId && offlineTileKeys?.has(t.key)
               ? offlineTileFileUri(offlineTrailId, tileTheme, t.key)
@@ -521,22 +482,6 @@ export default function TrailRouteTileMap({
             style={[styles.tile, { left: t.posX, top: t.posY }]}
             cachePolicy="memory-disk"
             transition={0}
-            onError={
-              __DEV__ && i === 0
-                ? (e) => {
-                    if (tileErrorLogged.current) return;
-                    tileErrorLogged.current = true;
-                    console.warn(LOG_PREFIX, 'tile load error (first tile)', t.url, e);
-                  }
-                : undefined
-            }
-            onLoad={
-              __DEV__ && i === 0
-                ? () => {
-                    console.log(LOG_PREFIX, 'tile OK (first)', t.url);
-                  }
-                : undefined
-            }
           />
           );
         })}
