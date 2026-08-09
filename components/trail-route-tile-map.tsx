@@ -7,6 +7,7 @@ import {
 } from '@/lib/map-projection';
 import { offlineTileFileUri, type TileTheme } from '@/lib/offline-tile-cache';
 import { poiTypeIcon } from '@/lib/poi-icons';
+import { computeRouteDirectionArrows } from '@/lib/route-direction-arrows';
 import {
   calcTilesLikeHome,
   clampPanToTdf,
@@ -17,7 +18,7 @@ import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import MapView, { Polyline as MapPolyline, Marker, type Region } from 'react-native-maps';
-import Svg, { Polyline } from 'react-native-svg';
+import Svg, { Polygon, Polyline } from 'react-native-svg';
 
 const LOG_PREFIX = '[TrailRouteTileMap]';
 const MIN_LAYOUT = 32;
@@ -141,6 +142,10 @@ const LOCATION_PIN = 28;
 const POI_PIN = 32;
 const MAIN_PIN = 32;
 const POI_HIT_RADIUS = 28;
+/** Las flechas de sentido solo se muestran con suficiente zoom; de lejos ensucian la línea. */
+const ARROW_MIN_ZOOM = 15;
+/** Equivalente en `latitudeDelta` para el mapa nativo de iOS (más chico = más zoom). */
+const ARROW_MAX_LAT_DELTA = 0.02;
 
 export default function TrailRouteTileMap({
   routeCoordinates,
@@ -170,6 +175,12 @@ export default function TrailRouteTileMap({
   const routeForDraw = useMemo(
     () => decimateRoute(routeCoordinates, MAX_ROUTE_VERTICES),
     [routeCoordinates],
+  );
+
+  /** Flechas de sentido de recorrido sobre la línea (de inicio a fin del `path` guardado). */
+  const directionArrows = useMemo(
+    () => computeRouteDirectionArrows(routeForDraw),
+    [routeForDraw],
   );
 
   const allForFit = useMemo(() => {
@@ -268,6 +279,16 @@ export default function TrailRouteTileMap({
     });
   }, [interestPoints, mapState, size.w, size.h]);
 
+  const arrowLayouts = useMemo(() => {
+    if (size.w < MIN_LAYOUT || !showRouteLine || mapState.zoom < ARROW_MIN_ZOOM) {
+      return [] as { left: number; top: number; bearingDeg: number }[];
+    }
+    return directionArrows.map((a) => {
+      const { left, top } = latLonToMapPixel(a.latitude, a.longitude, mapState, size.w, size.h);
+      return { left, top, bearingDeg: a.bearingDeg };
+    });
+  }, [directionArrows, showRouteLine, mapState, size.w, size.h]);
+
   const mainMarkerLayout = useMemo(() => {
     if (!mainPoint || size.w < MIN_LAYOUT) return null;
     const { left, top } = latLonToMapPixel(
@@ -283,6 +304,8 @@ export default function TrailRouteTileMap({
   const tileErrorLogged = useRef(false);
   const iosMapRef = useRef<MapView>(null);
   const iosRegionRef = useRef<Region | null>(null);
+  /** Delta de latitud actual (iOS, mapa nativo) — gatilla el re-render que oculta las flechas de sentido al alejar el zoom. */
+  const [iosLatDelta, setIosLatDelta] = useState<number | null>(null);
 
   const zoomToLatLng = useCallback((latitude: number, longitude: number) => {
     if (Platform.OS === 'ios') {
@@ -374,6 +397,7 @@ export default function TrailRouteTileMap({
           showsCompass={false}
           onRegionChangeComplete={(r) => {
             iosRegionRef.current = r;
+            setIosLatDelta(r.latitudeDelta);
           }}
           onPress={(e) => {
             if (!interactive) return;
@@ -385,19 +409,31 @@ export default function TrailRouteTileMap({
               <MapPolyline
                 coordinates={routeForDraw}
                 strokeColor="#ffffff"
-                strokeWidth={7}
+                strokeWidth={10}
                 lineCap="round"
                 lineJoin="round"
               />
               <MapPolyline
                 coordinates={routeForDraw}
                 strokeColor={routeColor}
-                strokeWidth={4}
+                strokeWidth={7}
                 lineCap="round"
                 lineJoin="round"
               />
             </>
           )}
+          {iosLatDelta != null && iosLatDelta <= ARROW_MAX_LAT_DELTA && directionArrows.map((a, i) => (
+            <Marker
+              key={`arrow-${i}`}
+              coordinate={{ latitude: a.latitude, longitude: a.longitude }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges={false}
+              zIndex={15}>
+              <View style={{ transform: [{ rotate: `${a.bearingDeg}deg` }] }} collapsable={false}>
+                <Ionicons name="caret-up" size={13} color="rgba(255,255,255,0.92)" />
+              </View>
+            </Marker>
+          ))}
           {recordedPathForDraw.length >= 2 && (
             <>
               <MapPolyline
@@ -520,7 +556,7 @@ export default function TrailRouteTileMap({
                 points={routePixelPolyline}
                 fill="none"
                 stroke="#ffffff"
-                strokeWidth={7}
+                strokeWidth={10}
                 strokeOpacity={0.95}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -529,11 +565,20 @@ export default function TrailRouteTileMap({
                 points={routePixelPolyline}
                 fill="none"
                 stroke={routeColor}
-                strokeWidth={4}
+                strokeWidth={7}
                 strokeOpacity={0.7}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
+              {arrowLayouts.map((a, i) => (
+                <Polygon
+                  key={`arrow-${i}`}
+                  points="0,-6 5,5 -5,5"
+                  fill="#ffffff"
+                  fillOpacity={0.92}
+                  transform={`translate(${a.left}, ${a.top}) rotate(${a.bearingDeg})`}
+                />
+              ))}
             </>
           )}
           {recordedPathPixelPolyline.length > 0 && (

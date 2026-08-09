@@ -17,6 +17,8 @@ import MapMarkerBottomCard from "./map-marker-bottom-card";
 import TrailFeaturedCard from "./trail-featured-card";
 import PlaceFeaturedCard from "./place-featured-card";
 
+const FEATURED_PAGE_SIZE = 6;
+
 interface Props {
   onItemPress?: (item: FeaturedListItem) => void;
   selectedMapMarker?: MapMarker | null;
@@ -40,6 +42,7 @@ export default function TrailsBottomSheet({
 
   const [downloadedTrails, setDownloadedTrails] = useState<Trail[]>([]);
   const [loadingDownloaded, setLoadingDownloaded] = useState(false);
+  const [visibleFeaturedCount, setVisibleFeaturedCount] = useState(FEATURED_PAGE_SIZE);
 
   const loadDownloadedTrails = useCallback(async () => {
     setLoadingDownloaded(true);
@@ -193,7 +196,7 @@ export default function TrailsBottomSheet({
           ) : loadingFeatured ? (
             <ActivityIndicator style={{ marginVertical: 24 }} />
           ) : (
-            featured.map((item) =>
+            featured.slice(0, visibleFeaturedCount).map((item) =>
               item.kind === "trail" ? (
                 <TrailFeaturedCard
                   key={`trail-${item.id}`}
@@ -212,14 +215,14 @@ export default function TrailsBottomSheet({
         </View>
 
         {/* CTA button */}
-        {!isOffline ? (
+        {!isOffline && !loadingFeatured && visibleFeaturedCount < featured.length ? (
           <TouchableOpacity
             style={[styles.ctaButton, { borderColor: colors.tint }]}
-            onPress={() => { fetchTrails(true); setMode("list"); }}
+            onPress={() => setVisibleFeaturedCount((c) => c + FEATURED_PAGE_SIZE)}
             activeOpacity={0.85}
           >
             <ThemedText style={[styles.ctaText, { color: colors.tint }]}>
-              {t("trailsSheet.exploreAll")}
+              {t("trailsSheet.viewMore")}
             </ThemedText>
           </TouchableOpacity>
         ) : null}

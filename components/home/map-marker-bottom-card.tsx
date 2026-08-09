@@ -4,6 +4,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatPlaceCategoryLabel, getPlaceCategoryVisual } from '@/lib/place-category-map';
 import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
+import { toTitleCase } from '@/lib/title-case';
 import type { MapMarker } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -147,7 +148,7 @@ export default function MapMarkerBottomCard({ marker, onClose }: Props) {
         <TrailImage uri={thumb} style={styles.thumb} contentFit="cover" />
         <View style={styles.textCol}>
           <ThemedText style={styles.title} numberOfLines={2}>
-            {marker.name}
+            {toTitleCase(marker.name)}
           </ThemedText>
 
           {isTrail && trailChips.length > 0 ? (

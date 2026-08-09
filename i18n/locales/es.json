@@ -130,7 +130,6 @@
     "categoriesTitle": "Explorá por categorías",
     "viewAll": "Ver todas",
     "featuredTitle": "Destacados",
-    "viewAllFeatured": "Ver todos",
     "emptyFeatured": "Todavía no hay destacados para mostrar",
     "categories": {
       "senderos": "Senderos",
@@ -231,7 +230,13 @@
     "shareSuccessTitle": "Imagen lista",
     "shareSuccessBody": "Elegí «Guardar imagen» en el menú para agregarlo a tu galería.",
     "downloadErrorTitle": "No se pudo descargar",
-    "downloadError": "Ocurrió un error al guardar la imagen."
+    "downloadError": "Ocurrió un error al guardar la imagen.",
+    "filterAll": "Todos",
+    "filterVertical": "Vertical",
+    "filterHorizontal": "Horizontal",
+    "emptyFilterTitle": "Sin resultados para este filtro",
+    "emptyFilterBody": "Probá con otra orientación.",
+    "viewAllFilter": "Ver todos"
   },
   "profile": {
     "loadingProfile": "Cargando datos del perfil",
@@ -389,7 +394,7 @@
     "emptyDownloadedTitle": "Sin senderos descargados",
     "emptyDownloadedBody": "Descargá un sendero desde su ficha, con conexión, para verlo acá y usarlo sin internet.",
     "viewAll": "Ver todos",
-    "exploreAll": "Explorar todos los senderos"
+    "viewMore": "Ver más"
   },
   "relativeDate": {
     "day": "Hace 1 día",

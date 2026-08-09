@@ -100,7 +100,10 @@ function mapFeaturedItem(item: FeaturedItem): FeaturedListItem {
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 10;
+// El backend limita `limit` a 100 (ver routes/trails.py). Traemos todo de una para que la
+// búsqueda y el conteo de resultados de los filtros trabajen sobre el set completo de senderos,
+// no solo sobre la página ya cargada.
+const PAGE_SIZE = 100;
 
 interface TrailsStore {
   // Destacados (senderos + puntos turísticos, orden curado desde Partners) — para el home y el bottom sheet del mapa

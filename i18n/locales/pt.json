@@ -130,7 +130,6 @@
     "categoriesTitle": "Explore por categorias",
     "viewAll": "Ver todas",
     "featuredTitle": "Destaques",
-    "viewAllFeatured": "Ver todos",
     "emptyFeatured": "Ainda não há destaques para mostrar",
     "categories": {
       "turismo": "Turismo",
@@ -231,7 +230,13 @@
     "shareSuccessTitle": "Imagem pronta",
     "shareSuccessBody": "Escolha «Salvar imagem» no menu para adicioná-la à galeria.",
     "downloadErrorTitle": "Falha no download",
-    "downloadError": "Ocorreu um erro ao salvar a imagem."
+    "downloadError": "Ocorreu um erro ao salvar a imagem.",
+    "filterAll": "Todos",
+    "filterVertical": "Vertical",
+    "filterHorizontal": "Horizontal",
+    "emptyFilterTitle": "Sem resultados para este filtro",
+    "emptyFilterBody": "Tente outra orientação.",
+    "viewAllFilter": "Ver todos"
   },
   "profile": {
     "loadingProfile": "Carregando dados do perfil",
@@ -389,7 +394,7 @@
     "emptyDownloadedTitle": "Nenhuma trilha baixada",
     "emptyDownloadedBody": "Baixe uma trilha na sua página, com conexão, para vê-la aqui e usá-la sem internet.",
     "viewAll": "Ver todas",
-    "exploreAll": "Explorar todas as trilhas"
+    "viewMore": "Ver mais"
   },
   "relativeDate": {
     "day": "Há 1 dia",

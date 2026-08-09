@@ -17,6 +17,7 @@ import { useHomeStore } from "@/store/home-store";
 import { useTrailsStore } from "@/store/trails-store";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -232,14 +233,22 @@ export default function SearchPanel() {
   const handleSubmit = () => {
     if (searchQuery.trim()) {
       addRecentSearch(searchQuery.trim());
-      close(() => { setSearchOpen(false); setMode("list"); });
+      close(() => {
+        setSearchOpen(false);
+        setMode("list");
+        router.push('/(tabs)/explorer');
+      });
     }
   };
 
   const handleSelectRecent = useCallback((q: string) => {
     setSearchQuery(q);
     addRecentSearch(q);
-    close(() => { setSearchOpen(false); setMode("list"); });
+    close(() => {
+      setSearchOpen(false);
+      setMode("list");
+      router.push('/(tabs)/explorer');
+    });
   }, []);
 
   const toSuggestionRow = useCallback((s: SearchSuggestion): SuggestionRowModel => {

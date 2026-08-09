@@ -1,5 +1,6 @@
 import HomeConnectivityLoader from '@/components/home/home-connectivity-loader';
 import OfflineHomePlaceholder from '@/components/home/offline-home-placeholder';
+import ResumeActiveTrailBar from '@/components/home/resume-active-trail-bar';
 import TrailImage from '@/components/home/trail-image';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -171,10 +172,11 @@ function HomeContent() {
 
   const firstName = user?.full_name?.trim().split(' ')[0];
   const greeting = firstName ? t('homeTab.greetingNamed', { name: firstName }) : t('homeTab.greeting');
-  const destacados = featured.slice(0, 3);
+  const destacados = featured;
 
   return (
     <ThemedView style={styles.container}>
+      <ResumeActiveTrailBar offsetTop={top + 8} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -256,11 +258,6 @@ function HomeContent() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ThemedText style={styles.sectionTitle}>{t('homeTab.featuredTitle')}</ThemedText>
-            <TouchableOpacity onPress={() => goToList()} hitSlop={8}>
-              <ThemedText style={[styles.sectionLink, { color: colors.tint }]}>
-                {t('homeTab.viewAllFeatured')}
-              </ThemedText>
-            </TouchableOpacity>
           </View>
 
           {!loadingFeatured && destacados.length === 0 ? (
@@ -270,11 +267,14 @@ function HomeContent() {
           ) : (
             <View style={styles.featuredWrap}>
               {destacados[0] && <FeaturedCard item={destacados[0]} large />}
-              <View style={styles.featuredRow}>
-                {destacados.slice(1, 3).map((item) => (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.featuredRow}>
+                {destacados.slice(1).map((item) => (
                   <FeaturedCard key={`${item.kind}-${item.id}`} item={item} />
                 ))}
-              </View>
+              </ScrollView>
             </View>
           )}
         </View>
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   featuredSmall: {
-    flex: 1,
+    width: 160,
     height: 150,
     borderRadius: 16,
     overflow: 'hidden',

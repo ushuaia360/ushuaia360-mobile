@@ -20,6 +20,7 @@ import { appAlert } from '@/lib/app-alert';
 import { isLikelyNetworkError, shouldQueueTrailCompletionError } from '@/lib/network-error';
 import { cacheTrailDetailMediaForOffline } from '@/lib/offline-media-cache';
 import { canDownloadForOffline } from '@/lib/offline-download-gate';
+import { useProgressiveImageSource } from '@/lib/progressive-image';
 import {
   addManualTrailDownload,
   isTrailManuallyDownloaded,
@@ -71,7 +72,6 @@ import {
   BackHandler,
   Dimensions,
   FlatList,
-  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -96,6 +96,10 @@ const GALLERY_SLIDE_WIDTH = SCREEN_WIDTH - GALLERY_HORIZONTAL_MARGIN * 2;
 const GALLERY_HERO_HEIGHT_RATIO = 0.88;
 /** Espacio reservado para la fila de botones sobre la tab bar */
 const TRAIL_FLOAT_ACTIONS_ROW_PAD = 88;
+const GALLERY_PROGRESSIVE_TIERS = [
+  { width: 30, quality: 20 },
+  { width: 500, quality: 45 },
+];
 
 type TFunc = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -123,6 +127,24 @@ function AnimatedDot({ active }: { active: boolean }) {
     backgroundColor: active ? '#fff' : 'rgba(255,255,255,0.55)',
   }));
   return <Animated.View style={style} />;
+}
+
+/** Foto principal/carrusel del sendero: arranca en mala calidad y sube de a un escalón hasta la final. */
+function GalleryHeroImage({ uri, width, height }: { uri: string; width: number; height: number }) {
+  const { src, isLowQuality, advance, onError } = useProgressiveImageSource(uri, GALLERY_PROGRESSIVE_TIERS);
+  return (
+    <ExpoImage
+      source={{ uri: src ?? uri }}
+      style={{ width, height }}
+      contentFit="cover"
+      blurRadius={isLowQuality ? 12 : 0}
+      transition={300}
+      cachePolicy="memory-disk"
+      priority="high"
+      onLoad={advance}
+      onError={onError}
+    />
+  );
 }
 
 type RatingCounts = {
@@ -1143,11 +1165,7 @@ export default function TrailDetailScreen() {
                               setLightboxOpen(true);
                             }}>
                             <View style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}>
-                              <Image
-                                source={{ uri: item.uri }}
-                                style={{ width: GALLERY_SLIDE_WIDTH, height: heroHeight }}
-                                resizeMode="cover"
-                              />
+                              <GalleryHeroImage uri={item.uri} width={GALLERY_SLIDE_WIDTH} height={heroHeight} />
                               {item.mode === 'panorama' ? (
                                 <View
                                   style={[

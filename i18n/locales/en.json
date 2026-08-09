@@ -130,7 +130,6 @@
     "categoriesTitle": "Explore by category",
     "viewAll": "View all",
     "featuredTitle": "Featured",
-    "viewAllFeatured": "View all",
     "emptyFeatured": "No featured places to show yet",
     "categories": {
       "turismo": "Tourism",
@@ -231,7 +230,13 @@
     "shareSuccessTitle": "Image ready",
     "shareSuccessBody": "Choose «Save Image» from the menu to add it to your gallery.",
     "downloadErrorTitle": "Download failed",
-    "downloadError": "Something went wrong while saving the image."
+    "downloadError": "Something went wrong while saving the image.",
+    "filterAll": "All",
+    "filterVertical": "Vertical",
+    "filterHorizontal": "Horizontal",
+    "emptyFilterTitle": "No results for this filter",
+    "emptyFilterBody": "Try a different orientation.",
+    "viewAllFilter": "View all"
   },
   "profile": {
     "loadingProfile": "Loading profile data",
@@ -389,7 +394,7 @@
     "emptyDownloadedTitle": "No downloaded trails",
     "emptyDownloadedBody": "Download a trail from its page while you have a connection to see it here and use it offline.",
     "viewAll": "View all",
-    "exploreAll": "Explore all trails"
+    "viewMore": "View more"
   },
   "relativeDate": {
     "day": "1 day ago",
