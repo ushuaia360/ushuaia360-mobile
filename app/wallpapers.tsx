@@ -26,7 +26,6 @@ import {
   RefreshControl,
   SectionList,
   StyleSheet,
-  Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -663,9 +662,9 @@ export default function WallpapersScreen() {
             {filteredWallpapers.length > 1 ? (
               <View style={[styles.previewCounter, { top: top + 20 }]} pointerEvents="none">
                 <BlurView intensity={40} tint="dark" style={styles.previewCounterBlur}>
-                  <Text style={styles.previewCounterText}>
+                  <ThemedText style={styles.previewCounterText} lightColor="#fff" darkColor="#fff">
                     {previewPage + 1} / {filteredWallpapers.length}
-                  </Text>
+                  </ThemedText>
                 </BlurView>
               </View>
             ) : null}

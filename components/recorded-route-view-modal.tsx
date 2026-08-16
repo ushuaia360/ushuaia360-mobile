@@ -1,13 +1,17 @@
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { latLonToMapPixel, MAP_TILE_SIZE } from '@/lib/map-projection';
 import { loadRecordedPath } from '@/lib/recorded-trail-path';
+import { calcTilesLikeHome, fitMapStateToCoordinatesInTdf } from '@/lib/tile-map';
 import { fetchTrailRecordedPath } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -20,6 +24,10 @@ import MapView, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const RECORDED_PATH_COLOR = '#22c55e';
+
+/** Android (tiles, sin API key de Google): mínimo layout medido, padding de ajuste. */
+const TILE_MIN_LAYOUT = 32;
+const TILE_FIT_PADDING = 40;
 
 interface Props {
   visible: boolean;
@@ -84,6 +92,7 @@ export default function RecordedRouteViewModal({
   const region = useMemo(() => (path && path.length >= 2 ? fitRegion(path) : null), [path]);
 
   useEffect(() => {
+    if (Platform.OS !== 'ios') return;
     if (!path || path.length < 2) return;
     const id = setTimeout(() => {
       mapRef.current?.fitToCoordinates(path, {
@@ -96,6 +105,35 @@ export default function RecordedRouteViewModal({
 
   const startPt = path?.[0] ?? null;
   const endPt   = path?.[path.length - 1] ?? null;
+
+  // ---------------------------------------------------------------------
+  // Android: mapa de tiles estático (sin API key de Google) — sin gestos, sin rotación.
+  // ---------------------------------------------------------------------
+  const [tileSize, setTileSize] = useState({ w: 0, h: 0 });
+  const tileBaseUrl = isDark
+    ? 'https://a.basemaps.cartocdn.com/dark_all'
+    : 'https://a.basemaps.cartocdn.com/light_all';
+
+  const tileMapState = useMemo(() => {
+    if (!path || path.length < 2) return null;
+    if (tileSize.w < TILE_MIN_LAYOUT || tileSize.h < TILE_MIN_LAYOUT) return null;
+    return fitMapStateToCoordinatesInTdf(path, tileSize.w, tileSize.h, TILE_FIT_PADDING);
+  }, [path, tileSize.w, tileSize.h]);
+
+  const tiles = useMemo(() => {
+    if (!tileMapState) return [];
+    return calcTilesLikeHome(tileMapState, tileSize.w, tileSize.h, tileBaseUrl);
+  }, [tileMapState, tileSize.w, tileSize.h, tileBaseUrl]);
+
+  const tileStartPos = useMemo(() => {
+    if (!tileMapState || !startPt) return null;
+    return latLonToMapPixel(startPt.latitude, startPt.longitude, tileMapState, tileSize.w, tileSize.h);
+  }, [tileMapState, startPt, tileSize.w, tileSize.h]);
+
+  const tileEndPos = useMemo(() => {
+    if (!tileMapState || !endPt || startPt === endPt) return null;
+    return latLonToMapPixel(endPt.latitude, endPt.longitude, tileMapState, tileSize.w, tileSize.h);
+  }, [tileMapState, endPt, startPt, tileSize.w, tileSize.h]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -139,7 +177,7 @@ export default function RecordedRouteViewModal({
               Este sendero fue completado antes de que se activara la grabación GPS.
             </ThemedText>
           </View>
-        ) : (
+        ) : Platform.OS === 'ios' ? (
           <MapView
             ref={mapRef}
             style={styles.map}
@@ -178,6 +216,53 @@ export default function RecordedRouteViewModal({
               </Marker>
             )}
           </MapView>
+        ) : (
+          // Android: sin API key de Google — mapa de tiles remotas (mismo proveedor que
+          // `components/trail-route-tile-map.tsx` / `components/home/map-home.tsx`), estático
+          // (sin pan/pinch/rotación), ajustado una vez al recorrido.
+          <View
+            style={styles.map}
+            onLayout={(e) => {
+              const { width, height } = e.nativeEvent.layout;
+              if (width > 0 && height > 0 && (width !== tileSize.w || height !== tileSize.h)) {
+                setTileSize({ w: width, h: height });
+              }
+            }}>
+            <View style={styles.tileLayer} pointerEvents="none">
+              {tiles.map((t) => (
+                <Image
+                  key={t.key}
+                  source={{ uri: t.url }}
+                  style={[styles.tile, { left: t.posX, top: t.posY }]}
+                  cachePolicy="memory-disk"
+                  transition={0}
+                />
+              ))}
+            </View>
+            {/* Android: no se dibuja la ruta grabada (tilePathPolyline) del usuario, a pedido. */}
+            {tileStartPos && (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.dot,
+                  styles.dotStart,
+                  styles.tileDotAbs,
+                  { left: tileStartPos.left - 7, top: tileStartPos.top - 7 },
+                ]}
+              />
+            )}
+            {tileEndPos && (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.dot,
+                  styles.dotEnd,
+                  styles.tileDotAbs,
+                  { left: tileEndPos.left - 7, top: tileEndPos.top - 7 },
+                ]}
+              />
+            )}
+          </View>
         )}
       </View>
     </Modal>
@@ -197,7 +282,18 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
   headerSub: { fontSize: 12, fontWeight: '500', marginTop: 1 },
-  map: { flex: 1 },
+  map: { flex: 1, overflow: 'hidden', backgroundColor: '#e8e4dc' },
+  tileLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  tile: {
+    position: 'absolute',
+    width: MAP_TILE_SIZE,
+    height: MAP_TILE_SIZE,
+  },
+  tileDotAbs: {
+    position: 'absolute',
+  },
   center: {
     flex: 1,
     alignItems: 'center',

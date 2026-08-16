@@ -926,6 +926,7 @@ const styles = StyleSheet.create({
   langSheetTitle: {
     fontSize: 13,
     fontWeight: '700',
+    fontFamily: Platform.OS === 'android' ? 'Inter' : undefined,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     opacity: 0.5,
@@ -938,6 +939,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   langOptionFlag: { fontSize: 26 },
-  langOptionLabel: { flex: 1, fontSize: 16, fontWeight: '500' },
+  langOptionLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'android' ? 'Inter' : undefined,
+  },
   langDivider: { height: StyleSheet.hairlineWidth },
 });

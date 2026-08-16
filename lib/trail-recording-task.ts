@@ -14,25 +14,35 @@ interface BackgroundLocationEvent {
   locations?: { coords: { latitude: number; longitude: number } }[];
 }
 
-TaskManager.defineTask(TRAIL_RECORDING_TASK, async ({ data, error }) => {
-  if (error) return;
-  const locations = (data as BackgroundLocationEvent | undefined)?.locations;
-  if (!locations?.length) return;
+/**
+ * Agrega puntos al `recordedPath` de la sesión activa, si hay una y no está pausada.
+ * Compartido por la tarea en segundo plano (iOS) y el watch en primer plano (Android,
+ * ver `lib/trail-location-tracking.ts`) para no duplicar la lógica de append.
+ */
+export async function appendRecordedPoints(
+  points: { latitude: number; longitude: number }[],
+): Promise<void> {
+  if (!points.length) return;
 
   const store = useActiveTrailSessionStore.getState();
   if (!store.hydrated) await store.hydrate();
 
   const session = selectActiveSession(useActiveTrailSessionStore.getState());
-  // Sin sesión activa o pausada: no hay dónde grabar (la tarea igual se detiene desde afuera,
-  // pero por las dudas —p. ej. una entrega en vuelo justo al pausar— no acumulamos puntos.
+  // Sin sesión activa o pausada: no hay dónde grabar (el watch/tarea igual se detiene desde
+  // afuera, pero por las dudas —p. ej. una entrega en vuelo justo al pausar— no acumulamos puntos.
   if (!session || session.paused) return;
 
-  const newPoints = locations.map((l) => ({
-    latitude: l.coords.latitude,
-    longitude: l.coords.longitude,
-  }));
   const existing = session.recordedPath ?? [];
   await useActiveTrailSessionStore.getState().updateActiveSession({
-    recordedPath: [...existing, ...newPoints],
+    recordedPath: [...existing, ...points],
   });
+}
+
+TaskManager.defineTask(TRAIL_RECORDING_TASK, async ({ data, error }) => {
+  if (error) return;
+  const locations = (data as BackgroundLocationEvent | undefined)?.locations;
+  if (!locations?.length) return;
+  await appendRecordedPoints(
+    locations.map((l) => ({ latitude: l.coords.latitude, longitude: l.coords.longitude })),
+  );
 });

@@ -25,7 +25,7 @@ function ProfileDataSectionSkeleton({ cardBg, skelBg, divider }: ProfileSkelProp
   return (
     <View
       accessibilityLabel={t('profile.loadingProfile')}
-      style={[styles.card, { backgroundColor: cardBg }]}>
+      style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
       <View style={styles.profileRow}>
         <View style={styles.avatarWrap}>
           <View style={[styles.avatar, { backgroundColor: skelBg }]} />
@@ -99,18 +99,18 @@ export default function ProfileScreen() {
 
   if (!isInitialized) {
     return (
-      <ThemedView style={styles.container}>
+      <ThemedView style={styles.container} lightColor="#F6F7F9">
         <ScrollView
           showsVerticalScrollIndicator={false}
           bounces={false}
           contentContainerStyle={[styles.scroll, { paddingTop: top + 48 }]}>
           <ProfileDataSectionSkeleton cardBg={cardBg} skelBg={skelBg} divider={divider} />
           <View style={styles.grid}>
-            <View style={[styles.gridCard, { backgroundColor: cardBg }]}>
+            <View style={[styles.gridCard, { backgroundColor: cardBg, borderColor: divider }]}>
               <View style={[styles.completedIconWrap, { backgroundColor: skelBg, marginTop: 20 }]} />
               <View style={[styles.skelBlock, { width: '70%', height: 18, marginTop: 12, backgroundColor: skelBg }]} />
             </View>
-            <View style={[styles.gridCard, { backgroundColor: cardBg }]}>
+            <View style={[styles.gridCard, { backgroundColor: cardBg, borderColor: divider }]}>
               <View style={[styles.favImgs, { marginTop: 20 }]}>
                 <View style={[styles.favImg, { backgroundColor: skelBg }]} />
                 <View style={[styles.favImg, styles.favImgOverlap, { backgroundColor: skelBg }]} />
@@ -118,7 +118,7 @@ export default function ProfileScreen() {
               <View style={[styles.skelBlock, { width: '70%', height: 18, marginTop: 12, backgroundColor: skelBg }]} />
             </View>
           </View>
-          <View style={[styles.ctaCard, { backgroundColor: cardBg }]}>
+          <View style={[styles.ctaCard, { backgroundColor: cardBg, borderColor: divider }]}>
             <View style={[styles.ctaIcon, { backgroundColor: skelBg }]} />
             <View style={styles.ctaText}>
               <View style={[styles.skelBlock, { width: '55%', height: 17, backgroundColor: skelBg }]} />
@@ -126,7 +126,7 @@ export default function ProfileScreen() {
             </View>
             <View style={[styles.skelBlock, { width: 14, height: 14, borderRadius: 4, backgroundColor: skelBg }]} />
           </View>
-          <View style={[styles.settingsCard, { backgroundColor: cardBg }]}>
+          <View style={[styles.settingsCard, { backgroundColor: cardBg, borderColor: divider }]}>
             {[0, 1, 2, 3, 4].map((i) => (
               <View key={i}>
                 <View style={styles.settingRow}>
@@ -143,7 +143,7 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!user) return <ThemedView style={styles.container} />;
+  if (!user) return <ThemedView style={styles.container} lightColor="#F6F7F9" />;
 
   const senderosN = profileStats?.completed_trails_count ?? 0;
   const resenasN = profileStats?.reviews_count ?? 0;
@@ -172,7 +172,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.container} lightColor="#F6F7F9">
       <ScrollView
         showsVerticalScrollIndicator={false}
         bounces={false}
@@ -181,7 +181,7 @@ export default function ProfileScreen() {
         {statsPending ? (
           <ProfileDataSectionSkeleton cardBg={cardBg} skelBg={skelBg} divider={divider} />
         ) : (
-          <View style={[styles.card, { backgroundColor: cardBg }]}>
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
             <View style={styles.profileRow}>
               <View style={styles.avatarWrap}>
                 <Image
@@ -272,7 +272,7 @@ export default function ProfileScreen() {
         {/* Grid cards */}
         <View style={styles.grid}>
           <TouchableOpacity
-            style={[styles.gridCard, { backgroundColor: cardBg, justifyContent: 'space-between' }]}
+            style={[styles.gridCard, { backgroundColor: cardBg, borderColor: divider, justifyContent: 'space-between' }]}
             activeOpacity={0.85}
             onPress={() => router.push('/(tabs)/completed-trails')}
             accessibilityRole="button"
@@ -284,7 +284,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.gridCard, { backgroundColor: cardBg, justifyContent: 'space-between' }]}
+            style={[styles.gridCard, { backgroundColor: cardBg, borderColor: divider, justifyContent: 'space-between' }]}
             activeOpacity={0.85}
             onPress={() => router.push('/(tabs)/favorites')}
             accessibilityRole="button"
@@ -299,7 +299,7 @@ export default function ProfileScreen() {
 
         {/* Offline CTA */}
         <TouchableOpacity
-          style={[styles.ctaCard, { backgroundColor: cardBg }]}
+          style={[styles.ctaCard, { backgroundColor: cardBg, borderColor: divider }]}
           activeOpacity={0.88}
           onPress={() => router.push('/(tabs)/downloads')}
           accessibilityRole="button"
@@ -316,7 +316,7 @@ export default function ProfileScreen() {
 
         {/* Wallpapers */}
         <TouchableOpacity
-          style={[styles.ctaCard, { backgroundColor: cardBg }]}
+          style={[styles.ctaCard, { backgroundColor: cardBg, borderColor: divider }]}
           activeOpacity={0.88}
           onPress={() => router.push('/wallpapers')}
           accessibilityRole="button"
@@ -332,7 +332,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         {/* Settings */}
-        <View style={[styles.settingsCard, { backgroundColor: cardBg }]}>
+        <View style={[styles.settingsCard, { backgroundColor: cardBg, borderColor: divider }]}>
           {SETTINGS.map(({ icon, label, key, danger }, i) => (
             <View key={key}>
               <TouchableOpacity
@@ -356,17 +356,17 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   scroll: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
   card: {
     borderRadius: 20,
     padding: 14,
     paddingTop: 24,
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.10,
     shadowRadius: 20,
-    elevation: 4,
   },
   profileRow: {
     flexDirection: 'row',
@@ -400,7 +400,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 16,
-    elevation: 8,
   },
   premiumBanner: {
     borderRadius: 20,
@@ -476,11 +475,11 @@ const styles = StyleSheet.create({
     padding: 14,
     paddingTop: 10,
     minHeight: 160,
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.10,
     shadowRadius: 20,
-    elevation: 4,
     gap: 10,
     alignItems: 'center',
   },
@@ -495,11 +494,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.10,
     shadowRadius: 20,
-    elevation: 4,
   },
   ctaIcon: {
     width: 52,
@@ -514,11 +513,11 @@ const styles = StyleSheet.create({
   settingsCard: {
     borderRadius: 16,
     overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.10,
     shadowRadius: 20,
-    elevation: 4,
   },
   settingRow: {
     flexDirection: 'row',

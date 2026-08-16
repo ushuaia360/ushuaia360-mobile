@@ -1,4 +1,4 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 
@@ -21,6 +21,7 @@ export function ThemedText({
     <Text
       style={[
         { color },
+        Platform.OS === 'android' ? styles.androidFont : undefined,
         type === 'default' ? styles.default : undefined,
         type === 'title' ? styles.title : undefined,
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
@@ -34,6 +35,9 @@ export function ThemedText({
 }
 
 const styles = StyleSheet.create({
+  androidFont: {
+    fontFamily: 'Inter',
+  },
   default: {
     fontSize: 16,
     lineHeight: 24,

@@ -202,7 +202,7 @@ export default function ListHome() {
     filterCategory.length;
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.container} lightColor="#F6F7F9">
       {/* Header */}
       <View style={[
         styles.header,

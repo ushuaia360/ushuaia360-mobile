@@ -62,11 +62,8 @@ export default function PersonalInfoScreen() {
   }, []);
 
   const pickAvatar = useCallback(async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(t('personalInfo.permissionTitle'), t('personalInfo.permissionBody'));
-      return;
-    }
+    // No pedimos requestMediaLibraryPermissionsAsync antes: launchImageLibraryAsync ya
+    // abre el selector del sistema (Android Photo Picker / iOS) y maneja permisos al vuelo.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -76,7 +73,7 @@ export default function PersonalInfoScreen() {
     if (!result.canceled && result.assets[0]) {
       setAvatarUri(result.assets[0].uri);
     }
-  }, [t]);
+  }, []);
 
   const handleSave = useCallback(async () => {
     if (!isDirty || saving) return;

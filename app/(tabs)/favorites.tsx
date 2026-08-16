@@ -151,7 +151,7 @@ export default function FavoritesScreen() {
           <TouchableOpacity
             style={[styles.emptyBtn, { backgroundColor: colors.tint }]}
             activeOpacity={0.85}
-            onPress={() => router.push('/(tabs)/trails' as never)}>
+            onPress={() => router.push('/(tabs)/explorer' as never)}>
             <ThemedText style={styles.emptyBtnText}>Explorar senderos</ThemedText>
             <Ionicons name="arrow-forward" size={16} color="#fff" />
           </TouchableOpacity>

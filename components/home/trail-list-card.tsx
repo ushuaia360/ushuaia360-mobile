@@ -84,7 +84,10 @@ function TrailListCard({ trail, onPress, onMapPress, onRoutePress }: Props) {
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: isDark ? '#1c1c1e' : '#fff' }]}
+      style={[
+        styles.card,
+        { backgroundColor: isDark ? '#1c1c1e' : '#fff', borderColor: isDark ? '#2a2a2a' : '#f0f0f0' },
+      ]}
       onPress={() => onPress?.(trail)}
       activeOpacity={0.92}>
 
@@ -190,11 +193,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 24,
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 3,
   },
   imageContainer: {
     position: 'relative',

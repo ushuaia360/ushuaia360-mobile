@@ -142,9 +142,9 @@ const POI_PIN = 32;
 const MAIN_PIN = 32;
 const POI_HIT_RADIUS = 28;
 /** Las flechas de sentido solo se muestran con suficiente zoom; de lejos ensucian la línea. */
-const ARROW_MIN_ZOOM = 15;
+const ARROW_MIN_ZOOM = 13;
 /** Equivalente en `latitudeDelta` para el mapa nativo de iOS (más chico = más zoom). */
-const ARROW_MAX_LAT_DELTA = 0.02;
+const ARROW_MAX_LAT_DELTA = 0.05;
 
 export default function TrailRouteTileMap({
   routeCoordinates,
@@ -178,7 +178,7 @@ export default function TrailRouteTileMap({
 
   /** Flechas de sentido de recorrido sobre la línea (de inicio a fin del `path` guardado). */
   const directionArrows = useMemo(
-    () => computeRouteDirectionArrows(routeForDraw),
+    () => computeRouteDirectionArrows(routeForDraw, { spacingMeters: 150, maxArrows: 20 }),
     [routeForDraw],
   );
 
@@ -304,6 +304,18 @@ export default function TrailRouteTileMap({
   const iosRegionRef = useRef<Region | null>(null);
   /** Delta de latitud actual (iOS, mapa nativo) — gatilla el re-render que oculta las flechas de sentido al alejar el zoom. */
   const [iosLatDelta, setIosLatDelta] = useState<number | null>(null);
+  /**
+   * `tracksViewChanges` de los markers de flecha: arranca en `true` para que react-native-maps
+   * tome el snapshot recién cuando el glifo de `Ionicons` (fuente async) ya esté pintado; si
+   * quedara en `false` desde el primer render, un snapshot tomado antes de que la fuente cargue
+   * deja el marker en blanco para siempre.
+   */
+  const [arrowIconsReady, setArrowIconsReady] = useState(false);
+  useEffect(() => {
+    setArrowIconsReady(false);
+    const id = setTimeout(() => setArrowIconsReady(true), 300);
+    return () => clearTimeout(id);
+  }, [directionArrows]);
 
   const zoomToLatLng = useCallback((latitude: number, longitude: number) => {
     if (Platform.OS === 'ios') {
@@ -388,9 +400,17 @@ export default function TrailRouteTileMap({
               key={`arrow-${i}`}
               coordinate={{ latitude: a.latitude, longitude: a.longitude }}
               anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={false}
+              tracksViewChanges={!arrowIconsReady}
               zIndex={15}>
-              <View style={{ transform: [{ rotate: `${a.bearingDeg}deg` }] }} collapsable={false}>
+              <View
+                style={{
+                  width: 24,
+                  height: 24,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transform: [{ rotate: `${a.bearingDeg}deg` }],
+                }}
+                collapsable={false}>
                 <Ionicons name="caret-up" size={13} color="rgba(255,255,255,0.92)" />
               </View>
             </Marker>

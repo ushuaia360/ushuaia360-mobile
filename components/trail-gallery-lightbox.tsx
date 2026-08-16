@@ -339,6 +339,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.3,
+    fontFamily: Platform.OS === 'android' ? 'Inter' : undefined,
   },
   dotsRow: {
     flexDirection: 'row',

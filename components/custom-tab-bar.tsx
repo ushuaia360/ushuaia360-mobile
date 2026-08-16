@@ -58,9 +58,9 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
         {
           backgroundColor: colors.background,
           borderTopColor: colorScheme === 'dark' ? '#2a2a2a' : '#e5e5e5',
-          paddingBottom: Platform.OS === 'ios' ? 28 : Math.max(bottomInset, 8),
-          height: Platform.OS === 'ios' ? 88 : 56 + Math.max(bottomInset, 8),
-          marginBottom: 4,
+          paddingBottom: Platform.OS === 'ios' ? 28 : Math.max(bottomInset, 8) + 14,
+          height: Platform.OS === 'ios' ? 88 : 56 + Math.max(bottomInset, 8) + 14,
+          marginBottom: Platform.OS === 'ios' ? 4 : 0,
         },
         animatedStyle,
       ]}

@@ -3,7 +3,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTrailsStore } from "@/store/trails-store";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 interface Props {
   onPress?: () => void;
@@ -87,6 +87,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: "rgba(0,0,0,0.5)",
+    fontFamily: Platform.OS === "android" ? "Inter" : undefined,
   },
   rightSlot: {
     flexShrink: 0,

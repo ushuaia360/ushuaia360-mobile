@@ -42,12 +42,15 @@ export default function LoginScreen() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [step, setStep] = useState<'method' | 'form'>('method');
   const [legalType, setLegalType] = useState<'terms' | 'privacy' | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const openLegal = useCallback((type: 'terms' | 'privacy') => setLegalType(type), []);
 
   const inputBg = isDark ? '#1c1c1e' : '#f5f5f7';
   const borderColor = isDark ? '#2a2a2a' : '#e5e5ea';
 
   const handleGoogleLogin = async () => {
+    if (googleLoading) return;
+    setGoogleLoading(true);
     try {
       GoogleSignin.configure({
         webClientId: GOOGLE_WEB_CLIENT_ID,
@@ -65,10 +68,14 @@ export default function LoginScreen() {
       const dest = sanitizeReturnPath(rawNext ?? DEFAULT_AFTER_LOGIN);
       router.replace(dest as Href);
     } catch (err: unknown) {
-      const code = (err as { code?: number })?.code;
+      const code = (err as { code?: number | string })?.code;
       if (code === -5 || code === 12501) return; // usuario canceló
+      if (code === 'ASYNC_OP_IN_PROGRESS') return; // ya había un intento en curso
+      console.error('[GoogleSignIn] error', JSON.stringify(err, Object.getOwnPropertyNames(err as object)));
       const msg = err instanceof Error ? err.message : t('auth.googleError');
       Alert.alert(t('common.error'), msg);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -172,7 +179,7 @@ export default function LoginScreen() {
             <TouchableOpacity
               style={[styles.methodBtn, { backgroundColor: '#fff' }]}
               onPress={handleGoogleLogin}
-              disabled={isLoading}
+              disabled={isLoading || googleLoading}
               activeOpacity={0.85}>
               <GoogleGMark size={22} />
               <ThemedText style={[styles.methodBtnText, { color: '#000' }]}>
