@@ -2,17 +2,21 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { hasPremiumAccess } from '@/lib/offline-download-gate';
+import { redirectToLogin } from '@/lib/needAuth';
 import { buildProgressiveStages, useProgressiveImageSource } from '@/lib/progressive-image';
 import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
 import { saveWallpaperToDevice } from '@/lib/save-wallpaper';
 import { supabaseThumbnailUrl } from '@/lib/supabase-image-transform';
 import { fetchWallpapers, type Wallpaper } from '@/services/api';
+import { useAuthStore } from '@/store/auth-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, Stack } from 'expo-router';
+import { router, Stack, usePathname } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -298,6 +302,10 @@ export default function WallpapersScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
   const skelBg = isDark ? '#2c2c2e' : '#e8e8ed';
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const isPro = usePurchasesStore((s) => s.isPro);
+  const pathname = usePathname();
 
   const [wallpapers, setWallpapers] = useState<Wallpaper[]>([]);
   const [loading, setLoading] = useState(true);
@@ -373,6 +381,14 @@ export default function WallpapersScreen() {
   }, []);
 
   const handleDownload = useCallback(async (wallpaper: Wallpaper) => {
+    if (!token) {
+      redirectToLogin(pathname || '/wallpapers');
+      return;
+    }
+    if (!hasPremiumAccess(user, isPro)) {
+      router.push('/premium');
+      return;
+    }
     if (downloadingId) return;
     setDownloadingId(wallpaper.id);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -395,13 +411,17 @@ export default function WallpapersScreen() {
     } finally {
       setDownloadingId(null);
     }
-  }, [downloadingId, t]);
+  }, [downloadingId, t, user, isPro, token, pathname]);
 
   const openPreview = useCallback((item: Wallpaper) => {
+    if (!hasPremiumAccess(user, isPro)) {
+      router.push('/premium');
+      return;
+    }
     Haptics.selectionAsync().catch(() => {});
     const idx = filteredWallpapers.findIndex((w) => w.id === item.id);
     setPreviewIndex(idx >= 0 ? idx : 0);
-  }, [filteredWallpapers]);
+  }, [filteredWallpapers, user, isPro]);
 
   const closePreview = useCallback(() => {
     setPreviewIndex(null);

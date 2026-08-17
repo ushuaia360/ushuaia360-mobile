@@ -1,8 +1,11 @@
 import PanoramaWebView from '@/components/panorama-webview';
 import type { GallerySlide } from '@/lib/gallery-slides';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   Modal,
@@ -41,11 +44,38 @@ function Dot({ active }: { active: boolean }) {
   return <Animated.View style={style} />;
 }
 
+function LockedPanoramaOverlay({ uri }: { uri: string }) {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.lockedWrap}>
+      <Image source={{ uri }} style={styles.imageFill} contentFit="cover" blurRadius={40} />
+      <BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <View style={styles.lockedDim} pointerEvents="none" />
+      <View style={styles.lockedContent}>
+        <View style={styles.lockedIconWrap}>
+          <Ionicons name="lock-closed" size={22} color="#fff" />
+        </View>
+        <Text style={styles.lockedTitle}>{t('premium.panoramaLockedTitle')}</Text>
+        <Text style={styles.lockedBody}>{t('premium.panoramaLockedBody')}</Text>
+        <TouchableOpacity
+          style={styles.lockedCta}
+          activeOpacity={0.85}
+          onPress={() => router.push('/premium')}>
+          <Ionicons name="sparkles" size={14} color="#111" style={styles.lockedCtaIcon} />
+          <Text style={styles.lockedCtaText}>{t('premium.tiers.pro.cta')}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 interface TrailGalleryLightboxProps {
   visible: boolean;
   onClose: () => void;
   items: GallerySlide[];
   initialIndex: number;
+  /** Cuando es true, las fotos panorámicas (`mode: 'panorama'`) se muestran blureadas con un candado en vez del visor 360. */
+  panoramaLocked?: boolean;
 }
 
 export default function TrailGalleryLightbox({
@@ -53,6 +83,7 @@ export default function TrailGalleryLightbox({
   onClose,
   items,
   initialIndex,
+  panoramaLocked = false,
 }: TrailGalleryLightboxProps) {
   const { top, bottom } = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
@@ -108,6 +139,7 @@ export default function TrailGalleryLightbox({
   );
 
   const currentIsPanorama = items[page]?.mode === 'panorama';
+  const currentIsLockedPanorama = currentIsPanorama && panoramaLocked;
 
   if (!items.length) return null;
 
@@ -126,7 +158,7 @@ export default function TrailGalleryLightbox({
           keyExtractor={(_, i) => String(i)}
           horizontal
           pagingEnabled
-          scrollEnabled={!currentIsPanorama}
+          scrollEnabled={!currentIsPanorama || currentIsLockedPanorama}
           showsHorizontalScrollIndicator={false}
           getItemLayout={(_, index) => ({
             length: winW,
@@ -156,11 +188,15 @@ export default function TrailGalleryLightbox({
               <View style={styles.viewerCenter}>
                 <View style={[styles.viewerBox, { height: item.mode === 'panorama' ? innerH : viewerH }]}>
                   {item.mode === 'panorama' ? (
-                    <PanoramaWebView
-                      uri={item.uri}
-                      panoramaHalf={item.panoramaHalf}
-                      style={styles.panoramaFill}
-                    />
+                    panoramaLocked ? (
+                      <LockedPanoramaOverlay uri={item.uri} />
+                    ) : (
+                      <PanoramaWebView
+                        uri={item.uri}
+                        panoramaHalf={item.panoramaHalf}
+                        style={styles.panoramaFill}
+                      />
+                    )
                   ) : (
                     <Image
                       source={{ uri: item.uri }}
@@ -283,6 +319,65 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     minHeight: 0,
+  },
+  lockedWrap: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+  },
+  lockedDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  lockedContent: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 6,
+  },
+  lockedIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  lockedTitle: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  lockedBody: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 14,
+  },
+  lockedCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    height: 42,
+    borderRadius: 21,
+  },
+  lockedCtaIcon: {
+    marginRight: 6,
+  },
+  lockedCtaText: {
+    color: '#111',
+    fontSize: 14,
+    fontWeight: '700',
   },
   chrome: {
     position: 'absolute',

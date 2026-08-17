@@ -13,7 +13,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200';
@@ -92,7 +92,10 @@ export default function ProfileScreen() {
   const SETTINGS = useMemo(() => [
     { icon: 'person-outline',        label: t('profile.settings.personalInfo'),       key: 'personalInfo' },
     { icon: 'lock-closed-outline',   label: t('profile.settings.privacySecurity'),    key: 'privacySecurity' },
-    { icon: 'receipt-outline',       label: t('profile.settings.manageSubscription'), key: 'manageSubscription' },
+    // Subscriptions are disabled on iOS for now — no IAP configured there yet.
+    ...(Platform.OS === 'ios' ? [] : [
+      { icon: 'receipt-outline',     label: t('profile.settings.manageSubscription'), key: 'manageSubscription' },
+    ]),
     { icon: 'trash-outline',         label: t('profile.settings.deleteAccount'),      key: 'deleteAccount', danger: true },
     { icon: 'log-out-outline',       label: t('profile.settings.logout'),             key: 'logout', danger: true },
   ], [t]);
@@ -225,49 +228,51 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Premium banner */}
-        <TouchableOpacity
-          activeOpacity={0.88}
-          onPress={() => router.push('/premium')}
-          accessibilityRole="button"
-          accessibilityLabel={t('profile.accessibility.premium')}
-          style={styles.premiumBannerWrap}>
-          <LinearGradient
-            colors={['#1a3a5c', '#0d6ebd', '#1a3a5c']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.premiumBanner}>
-            {/* Glow orbs */}
-            <View style={[styles.premiumGlow, { top: -40, right: 20 }]} />
-            <View style={[styles.premiumGlow, { bottom: -30, left: 30, width: 80, height: 80 }]} />
+        {/* Premium banner — hidden on iOS while IAP is disabled there */}
+        {Platform.OS !== 'ios' && (
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={() => router.push('/premium')}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.accessibility.premium')}
+            style={styles.premiumBannerWrap}>
+            <LinearGradient
+              colors={['#1a3a5c', '#0d6ebd', '#1a3a5c']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.premiumBanner}>
+              {/* Glow orbs */}
+              <View style={[styles.premiumGlow, { top: -40, right: 20 }]} />
+              <View style={[styles.premiumGlow, { bottom: -30, left: 30, width: 80, height: 80 }]} />
 
-            {/* Crown + title */}
-            <View style={styles.premiumTop}>
-              <View style={styles.premiumCrownWrap}>
-                <MaterialCommunityIcons name="crown" size={28} color="#fff" />
-              </View>
-              <View style={styles.premiumTitleBlock}>
-                <ThemedText style={styles.premiumTitle}>{t('profile.premium.title')}</ThemedText>
-                <ThemedText style={styles.premiumSub}>Explorá Ushuaia sin límites</ThemedText>
-              </View>
-            </View>
-
-            {/* Feature pills */}
-            <View style={styles.premiumPills}>
-              {['Mapas offline', 'GPS sin señal', 'Soporte 24/7'].map((pill) => (
-                <View key={pill} style={styles.premiumPill}>
-                  <ThemedText style={styles.premiumPillText}>{pill}</ThemedText>
+              {/* Crown + title */}
+              <View style={styles.premiumTop}>
+                <View style={styles.premiumCrownWrap}>
+                  <MaterialCommunityIcons name="crown" size={28} color="#fff" />
                 </View>
-              ))}
-            </View>
+                <View style={styles.premiumTitleBlock}>
+                  <ThemedText style={styles.premiumTitle}>{t('profile.premium.title')}</ThemedText>
+                  <ThemedText style={styles.premiumSub}>Explorá Ushuaia sin límites</ThemedText>
+                </View>
+              </View>
 
-            {/* CTA */}
-            <View style={styles.premiumCta}>
-              <ThemedText style={styles.premiumCtaText}>Ver planes</ThemedText>
-              <Ionicons name="arrow-forward" size={14} color="#0d6ebd" />
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
+              {/* Feature pills */}
+              <View style={styles.premiumPills}>
+                {['Mapas offline', 'GPS sin señal', 'Soporte 24/7'].map((pill) => (
+                  <View key={pill} style={styles.premiumPill}>
+                    <ThemedText style={styles.premiumPillText}>{pill}</ThemedText>
+                  </View>
+                ))}
+              </View>
+
+              {/* CTA */}
+              <View style={styles.premiumCta}>
+                <ThemedText style={styles.premiumCtaText}>Ver planes</ThemedText>
+                <Ionicons name="arrow-forward" size={14} color="#0d6ebd" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* Grid cards */}
         <View style={styles.grid}>

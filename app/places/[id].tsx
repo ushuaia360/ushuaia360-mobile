@@ -15,7 +15,7 @@ import { imageUrlsToGallerySlides, placeMediaToGallerySlides } from '@/lib/galle
 import { formatPlaceCategoryLabel, getPlaceCategoryVisual } from '@/lib/place-category-map';
 import { redirectToLogin } from '@/lib/needAuth';
 import { appAlert } from '@/lib/app-alert';
-import { canDownloadForOffline } from '@/lib/offline-download-gate';
+import { hasPremiumAccess } from '@/lib/offline-download-gate';
 import { cachePlaceMediaForOffline } from '@/lib/offline-media-cache';
 import { pickReviewImagesToAppend } from '@/lib/review-image-picker';
 import { REVIEW_GALLERY_MAX_PHOTOS, REVIEWS_LIST_PAGE_SIZE } from '@/lib/review-constants';
@@ -36,6 +36,7 @@ import {
 } from '@/services/api';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
@@ -184,6 +185,7 @@ export default function PlaceDetailScreen() {
   const pathname = usePathname();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
   const placeFavorited = useFavoritesStore((s) => (placeId ? s.isPlaceFavorite(placeId) : false));
   const togglePlaceFavorite = useFavoritesStore((s) => s.togglePlace);
 
@@ -315,8 +317,8 @@ export default function PlaceDetailScreen() {
 
   const handlePlaceOfflineDownload = useCallback(async () => {
     if (!placeId) return;
-    if (!canDownloadForOffline(user)) {
-      appAlert(t('placeDetail.premiumTitle'), t('placeDetail.premiumBody'));
+    if (!token) {
+      redirectToLogin(pathname || '/(tabs)');
       return;
     }
     if (placeManualDownload) {
@@ -354,7 +356,7 @@ export default function PlaceDetailScreen() {
     } finally {
       setPlaceDownloadBusy(false);
     }
-  }, [placeId, place, user, placeManualDownload, t]);
+  }, [placeId, place, user, isPro, placeManualDownload, t, token, pathname]);
 
   const refreshReviews = useCallback(async () => {
     if (!placeId) return;
@@ -1213,6 +1215,7 @@ export default function PlaceDetailScreen() {
           onClose={() => setLightboxOpen(false)}
           items={gallerySlides}
           initialIndex={lightboxIndex}
+          panoramaLocked={!hasPremiumAccess(user, isPro)}
         />
       ) : null}
 
@@ -1296,11 +1299,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   nameSection: { padding: 16, paddingBottom: 12, alignItems: 'center' },
   name: { fontSize: 22, fontWeight: '500', lineHeight: 27, textAlign: 'center' },

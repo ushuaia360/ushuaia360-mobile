@@ -2,11 +2,15 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNeedsAuthScreen } from '@/lib/needAuth';
+import { getOfferings, isPurchasesReady, purchasePackage } from '@/services/purchases';
+import { useAuthStore } from '@/store/auth-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PRO_BENEFITS = [
@@ -35,9 +39,47 @@ export default function PremiumScreen() {
     else router.push('/(tabs)/profile');
   }, []);
 
-  const handlePurchase = useCallback(() => {
-    Alert.alert(t('premium.comingSoonTitle'), t('premium.comingSoonBody'));
-  }, [t]);
+  const isAuthed = useNeedsAuthScreen('/premium');
+  const refreshUser = useAuthStore((s) => s.refreshUser);
+  const [purchaseBusy, setPurchaseBusy] = useState(false);
+
+  const handlePurchase = useCallback(async () => {
+    if (purchaseBusy) return;
+    if (!isPurchasesReady()) {
+      Alert.alert(t('common.error'), t('premium.purchaseError'));
+      return;
+    }
+    setPurchaseBusy(true);
+    try {
+      const offerings = await getOfferings();
+      const pkg =
+        offerings?.current?.monthly ?? offerings?.current?.availablePackages[0] ?? null;
+      if (!pkg) {
+        Alert.alert(t('premium.noOfferingTitle'), t('premium.noOfferingBody'));
+        return;
+      }
+      const { customerInfo } = await purchasePackage(pkg);
+      usePurchasesStore.getState().setCustomerInfo(customerInfo);
+      void refreshUser();
+      Alert.alert(t('premium.welcomeTitle'), t('premium.welcomeBody'));
+      goBack();
+    } catch (e) {
+      const userCancelled = Boolean((e as { userCancelled?: boolean })?.userCancelled);
+      if (!userCancelled) {
+        Alert.alert(t('common.error'), t('premium.purchaseError'));
+      }
+    } finally {
+      setPurchaseBusy(false);
+    }
+  }, [purchaseBusy, refreshUser, goBack, t]);
+
+  if (!isAuthed) {
+    return (
+      <ThemedView style={[styles.container, styles.centered, { backgroundColor: pageBg }]}>
+        <ActivityIndicator color={colors.tint} />
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: pageBg }]}>
@@ -74,16 +116,26 @@ export default function PremiumScreen() {
         {/* Price card */}
         <View style={[styles.priceCard, { backgroundColor: cardBg, borderColor: colors.tint + '40' }]}>
           <View style={[styles.popularBadge, { backgroundColor: colors.tint }]}>
-            <ThemedText style={styles.popularText}>{t('premium.popular')}</ThemedText>
+            <ThemedText style={styles.popularText}>
+              {Platform.OS === 'ios' ? t('premium.comingSoonTitle') : t('premium.popular')}
+            </ThemedText>
           </View>
-          <View style={styles.priceRow}>
-            <ThemedText style={styles.priceCurrency}>$</ThemedText>
-            <ThemedText style={styles.priceAmount}>6.99</ThemedText>
-            <ThemedText style={[styles.pricePeriod, { color: textSub }]}>/ mes</ThemedText>
-          </View>
-          <ThemedText style={[styles.priceSub, { color: textSub }]}>
-            Cancelá en cualquier momento
-          </ThemedText>
+          {Platform.OS === 'ios' ? (
+            <ThemedText style={[styles.priceAmount, { fontSize: 22, textAlign: 'center' }]}>
+              {t('premium.comingSoonBody')}
+            </ThemedText>
+          ) : (
+            <View style={styles.priceRow}>
+              <ThemedText style={styles.priceCurrency}>$</ThemedText>
+              <ThemedText style={styles.priceAmount}>6.99</ThemedText>
+              <ThemedText style={[styles.pricePeriod, { color: textSub }]}>/ mes</ThemedText>
+            </View>
+          )}
+          {Platform.OS !== 'ios' && (
+            <ThemedText style={[styles.priceSub, { color: textSub }]}>
+              Cancelá en cualquier momento
+            </ThemedText>
+          )}
         </View>
 
         {/* Benefits */}
@@ -108,21 +160,39 @@ export default function PremiumScreen() {
 
       {/* Sticky footer */}
       <View style={[styles.footer, { backgroundColor: pageBg, paddingBottom: Math.max(bottom + 8, 20) }]}>
-        <TouchableOpacity
-          style={[styles.ctaBtn, { backgroundColor: colors.tint }]}
-          activeOpacity={0.85}
-          onPress={handlePurchase}>
-          <MaterialCommunityIcons name="crown" size={18} color="#fff" style={{ marginRight: 8 }} />
-          <ThemedText style={styles.ctaBtnText}>
-            {t('premium.tiers.pro.cta')}
-          </ThemedText>
-        </TouchableOpacity>
+        {Platform.OS === 'ios' ? (
+          <TouchableOpacity
+            style={[styles.ctaBtn, { backgroundColor: colors.tint }]}
+            activeOpacity={0.85}
+            onPress={goBack}>
+            <ThemedText style={styles.ctaBtnText}>{t('common.ok')}</ThemedText>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={[styles.ctaBtn, { backgroundColor: colors.tint, opacity: purchaseBusy ? 0.7 : 1 }]}
+              activeOpacity={0.85}
+              disabled={purchaseBusy}
+              onPress={handlePurchase}>
+              {purchaseBusy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="crown" size={18} color="#fff" style={{ marginRight: 8 }} />
+                  <ThemedText style={styles.ctaBtnText}>
+                    {t('premium.tiers.pro.cta')}
+                  </ThemedText>
+                </>
+              )}
+            </TouchableOpacity>
 
-        <TouchableOpacity onPress={goBack} activeOpacity={0.6}>
-          <ThemedText style={[styles.declineText, { color: textSub }]}>
-            No gracias, quedarme en el plan gratis
-          </ThemedText>
-        </TouchableOpacity>
+            <TouchableOpacity onPress={goBack} activeOpacity={0.6}>
+              <ThemedText style={[styles.declineText, { color: textSub }]}>
+                No gracias, quedarme en el plan gratis
+              </ThemedText>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </ThemedView>
   );
@@ -130,6 +200,7 @@ export default function PremiumScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centered: { alignItems: 'center', justifyContent: 'center' },
 
   // Header
   header: {
@@ -195,11 +266,6 @@ const styles = StyleSheet.create({
   benefitsCard: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
   },
   benefitRow: {
     flexDirection: 'row',

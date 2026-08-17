@@ -19,7 +19,7 @@ import { poiTypeIcon } from '@/lib/poi-icons';
 import { appAlert } from '@/lib/app-alert';
 import { isLikelyNetworkError, shouldQueueTrailCompletionError } from '@/lib/network-error';
 import { cacheTrailDetailMediaForOffline } from '@/lib/offline-media-cache';
-import { canDownloadForOffline } from '@/lib/offline-download-gate';
+import { canDownloadForOffline, hasPremiumAccess } from '@/lib/offline-download-gate';
 import { useProgressiveImageSource } from '@/lib/progressive-image';
 import {
   addManualTrailDownload,
@@ -58,6 +58,7 @@ import {
 } from '@/store/active-trail-session-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { mapBackendTrail, useTrailsStore } from '@/store/trails-store';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
@@ -242,6 +243,8 @@ interface TrailPoiListCardProps {
 
 function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailPoiListCardProps) {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
   const title = p.name?.trim() ? toTitleCase(p.name.trim()) : t('trailDetail.defaultPoiName');
   const mediaItems = filterDisplayableMedia(p.media);
   const [hero, ...restMedia] = mediaItems;
@@ -369,6 +372,7 @@ function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailP
         onClose={() => setPoiGalleryOpen(false)}
         items={poiGallerySlides}
         initialIndex={poiGalleryIndex}
+        panoramaLocked={!hasPremiumAccess(user, isPro)}
       />
     </View>
   );
@@ -426,6 +430,7 @@ export default function TrailDetailScreen() {
   const { trails, featured, fetchTrails, loading } = useTrailsStore();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
   const pathname = usePathname();
   const trailFavorited = useFavoritesStore((s) => (trailId ? s.isFavorite(trailId) : false));
   const toggleTrailFavorite = useFavoritesStore((s) => s.toggleTrail);
@@ -547,11 +552,12 @@ export default function TrailDetailScreen() {
 
   const handleTrailOfflineDownload = useCallback(async () => {
     if (!trailId) return;
-    if (!canDownloadForOffline(user)) {
-      appAlert(
-        t('trailDetail.premiumTitle'),
-        t('trailDetail.premiumBody'),
-      );
+    if (!token) {
+      redirectToLogin(pathname || '/(tabs)');
+      return;
+    }
+    if (!canDownloadForOffline(user, isPro)) {
+      router.push('/premium');
       return;
     }
     if (trailManualDownload) {
@@ -607,7 +613,7 @@ export default function TrailDetailScreen() {
     } finally {
       setTrailDownloadBusy(false);
     }
-  }, [trailId, trailDetail, user, trailManualDownload, isDark]);
+  }, [trailId, trailDetail, user, isPro, trailManualDownload, isDark, token, pathname]);
 
   useEffect(() => {
     if (!trailId) return;
@@ -1990,6 +1996,7 @@ export default function TrailDetailScreen() {
               onClose={() => setLightboxOpen(false)}
               items={gallerySlides}
               initialIndex={lightboxStartIndex}
+              panoramaLocked={!hasPremiumAccess(user, isPro)}
             />
           )}
 
@@ -2226,10 +2233,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 16,
     borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
   },
 
   nameSection: {

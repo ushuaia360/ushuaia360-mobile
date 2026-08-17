@@ -350,6 +350,8 @@
     "noPurchasesTitle": "No previous purchases",
     "noPurchasesBody": "We couldn't find any previous purchases.",
     "restoreError": "Could not restore. Please try again.",
+    "panoramaLockedTitle": "Exclusive 360° photo",
+    "panoramaLockedBody": "Unlock panoramic photos with Premium",
     "tiers": {
       "explorer": {
         "name": "Explorer",

@@ -80,6 +80,7 @@ export default function LoginScreen() {
   };
 
   const handleAppleLogin = async () => {
+    if (isLoading) return;
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -188,16 +189,13 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             {Platform.OS === 'ios' && (
-              <TouchableOpacity
-                style={[styles.methodBtn, { backgroundColor: '#000' }]}
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={14}
+                style={styles.appleBtn}
                 onPress={handleAppleLogin}
-                disabled={isLoading}
-                activeOpacity={0.85}>
-                <Ionicons name="logo-apple" size={22} color="#fff" />
-                <ThemedText style={[styles.methodBtnText, { color: '#fff' }]}>
-                  {t('auth.continueWithApple')}
-                </ThemedText>
-              </TouchableOpacity>
+              />
             )}
 
             <View style={styles.orRow}>
@@ -389,9 +387,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   methodBtnText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: Platform.OS === 'ios' ? 18 : 16,
+    fontWeight: Platform.OS === 'ios' ? '600' : '500',
     color: '#fff',
+  },
+  appleBtn: {
+    height: 52,
+    width: '100%',
   },
   orRow: {
     flexDirection: 'row',

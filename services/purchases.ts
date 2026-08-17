@@ -1,4 +1,10 @@
-import Purchases, { LOG_LEVEL, type CustomerInfo } from 'react-native-purchases';
+import Purchases, {
+  LOG_LEVEL,
+  type CustomerInfo,
+  type MakePurchaseResult,
+  type PurchasesOfferings,
+  type PurchasesPackage,
+} from 'react-native-purchases';
 import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { NativeModules, Platform } from 'react-native';
 
@@ -68,6 +74,24 @@ export function addCustomerInfoListener(
   if (!isAvailable()) return () => {};
   Purchases.addCustomerInfoUpdateListener(listener);
   return () => Purchases.removeCustomerInfoUpdateListener(listener);
+}
+
+/** Fetch the offerings configured in the RevenueCat dashboard. */
+export async function getOfferings(): Promise<PurchasesOfferings | null> {
+  if (!isAvailable()) return null;
+  try {
+    return await Purchases.getOfferings();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Purchase a package directly, opening the store's native purchase sheet
+ * (Google Play / App Store) with no RevenueCat paywall UI in between.
+ */
+export function purchasePackage(pkg: PurchasesPackage): Promise<MakePurchaseResult> {
+  return Purchases.purchasePackage(pkg);
 }
 
 /** Restore previous purchases and return updated CustomerInfo. */
