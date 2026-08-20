@@ -6,8 +6,10 @@ import { Trail } from '@/constants/mock-trails';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNeedsAuthScreen } from '@/lib/needAuth';
+import { openTrail } from '@/lib/trail-premium-gate';
 import { fetchCompletedTrails } from '@/services/api';
 import { useAuthStore } from '@/store/auth-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { mapBackendTrail } from '@/store/trails-store';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -57,6 +59,8 @@ export default function CompletedTrailsScreen() {
   const skelBg = isDark ? '#2c2c2e' : '#e8e8ed';
 
   const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
   const isAuthed = useNeedsAuthScreen('/(tabs)/completed-trails');
   const [trails, setTrails] = useState<Trail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +158,7 @@ export default function CompletedTrailsScreen() {
           renderItem={({ item }) => (
             <TrailListCard
               trail={item}
-              onPress={(t) => router.push({ pathname: '/trails/[id]', params: { id: t.id } } as never)}
+              onPress={(t) => openTrail(t.id, user, isPro)}
               onRoutePress={(t) => setRouteModal({ trailId: t.id, trailName: t.name })}
             />
           )}

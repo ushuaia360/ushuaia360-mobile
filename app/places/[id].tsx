@@ -9,13 +9,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import WeatherSection from '@/components/weather-section';
 import { Colors } from '@/constants/theme';
+import { useAutoTranslatedText } from '@/hooks/use-auto-translate';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import { imageUrlsToGallerySlides, placeMediaToGallerySlides } from '@/lib/gallery-slides';
 import { formatPlaceCategoryLabel, getPlaceCategoryVisual } from '@/lib/place-category-map';
 import { redirectToLogin } from '@/lib/needAuth';
+import { openTrail } from '@/lib/trail-premium-gate';
 import { appAlert } from '@/lib/app-alert';
-import { hasPremiumAccess } from '@/lib/offline-download-gate';
 import { cachePlaceMediaForOffline } from '@/lib/offline-media-cache';
 import { pickReviewImagesToAppend } from '@/lib/review-image-picker';
 import { REVIEW_GALLERY_MAX_PHOTOS, REVIEWS_LIST_PAGE_SIZE } from '@/lib/review-constants';
@@ -75,6 +76,17 @@ const TRAIL_FLOAT_ACTIONS_ROW_PAD = 88;
 const EXPANDABLE_DESC_CHAR_THRESHOLD = 200;
 const EXPANDABLE_DESC_COLLAPSED_LINES = 5;
 
+const TRAIL_DIFFICULTY_LABEL: Record<string, string> = {
+  easy: 'Fácil',
+  medium: 'Media',
+  hard: 'Difícil',
+};
+const TRAIL_DIFFICULTY_COLOR: Record<string, string> = {
+  easy: '#34c759',
+  medium: '#ff9500',
+  hard: '#ff3b30',
+};
+
 type RatingCounts = {
   one_star: number;
   two_star: number;
@@ -124,7 +136,8 @@ function ExpandableDescription({
   collapsedLines?: number;
 }) {
   const { t } = useTranslation();
-  const trimmed = text.trim();
+  const translatedText = useAutoTranslatedText(text);
+  const trimmed = translatedText.trim();
   const [expanded, setExpanded] = useState(false);
   const needsToggle = descriptionNeedsExpandToggle(trimmed);
   if (!trimmed) return null;
@@ -476,7 +489,7 @@ export default function PlaceDetailScreen() {
 
       {!placeId ? (
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.icon }}>Lugar inválido</ThemedText>
+          <ThemedText style={{ color: colors.icon }}>{t('placeDetail.invalidPlace')}</ThemedText>
         </View>
       ) : showFullSkeleton ? (
         <View style={styles.scrollShell}>
@@ -797,7 +810,7 @@ export default function PlaceDetailScreen() {
 
               {hasCoords ? (
                 <View style={styles.mapSection}>
-                  <ThemedText style={[styles.mapSectionLabel, { color: colors.text }]}>Ubicación</ThemedText>
+                  <ThemedText style={[styles.mapSectionLabel, { color: colors.text }]}>{t('placeDetail.location')}</ThemedText>
                   <View style={styles.mapWrap}>
                     <View style={styles.mapLayoutBox} />
                     <View style={styles.mapOverlay}>
@@ -823,9 +836,56 @@ export default function PlaceDetailScreen() {
                       style={styles.mapExpandBtn}
                       onPress={() => setMapFullscreen(true)}
                       accessibilityRole="button"
-                      accessibilityLabel="Ver mapa en pantalla completa">
+                      accessibilityLabel={t('common.fullscreenMap')}>
                       <Ionicons name="scan-outline" size={22} color="#000" />
                     </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null}
+
+              {place.trails && place.trails.length > 0 ? (
+                <View style={styles.mapSection}>
+                  <ThemedText style={[styles.mapSectionLabel, { color: colors.text }]}>
+                    {t('placeDetail.relatedTrails')}
+                  </ThemedText>
+                  <View style={styles.relatedTrailsList}>
+                    {place.trails.map((trail) => (
+                      <TouchableOpacity
+                        key={trail.id}
+                        style={[
+                          styles.relatedTrailRow,
+                          {
+                            backgroundColor: isDark ? '#1c1c1e' : '#F7F9FC',
+                            borderColor: isDark ? '#2a2a2a' : '#EDF0F5',
+                          },
+                        ]}
+                        activeOpacity={0.75}
+                        onPress={() => openTrail(trail.id, user, isPro)}>
+                        <Ionicons name="trail-sign-outline" size={18} color={colors.tint} />
+                        <ThemedText style={styles.relatedTrailName} numberOfLines={1}>
+                          {trail.name}
+                        </ThemedText>
+                        {trail.difficulty ? (
+                          <View
+                            style={[
+                              styles.difficultyBadge,
+                              {
+                                backgroundColor:
+                                  (TRAIL_DIFFICULTY_COLOR[trail.difficulty] ?? colors.tint) + '22',
+                              },
+                            ]}>
+                            <ThemedText
+                              style={[
+                                styles.difficultyText,
+                                { color: TRAIL_DIFFICULTY_COLOR[trail.difficulty] ?? colors.tint },
+                              ]}>
+                              {TRAIL_DIFFICULTY_LABEL[trail.difficulty] ?? trail.difficulty}
+                            </ThemedText>
+                          </View>
+                        ) : null}
+                        <Ionicons name="chevron-forward" size={18} color={colors.icon} />
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
               ) : null}
@@ -880,7 +940,7 @@ export default function PlaceDetailScreen() {
                   borderColor: isDark ? '#2a2a2a' : '#E5E7EB',
                 },
               ]}>
-              <ThemedText style={[styles.reviewFormTitle, { color: colors.text }]}>Dejá tu reseña</ThemedText>
+              <ThemedText style={[styles.reviewFormTitle, { color: colors.text }]}>{t('placeDetail.reviewFormTitle')}</ThemedText>
               <View style={styles.reviewFormRatingRow}>
                 {[1, 2, 3, 4, 5].map((i) => (
                   <TouchableOpacity
@@ -967,7 +1027,7 @@ export default function PlaceDetailScreen() {
               {reviewsTotal > 0 && (
                 <View style={styles.reviewsHeader}>
                   <ThemedText style={[styles.reviewsTitle, { color: '#808080' }]}>
-                    {reviewsTotal} {reviewsTotal === 1 ? 'reseña' : 'reseñas'}
+                    {t('placeDetail.reviewsCount', { count: reviewsTotal })}
                   </ThemedText>
                   <View style={[styles.reviewsHeaderSep, { backgroundColor: '#808080' }]} />
                   <View style={styles.reviewsRating}>
@@ -981,20 +1041,20 @@ export default function PlaceDetailScreen() {
               {reviewsLoading && reviews.length === 0 ? (
                 <View style={styles.reviewEmpty}>
                   <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>
-                    Cargando reseñas...
+                    {t('placeDetail.reviewsLoading')}
                   </ThemedText>
                 </View>
               ) : reviewsError ? (
                 <View style={styles.reviewEmpty}>
-                  <ThemedText style={[styles.reviewEmptyTitle, { color: '#ff3b30' }]}>Error al cargar reseñas</ThemedText>
+                  <ThemedText style={[styles.reviewEmptyTitle, { color: '#ff3b30' }]}>{t('placeDetail.reviewsErrorTitle')}</ThemedText>
                   <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>{reviewsError}</ThemedText>
                 </View>
               ) : reviews.length === 0 ? (
                 <View style={styles.reviewEmpty}>
                   <Ionicons name="chatbubble-outline" size={32} color={colors.icon} />
-                  <ThemedText style={[styles.reviewEmptyTitle, { color: colors.text }]}>No hay reseñas aún</ThemedText>
+                  <ThemedText style={[styles.reviewEmptyTitle, { color: colors.text }]}>{t('placeDetail.reviewsEmptyTitle')}</ThemedText>
                   <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>
-                    Sé el primero en compartir tu experiencia en este lugar.
+                    {t('placeDetail.reviewsEmptySubtitle')}
                   </ThemedText>
                 </View>
               ) : (
@@ -1047,7 +1107,7 @@ export default function PlaceDetailScreen() {
                                         })
                                       }
                                       accessibilityRole="imagebutton"
-                                      accessibilityLabel="Ampliar foto de la reseña">
+                                      accessibilityLabel={t('common.enlargeReviewPhoto')}>
                                       <ExpoImage
                                         source={{ uri }}
                                         style={styles.reviewPhotoThumb}
@@ -1096,7 +1156,7 @@ export default function PlaceDetailScreen() {
                   style={styles.mapFullscreenClose}
                   hitSlop={12}
                   accessibilityRole="button"
-                  accessibilityLabel="Cerrar mapa">
+                  accessibilityLabel={t('common.closeMap')}>
                   <Ionicons name="close" size={28} color={isDark ? '#fff' : '#000'} />
                 </TouchableOpacity>
               </View>
@@ -1138,10 +1198,10 @@ export default function PlaceDetailScreen() {
                 disabled={!hasCoords}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel="Abrir en mapas">
+                accessibilityLabel={t('placeDetail.openInMaps')}>
                 <Ionicons name="navigate-outline" size={20} color="#fff" />
                 <ThemedText style={styles.trailFloatBtnPrimaryLabel} numberOfLines={1}>
-                  Cómo llegar
+                  {t('placeDetail.howToGetThere')}
                 </ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1215,7 +1275,6 @@ export default function PlaceDetailScreen() {
           onClose={() => setLightboxOpen(false)}
           items={gallerySlides}
           initialIndex={lightboxIndex}
-          panoramaLocked={!hasPremiumAccess(user, isPro)}
         />
       ) : null}
 
@@ -1316,6 +1375,19 @@ const styles = StyleSheet.create({
   metricLabel: { fontSize: 14, opacity: 0.55, textAlign: 'center' },
   mapSection: { padding: 16, paddingTop: 8, paddingBottom: 24, gap: 8 },
   mapSectionLabel: { fontSize: 16, fontWeight: '600' },
+  relatedTrailsList: { gap: 8 },
+  relatedTrailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  relatedTrailName: { flex: 1, fontSize: 14, fontWeight: '600' },
+  difficultyBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  difficultyText: { fontSize: 11, fontWeight: '600' },
   mapWrap: { width: '100%', position: 'relative', borderRadius: 12, overflow: 'hidden' },
   mapLayoutBox: { width: '100%', aspectRatio: 1 },
   mapOverlay: { ...StyleSheet.absoluteFillObject },

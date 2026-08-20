@@ -2,16 +2,20 @@ import HomeConnectivityLoader from '@/components/home/home-connectivity-loader';
 import OfflineHomePlaceholder from '@/components/home/offline-home-placeholder';
 import ResumeActiveTrailBar from '@/components/home/resume-active-trail-bar';
 import TrailImage from '@/components/home/trail-image';
+import LanguagePickerButton from '@/components/language-picker-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { recheckNetworkReachable, useNetworkReachable } from '@/hooks/use-network-reachable';
 import { redirectToLogin } from '@/lib/needAuth';
+import { hasPremiumAccess } from '@/lib/offline-download-gate';
 import { toTitleCase } from '@/lib/title-case';
+import { openTrail } from '@/lib/trail-premium-gate';
 import { useAuthStore } from '@/store/auth-store';
 import { useFavoritesStore } from '@/store/favorites-store';
 import { useHomeStore } from '@/store/home-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { formatPlaceCategoryLabel } from '@/lib/place-category-map';
 import { FeaturedListItem, useTrailsStore } from '@/store/trails-store';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,6 +56,8 @@ function FeaturedCard({ item, large }: { item: FeaturedListItem; large?: boolean
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
   const pathname = usePathname();
   const isPlace = item.kind === 'place';
   const liked = useFavoritesStore((s) => (isPlace ? s.isPlaceFavorite(item.id) : s.isFavorite(item.id)));
@@ -78,11 +84,9 @@ function FeaturedCard({ item, large }: { item: FeaturedListItem; large?: boolean
       style={[large ? styles.featuredLarge : styles.featuredSmall, { backgroundColor: isDark ? '#1c1c1e' : '#fff' }]}
       activeOpacity={0.9}
       onPress={() =>
-        router.push(
-          isPlace
-            ? ({ pathname: '/places/[id]', params: { id: item.id } } as any)
-            : ({ pathname: '/trails/[id]', params: { id: item.id } } as any),
-        )
+        isPlace
+          ? router.push({ pathname: '/places/[id]', params: { id: item.id } } as any)
+          : openTrail(item.id, user, isPro)
       }>
       <TrailImage uri={image} style={StyleSheet.absoluteFillObject as object} contentFit="cover" />
       <LinearGradient
@@ -142,10 +146,25 @@ function HomeContent() {
   const isDark = colorScheme === 'dark';
 
   const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const isPro = usePurchasesStore((s) => s.isPro);
+  const pathname = usePathname();
   const { setMode, setPendingListFilters } = useHomeStore();
   const { featured, loadingFeatured, fetchFeatured } = useTrailsStore();
   const [searchTop, setSearchTop] = useState(top + 44);
   const [refreshing, setRefreshing] = useState(false);
+
+  const onWallpapersPress = () => {
+    if (!token) {
+      redirectToLogin(pathname || '/(tabs)');
+      return;
+    }
+    if (!hasPremiumAccess(user, isPro)) {
+      router.push('/premium');
+      return;
+    }
+    router.push('/wallpapers');
+  };
 
   useEffect(() => {
     if (featured.length === 0) fetchFeatured();
@@ -207,7 +226,7 @@ function HomeContent() {
         </View>
 
         {/* Search bar (overlapping hero) */}
-        <View style={[styles.searchWrap, { marginTop: searchTop }]}>
+        <View style={[styles.searchWrap, styles.searchRow, { marginTop: searchTop }]}>
           <TouchableOpacity
             style={[styles.searchBar, { backgroundColor: isDark ? '#1c1c1e' : '#fff' }]}
             activeOpacity={0.9}
@@ -225,6 +244,7 @@ function HomeContent() {
               <Ionicons name="options-outline" size={20} color={colors.icon} />
             </TouchableOpacity>
           </TouchableOpacity>
+          <LanguagePickerButton buttonStyle={styles.searchLangBtn} />
         </View>
 
         {/* Categorías */}
@@ -252,6 +272,30 @@ function HomeContent() {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        {/* Wallpapers */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={[
+              styles.wallpapersCard,
+              { backgroundColor: isDark ? '#1c1c1e' : '#fff', borderColor: isDark ? '#38383a' : '#e6e8ec' },
+            ]}
+            activeOpacity={0.88}
+            onPress={onWallpapersPress}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.accessibility.wallpapers')}>
+            <View style={[styles.wallpapersIcon, { backgroundColor: colors.tint + '18' }]}>
+              <Ionicons name="image-outline" size={26} color={colors.tint} />
+            </View>
+            <View style={styles.wallpapersText}>
+              <ThemedText style={styles.wallpapersTitle}>{t('homeTab.wallpapers.title')}</ThemedText>
+              <ThemedText style={[styles.wallpapersSubtitle, { color: colors.icon }]}>
+                {t('homeTab.wallpapers.subtitle')}
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.icon} />
+          </TouchableOpacity>
         </View>
 
         {/* Lugares destacados */}
@@ -347,7 +391,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     zIndex: 2,
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -359,6 +409,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.14,
     shadowRadius: 14,
     elevation: 6,
+  },
+  searchLangBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   searchPlaceholder: {
     flex: 1,
@@ -417,6 +472,33 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  // ── Wallpapers ──
+  wallpapersCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+  },
+  wallpapersIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wallpapersText: {
+    flex: 1,
+    gap: 2,
+  },
+  wallpapersTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  wallpapersSubtitle: {
+    fontSize: 12.5,
   },
   // ── Featured ──
   emptyFeatured: {

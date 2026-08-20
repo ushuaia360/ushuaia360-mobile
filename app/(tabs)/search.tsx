@@ -6,7 +6,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
 import { toTitleCase } from '@/lib/title-case';
 import { formatPlaceCategoryLabel } from '@/lib/place-category-map';
+import { openTrail } from '@/lib/trail-premium-gate';
 import { fetchSearchSuggestions, type SearchSuggestion } from '@/services/api';
+import { useAuthStore } from '@/store/auth-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -25,6 +28,8 @@ export default function SearchScreen() {
   const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -63,7 +68,7 @@ export default function SearchScreen() {
 
   function openSuggestion(item: SearchSuggestion) {
     if (item.type === 'trail') {
-      router.push(`/trails/${item.id}`);
+      openTrail(item.id, user, isPro);
       return;
     }
     router.push(`/places/${item.id}`);

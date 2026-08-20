@@ -844,6 +844,13 @@ export interface PlacePointMedia {
   order_index: number | null;
 }
 
+export interface BackendPlaceTrail {
+  id: string;
+  name: string;
+  slug: string;
+  difficulty: string | null;
+}
+
 export interface BackendPlace {
   id: string;
   slug: string;
@@ -859,6 +866,8 @@ export interface BackendPlace {
   image_urls: string[];
   /** Galería tipada (cuando el backend la envía); si falta, usar `image_urls`. */
   media?: PlacePointMedia[];
+  /** Senderos vinculados a este punto turístico (vacío si no tiene). */
+  trails?: BackendPlaceTrail[];
   created_at: string;
   updated_at: string;
 }

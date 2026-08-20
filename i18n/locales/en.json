@@ -20,7 +20,12 @@
     "understood": "Got it",
     "trail": "Trail",
     "place": "Place",
-    "close": "Close"
+    "close": "Close",
+    "viewOnMap": "View on map",
+    "fullscreenMap": "View fullscreen map",
+    "closeMap": "Close map",
+    "reportReview": "Report review",
+    "enlargeReviewPhoto": "Enlarge review photo"
   },
   "auth": {
     "continueWithEmail": "Continue with email",
@@ -105,7 +110,9 @@
       "defaultSuccess": "Your account has been verified.",
       "defaultError": "We couldn't verify your account.",
       "goToLogin": "Go to sign in"
-    }
+    },
+    "appleError": "Couldn't sign in with Apple",
+    "googleError": "Couldn't sign in with Google"
   },
   "tabs": {
     "home": "Home",
@@ -140,6 +147,10 @@
       "senderos": "Trails",
       "hospedaje": "Lodging",
       "compras": "Shopping"
+    },
+    "wallpapers": {
+      "title": "Wallpapers",
+      "subtitle": "Download exclusive Ushuaia backgrounds"
     }
   },
   "map": {
@@ -278,8 +289,10 @@
       "favorites": "View favorites",
       "premium": "Go premium",
       "offline": "Open offline downloads",
-      "wallpapers": "Open wallpapers"
-    }
+      "wallpapers": "Open wallpapers",
+      "isPro": "Already premium"
+    },
+    "proBadge": "PRO"
   },
   "personalInfo": {
     "title": "Personal information",
@@ -375,7 +388,11 @@
         }
       }
     },
-    "selectPlan": "Select plan {{name}}"
+    "selectPlan": "Select plan {{name}}",
+    "activeBadge": "Active",
+    "activeTitle": "You're already Pro",
+    "activeSub": "Thanks for your support. Enjoy without limits.",
+    "manageSubscription": "Manage subscription"
   },
   "languagePicker": {
     "title": "Language",
@@ -447,7 +464,23 @@
     "downloaded": "Downloaded",
     "downloadAction": "Download trail",
     "downloadManageLabel": "Manage trail download",
-    "submitReview": "Submit review"
+    "submitReview": "Submit review",
+    "invalidTrail": "Invalid trail",
+    "notFound": "We couldn't find this trail.",
+    "pointsOfInterest": "Points of interest",
+    "emergencyPoints": "Emergency points",
+    "reviewFormTitle": "Leave your review",
+    "reviewsLoading": "Loading reviews...",
+    "reviewsErrorTitle": "Error loading reviews",
+    "reviewsEmptyTitle": "No reviews yet",
+    "reviewsEmptySubtitle": "Be the first to share your experience on this trail.",
+    "itineraryTitle": "Itinerary",
+    "itinerarySubtitle": "Points along the trail, in order. Tap one to center it on the map.",
+    "itineraryEmpty": "This trail has no points of interest loaded.",
+    "backToItinerary": "Back to itinerary",
+    "reportTrail": "Report trail",
+    "reviewsCount_one": "{{count}} review",
+    "reviewsCount_other": "{{count}} reviews"
   },
   "placeDetail": {
     "loadError": "Could not load place",
@@ -469,7 +502,19 @@
     "downloadErrorBody": "Couldn't download it. Check your connection and try again.",
     "downloaded": "Downloaded",
     "downloadAction": "Download",
-    "downloadManageLabel": "Manage place download"
+    "downloadManageLabel": "Manage place download",
+    "invalidPlace": "Invalid place",
+    "reviewFormTitle": "Leave your review",
+    "reviewsLoading": "Loading reviews...",
+    "reviewsErrorTitle": "Error loading reviews",
+    "reviewsEmptyTitle": "No reviews yet",
+    "reviewsEmptySubtitle": "Be the first to share your experience at this place.",
+    "location": "Location",
+    "relatedTrails": "Related trails",
+    "howToGetThere": "How to get there",
+    "openInMaps": "Open in maps",
+    "reviewsCount_one": "{{count}} review",
+    "reviewsCount_other": "{{count}} reviews"
   },
   "trailRecorrido": {
     "noSession": "No active route.",

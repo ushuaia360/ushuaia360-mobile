@@ -6,7 +6,10 @@ import { SB_INPUT_HEIGHT } from '@/constants/search-layout';
 import { Colors, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { recheckNetworkReachable, useNetworkReachable } from '@/hooks/use-network-reachable';
+import { openTrail } from '@/lib/trail-premium-gate';
+import { useAuthStore } from '@/store/auth-store';
 import { useHomeStore } from '@/store/home-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { BackendPlaceListItem, useTrailsStore } from '@/store/trails-store';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -99,6 +102,8 @@ export default function ListHome() {
     searchQuery,
   } = useTrailsStore();
   const { setMode, searchOpen, setSearchOpen } = useHomeStore();
+  const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
   const networkReachable = useNetworkReachable();
   const [filterKind, setFilterKind] = useState<string[]>([]);
   const [filterDifficulty, setFilterDifficulty] = useState<string[]>([]);
@@ -173,11 +178,11 @@ export default function ListHome() {
         <TrailListCard
           trail={item.data}
           onMapPress={() => setMode('map')}
-          onPress={(trail) => router.push({ pathname: '/trails/[id]', params: { id: trail.id } } as any)}
+          onPress={(trail) => openTrail(trail.id, user, isPro)}
         />
       );
     },
-    [setMode],
+    [setMode, user, isPro],
   );
 
   const keyExtractor = useCallback((item: ListItem) => `${item.kind}:${item.data.id}`, []);

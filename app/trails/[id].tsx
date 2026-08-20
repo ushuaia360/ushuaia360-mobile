@@ -8,6 +8,7 @@ import TrailRouteTileMap, { TRAIL_ROUTE_LINE_COLOR } from '@/components/trail-ro
 import WeatherSection from '@/components/weather-section';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAutoTranslatedText } from '@/hooks/use-auto-translate';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import {
   filterDisplayableMedia,
@@ -19,7 +20,7 @@ import { poiTypeIcon } from '@/lib/poi-icons';
 import { appAlert } from '@/lib/app-alert';
 import { isLikelyNetworkError, shouldQueueTrailCompletionError } from '@/lib/network-error';
 import { cacheTrailDetailMediaForOffline } from '@/lib/offline-media-cache';
-import { canDownloadForOffline, hasPremiumAccess } from '@/lib/offline-download-gate';
+import { canDownloadForOffline } from '@/lib/offline-download-gate';
 import { useProgressiveImageSource } from '@/lib/progressive-image';
 import {
   addManualTrailDownload,
@@ -207,7 +208,8 @@ function ExpandableDescription({
   collapsedLines?: number;
 }) {
   const { t } = useTranslation();
-  const trimmed = text.trim();
+  const translatedText = useAutoTranslatedText(text);
+  const trimmed = translatedText.trim();
   const [expanded, setExpanded] = useState(false);
   const needsToggle = descriptionNeedsExpandToggle(trimmed);
 
@@ -245,6 +247,7 @@ function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailP
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const isPro = usePurchasesStore((s) => s.isPro);
+  const translatedDescription = useAutoTranslatedText(p.description);
   const title = p.name?.trim() ? toTitleCase(p.name.trim()) : t('trailDetail.defaultPoiName');
   const mediaItems = filterDisplayableMedia(p.media);
   const [hero, ...restMedia] = mediaItems;
@@ -297,9 +300,9 @@ function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailP
             onPress={() => onMapPress(p.id)}
             activeOpacity={0.75}
             accessibilityRole="button"
-            accessibilityLabel="Ver en mapa">
+            accessibilityLabel={t('common.viewOnMap')}>
             <Ionicons name="map-outline" size={14} color="#000" />
-            <ThemedText style={styles.poiMapBtnLabel}>Ver en mapa</ThemedText>
+            <ThemedText style={styles.poiMapBtnLabel}>{t('common.viewOnMap')}</ThemedText>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -333,9 +336,9 @@ function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailP
           </View>
         ) : null}
 
-        {p.description?.trim() ? (
+        {translatedDescription ? (
           <ThemedText style={[styles.poiListDesc, { color: colors.icon }]}>
-            {p.description.trim()}
+            {translatedDescription}
           </ThemedText>
         ) : null}
 
@@ -372,7 +375,6 @@ function TrailPoiListCard({ point: p, colors, isDark, tint, onMapPress }: TrailP
         onClose={() => setPoiGalleryOpen(false)}
         items={poiGallerySlides}
         initialIndex={poiGalleryIndex}
-        panoramaLocked={!hasPremiumAccess(user, isPro)}
       />
     </View>
   );
@@ -1053,7 +1055,7 @@ export default function TrailDetailScreen() {
 
       {!trailId ? (
         <View style={styles.center}>
-          <ThemedText style={{ color: colors.icon }}>Trail inválido</ThemedText>
+          <ThemedText style={{ color: colors.icon }}>{t('trailDetail.invalidTrail')}</ThemedText>
         </View>
       ) : showFullSkeleton ? (
         <View style={styles.scrollShell}>
@@ -1130,7 +1132,7 @@ export default function TrailDetailScreen() {
         <View style={styles.center}>
           <ThemedText
             style={{ color: colors.icon, textAlign: 'center', paddingHorizontal: 24 }}>
-            No encontramos este sendero.
+            {t('trailDetail.notFound')}
           </ThemedText>
         </View>
       ) : (
@@ -1238,7 +1240,7 @@ export default function TrailDetailScreen() {
                               style={[styles.floatBtn, { backgroundColor: '#fff' }]}
                               hitSlop={12}
                               accessibilityRole="button"
-                              accessibilityLabel="Reportar sendero"
+                              accessibilityLabel={t('trailDetail.reportTrail')}
                               onPress={() => trail && handleReportPress('trail', trail.id)}>
                               <Ionicons name="flag-outline" size={20} color="#000" />
                             </TouchableOpacity>
@@ -1299,7 +1301,7 @@ export default function TrailDetailScreen() {
                         </View>
                         <ThemedText
                           style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
-                          Puntos de interés
+                          {t('trailDetail.pointsOfInterest')}
                         </ThemedText>
                         <View style={styles.poiListSection}>
                           {[0, 1].map((i) => (
@@ -1366,7 +1368,7 @@ export default function TrailDetailScreen() {
                                 setMapFullscreen(true);
                               }}
                               accessibilityRole="button"
-                              accessibilityLabel="Ver mapa en pantalla completa">
+                              accessibilityLabel={t('common.fullscreenMap')}>
                               <Ionicons name="scan-outline" size={22} color="#000" />
                             </TouchableOpacity>
                           </View>
@@ -1376,7 +1378,7 @@ export default function TrailDetailScreen() {
                           <>
                             <ThemedText
                               style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
-                              Puntos de interés
+                              {t('trailDetail.pointsOfInterest')}
                             </ThemedText>
                             <View style={styles.poiListSection}>
                               {sortedTrailPoints.map((p) => (
@@ -1388,39 +1390,6 @@ export default function TrailDetailScreen() {
                                   tint={colors.tint}
                                   onMapPress={handleMapPoiPress}
                                 />
-                              ))}
-                            </View>
-                          </>
-                        )}
-
-                        {mapEmergencyPoints.length > 0 && (
-                          <>
-                            <ThemedText
-                              style={[styles.sectionBlockTitle, styles.poiListSectionHeading, { color: colors.text }]}>
-                              Puntos de emergencia
-                            </ThemedText>
-                            <View style={styles.poiListSection}>
-                              {mapEmergencyPoints.map((ep) => (
-                                <View
-                                  key={ep.id}
-                                  style={[styles.emergencyCard, { borderColor: isDark ? '#3a3a3c' : '#e5e5ea', backgroundColor: isDark ? '#1c1c1e' : '#fff' }]}>
-                                  <View style={styles.emergencyCardIconWrap}>
-                                    <Ionicons name="warning" size={18} color="#fff" />
-                                  </View>
-                                  <View style={styles.emergencyCardBody}>
-                                    <ThemedText style={styles.emergencyCardName}>{ep.name}</ThemedText>
-                                    {ep.description ? (
-                                      <ThemedText style={[styles.emergencyCardDesc, { color: colors.icon }]}>
-                                        {ep.description}
-                                      </ThemedText>
-                                    ) : null}
-                                    {ep.phone ? (
-                                      <ThemedText style={[styles.emergencyCardPhone, { color: colors.icon }]}>
-                                        {ep.phone}
-                                      </ThemedText>
-                                    ) : null}
-                                  </View>
-                                </View>
                               ))}
                             </View>
                           </>
@@ -1481,7 +1450,7 @@ export default function TrailDetailScreen() {
                       },
                     ]}>
                     <ThemedText style={[styles.reviewFormTitle, { color: colors.text }]}>
-                      Dejá tu reseña
+                      {t('trailDetail.reviewFormTitle')}
                     </ThemedText>
                     <View style={styles.reviewFormRatingRow}>
                       {[1, 2, 3, 4, 5].map((i) => (
@@ -1571,8 +1540,7 @@ export default function TrailDetailScreen() {
                     {reviewsTotal > 0 && (
                       <View style={styles.reviewsHeader}>
                         <ThemedText style={[styles.reviewsTitle, { color: '#808080' }]}>
-                          {reviewsTotal}{' '}
-                          {reviewsTotal === 1 ? 'reseña' : 'reseñas'}
+                          {t('trailDetail.reviewsCount', { count: reviewsTotal })}
                         </ThemedText>
                         <View style={[styles.reviewsHeaderSep, { backgroundColor: '#808080' }]} />
                         <View style={styles.reviewsRating}>
@@ -1586,13 +1554,13 @@ export default function TrailDetailScreen() {
                     {reviewsLoading ? (
                       <View style={styles.reviewEmpty}>
                         <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>
-                          Cargando reseñas...
+                          {t('trailDetail.reviewsLoading')}
                         </ThemedText>
                       </View>
                     ) : reviewsError ? (
                       <View style={styles.reviewEmpty}>
                         <ThemedText style={[styles.reviewEmptyTitle, { color: '#ff3b30' }]}>
-                          Error al cargar reseñas
+                          {t('trailDetail.reviewsErrorTitle')}
                         </ThemedText>
                         <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>
                           {reviewsError}
@@ -1602,10 +1570,10 @@ export default function TrailDetailScreen() {
                       <View style={styles.reviewEmpty}>
                         <Ionicons name="chatbubble-outline" size={32} color={colors.icon} />
                         <ThemedText style={[styles.reviewEmptyTitle, { color: colors.text }]}>
-                          No hay reseñas aún
+                          {t('trailDetail.reviewsEmptyTitle')}
                         </ThemedText>
                         <ThemedText style={[styles.reviewEmptySubtitle, { color: colors.icon }]}>
-                          Sé el primero en compartir tu experiencia en este sendero.
+                          {t('trailDetail.reviewsEmptySubtitle')}
                         </ThemedText>
                       </View>
                     ) : reviews.map((review, idx) => (
@@ -1629,7 +1597,7 @@ export default function TrailDetailScreen() {
                                 <TouchableOpacity
                                   hitSlop={10}
                                   accessibilityRole="button"
-                                  accessibilityLabel="Reportar reseña"
+                                  accessibilityLabel={t('common.reportReview')}
                                   onPress={() => handleReportPress('review', review.id)}>
                                   <Ionicons name="flag-outline" size={14} color={colors.icon} />
                                 </TouchableOpacity>
@@ -1670,7 +1638,7 @@ export default function TrailDetailScreen() {
                                             })
                                           }
                                           accessibilityRole="imagebutton"
-                                          accessibilityLabel="Ampliar foto de la reseña">
+                                          accessibilityLabel={t('common.enlargeReviewPhoto')}>
                                           <ExpoImage
                                             source={{ uri }}
                                             style={styles.reviewPhotoThumb}
@@ -1725,7 +1693,7 @@ export default function TrailDetailScreen() {
                     style={styles.mapFullscreenClose}
                     hitSlop={12}
                     accessibilityRole="button"
-                    accessibilityLabel="Cerrar mapa">
+                    accessibilityLabel={t('common.closeMap')}>
                     <Ionicons name="close" size={28} color={isDark ? '#fff' : '#000'} />
                   </TouchableOpacity>
                 </View>
@@ -1771,14 +1739,14 @@ export default function TrailDetailScreen() {
                       {poiOverlay.kind === 'itinerary' ? (
                         <>
                           <ThemedText style={[styles.poiItineraryTitle, { color: colors.text }]}>
-                            Recorrido
+                            {t('trailDetail.itineraryTitle')}
                           </ThemedText>
                           <ThemedText style={[styles.poiItinerarySubtitle, { color: colors.icon }]}>
-                            Puntos en orden del sendero. Tocá uno para centrarlo en el mapa.
+                            {t('trailDetail.itinerarySubtitle')}
                           </ThemedText>
                           {(trailDetail?.points ?? []).length === 0 ? (
                             <ThemedText style={[styles.poiItineraryEmpty, { color: colors.icon }]}>
-                              Este sendero no tiene puntos de interés cargados.
+                              {t('trailDetail.itineraryEmpty')}
                             </ThemedText>
                           ) : (
                             (trailDetail?.points ?? []).map((p, index) => {
@@ -1926,7 +1894,7 @@ export default function TrailDetailScreen() {
                           onPress={() => setPoiOverlay({ kind: 'itinerary' })}
                           style={({ pressed }) => [styles.poiSheetBackBtn, { borderColor: colors.tint, opacity: pressed ? 0.85 : 1 }]}>
                           <ThemedText style={[styles.poiSheetBackBtnLabel, { color: colors.tint }]}>
-                            Volver al recorrido
+                            {t('trailDetail.backToItinerary')}
                           </ThemedText>
                         </Pressable>
                       </View>
@@ -1996,7 +1964,6 @@ export default function TrailDetailScreen() {
               onClose={() => setLightboxOpen(false)}
               items={gallerySlides}
               initialIndex={lightboxStartIndex}
-              panoramaLocked={!hasPremiumAccess(user, isPro)}
             />
           )}
 
@@ -2043,7 +2010,7 @@ export default function TrailDetailScreen() {
                 <TouchableOpacity
                   style={styles.topBarBtn}
                   accessibilityRole="button"
-                  accessibilityLabel="Reportar sendero"
+                  accessibilityLabel={t('trailDetail.reportTrail')}
                   onPress={() => trail && handleReportPress('trail', trail.id)}>
                   <Ionicons name="flag-outline" size={20} color={isDark ? '#fff' : '#000'} />
                 </TouchableOpacity>
@@ -2439,39 +2406,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 8,
     gap: 14,
-  },
-  emergencyCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  emergencyCardIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#E65C00',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  emergencyCardBody: {
-    flex: 1,
-    gap: 2,
-  },
-  emergencyCardName: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  emergencyCardDesc: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  emergencyCardPhone: {
-    fontSize: 13,
   },
   poiListEmpty: {
     fontSize: 15,

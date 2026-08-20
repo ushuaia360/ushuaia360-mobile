@@ -5,7 +5,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatPlaceCategoryLabel, getPlaceCategoryVisual } from '@/lib/place-category-map';
 import { resolveApiMediaUrl } from '@/lib/resolve-api-media-url';
 import { toTitleCase } from '@/lib/title-case';
+import { openTrail } from '@/lib/trail-premium-gate';
 import type { MapMarker } from '@/services/api';
+import { useAuthStore } from '@/store/auth-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
@@ -80,6 +83,8 @@ export default function MapMarkerBottomCard({ marker, onClose }: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
+  const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
 
   const isTrail = marker.kind === 'trail';
   const thumb = resolveApiMediaUrl(marker.thumbnail_url) ?? undefined;
@@ -94,7 +99,7 @@ export default function MapMarkerBottomCard({ marker, onClose }: Props) {
   const openDetail = () => {
     onClose();
     if (isTrail) {
-      router.push({ pathname: '/trails/[id]', params: { id: marker.id } } as never);
+      openTrail(marker.id, user, isPro);
     } else {
       router.push({ pathname: '/places/[id]', params: { id: marker.id } } as never);
     }

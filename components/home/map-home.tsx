@@ -23,9 +23,12 @@ import { useWatchUserLocation } from '@/hooks/use-watch-user-location';
 import { homePinScaleFromRegionSpan, pinScaleFromTileZoom } from '@/lib/map-pin-scale';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
 import { listManualDownloads, loadMapMarkersSnapshot, saveMapMarkersSnapshot } from '@/lib/offline-pack';
+import { openTrail } from '@/lib/trail-premium-gate';
 import { fetchMapMarkers, type MapMarker } from '@/services/api';
 import MapView, { Marker, type Details, type Region } from 'react-native-maps';
+import { useAuthStore } from '@/store/auth-store';
 import { useHomeStore } from '@/store/home-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -160,6 +163,8 @@ export default function MapHome() {
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
   const { language, setLanguage } = useLanguageStore();
+  const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
   const LANG_FLAG: Record<string, string> = { es: '🇦🇷', en: '🇺🇸', pt: '🇧🇷' };
 
   const streetCartoBase = isDark
@@ -773,11 +778,9 @@ export default function MapHome() {
           selectedMapMarker={selectedMapMarker}
           onClearMapMarker={() => setSelectedMapMarker(null)}
           onItemPress={(item) =>
-            router.push(
-              item.kind === 'place'
-                ? ({ pathname: '/places/[id]', params: { id: item.id } } as any)
-                : ({ pathname: '/trails/[id]', params: { id: item.id } } as any),
-            )
+            item.kind === 'place'
+              ? router.push({ pathname: '/places/[id]', params: { id: item.id } } as any)
+              : openTrail(item.id, user, isPro)
           }
         />
       </View>

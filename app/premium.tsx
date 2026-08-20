@@ -3,7 +3,15 @@ import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNeedsAuthScreen } from '@/lib/needAuth';
-import { getOfferings, isPurchasesReady, purchasePackage } from '@/services/purchases';
+import { hasPremiumAccess } from '@/lib/offline-download-gate';
+import {
+  getOfferings,
+  isPro as isProEntitlement,
+  isPurchasesReady,
+  presentCustomerCenter,
+  purchasePackage,
+  restorePurchases,
+} from '@/services/purchases';
 import { useAuthStore } from '@/store/auth-store';
 import { usePurchasesStore } from '@/store/purchases-store';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -40,8 +48,39 @@ export default function PremiumScreen() {
   }, []);
 
   const isAuthed = useNeedsAuthScreen('/premium');
+  const user = useAuthStore((s) => s.user);
   const refreshUser = useAuthStore((s) => s.refreshUser);
+  const isPro = usePurchasesStore((s) => s.isPro);
+  const isAlreadyPro = Platform.OS !== 'ios' && hasPremiumAccess(user, isPro);
   const [purchaseBusy, setPurchaseBusy] = useState(false);
+  const [restoreBusy, setRestoreBusy] = useState(false);
+
+  const handleRestore = useCallback(async () => {
+    if (restoreBusy) return;
+    if (!isPurchasesReady()) {
+      Alert.alert(t('common.error'), t('premium.purchaseError'));
+      return;
+    }
+    setRestoreBusy(true);
+    try {
+      const customerInfo = await restorePurchases();
+      if (!customerInfo) {
+        Alert.alert(t('common.error'), t('premium.restoreError'));
+        return;
+      }
+      usePurchasesStore.getState().setCustomerInfo(customerInfo);
+      void refreshUser();
+      if (isProEntitlement(customerInfo)) {
+        Alert.alert(t('premium.restoredTitle'), t('premium.restoredBody'));
+      } else {
+        Alert.alert(t('premium.noPurchasesTitle'), t('premium.noPurchasesBody'));
+      }
+    } catch {
+      Alert.alert(t('common.error'), t('premium.restoreError'));
+    } finally {
+      setRestoreBusy(false);
+    }
+  }, [restoreBusy, refreshUser, t]);
 
   const handlePurchase = useCallback(async () => {
     if (purchaseBusy) return;
@@ -115,12 +154,23 @@ export default function PremiumScreen() {
 
         {/* Price card */}
         <View style={[styles.priceCard, { backgroundColor: cardBg, borderColor: colors.tint + '40' }]}>
-          <View style={[styles.popularBadge, { backgroundColor: colors.tint }]}>
+          <View style={[styles.popularBadge, { backgroundColor: isAlreadyPro ? '#34c759' : colors.tint }]}>
             <ThemedText style={styles.popularText}>
-              {Platform.OS === 'ios' ? t('premium.comingSoonTitle') : t('premium.popular')}
+              {isAlreadyPro
+                ? t('premium.activeBadge')
+                : Platform.OS === 'ios'
+                  ? t('premium.comingSoonTitle')
+                  : t('premium.popular')}
             </ThemedText>
           </View>
-          {Platform.OS === 'ios' ? (
+          {isAlreadyPro ? (
+            <View style={styles.activeRow}>
+              <Ionicons name="checkmark-circle" size={40} color="#34c759" />
+              <ThemedText style={[styles.priceAmount, { fontSize: 22, marginLeft: 10 }]}>
+                {t('premium.activeTitle')}
+              </ThemedText>
+            </View>
+          ) : Platform.OS === 'ios' ? (
             <ThemedText style={[styles.priceAmount, { fontSize: 22, textAlign: 'center' }]}>
               {t('premium.comingSoonBody')}
             </ThemedText>
@@ -131,11 +181,11 @@ export default function PremiumScreen() {
               <ThemedText style={[styles.pricePeriod, { color: textSub }]}>/ mes</ThemedText>
             </View>
           )}
-          {Platform.OS !== 'ios' && (
-            <ThemedText style={[styles.priceSub, { color: textSub }]}>
-              Cancelá en cualquier momento
-            </ThemedText>
-          )}
+          {isAlreadyPro ? (
+            <ThemedText style={[styles.priceSub, { color: textSub }]}>{t('premium.activeSub')}</ThemedText>
+          ) : Platform.OS !== 'ios' ? (
+            <ThemedText style={[styles.priceSub, { color: textSub }]}>Cancelá en cualquier momento</ThemedText>
+          ) : null}
         </View>
 
         {/* Benefits */}
@@ -160,7 +210,20 @@ export default function PremiumScreen() {
 
       {/* Sticky footer */}
       <View style={[styles.footer, { backgroundColor: pageBg, paddingBottom: Math.max(bottom + 8, 20) }]}>
-        {Platform.OS === 'ios' ? (
+        {isAlreadyPro ? (
+          <>
+            <TouchableOpacity
+              style={[styles.ctaBtn, { backgroundColor: colors.tint }]}
+              activeOpacity={0.85}
+              onPress={() => void presentCustomerCenter()}>
+              <Ionicons name="receipt-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+              <ThemedText style={styles.ctaBtnText}>{t('premium.manageSubscription')}</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={goBack} activeOpacity={0.6}>
+              <ThemedText style={[styles.declineText, { color: textSub }]}>{t('common.back')}</ThemedText>
+            </TouchableOpacity>
+          </>
+        ) : Platform.OS === 'ios' ? (
           <TouchableOpacity
             style={[styles.ctaBtn, { backgroundColor: colors.tint }]}
             activeOpacity={0.85}
@@ -190,6 +253,16 @@ export default function PremiumScreen() {
               <ThemedText style={[styles.declineText, { color: textSub }]}>
                 No gracias, quedarme en el plan gratis
               </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleRestore} disabled={restoreBusy} activeOpacity={0.6}>
+              {restoreBusy ? (
+                <ActivityIndicator color={textSub} size="small" />
+              ) : (
+                <ThemedText style={[styles.restoreText, { color: colors.tint }]}>
+                  {t('premium.restore')}
+                </ThemedText>
+              )}
             </TouchableOpacity>
           </>
         )}
@@ -257,6 +330,7 @@ const styles = StyleSheet.create({
   },
   popularText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
   priceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 2, marginTop: 6 },
+  activeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   priceCurrency: { fontSize: 20, fontWeight: '700', marginTop: 6 },
   priceAmount: { fontSize: 48, fontWeight: '800', letterSpacing: -2, lineHeight: 52 },
   pricePeriod: { fontSize: 16, fontWeight: '500', marginTop: 28 },

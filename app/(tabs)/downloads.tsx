@@ -11,6 +11,9 @@ import {
   type ManualPlaceEntry,
   type ManualTrailEntry,
 } from '@/lib/offline-pack';
+import { openTrail } from '@/lib/trail-premium-gate';
+import { useAuthStore } from '@/store/auth-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
@@ -158,6 +161,8 @@ export default function DownloadsScreen() {
   const headerBg = isDark ? '#1c1c1e' : '#fff';
   const headerBorder = isDark ? '#2a2a2a' : '#EDF0F5';
   const pageBg = isDark ? '#000' : '#fff';
+  const user = useAuthStore((s) => s.user);
+  const isPro = usePurchasesStore((s) => s.isPro);
 
   const [trailEntries, setTrailEntries] = useState<ManualTrailEntry[]>([]);
   const [placeEntries, setPlaceEntries] = useState<ManualPlaceEntry[]>([]);
@@ -281,9 +286,7 @@ export default function DownloadsScreen() {
                   <TouchableOpacity
                     style={styles.cardMain}
                     activeOpacity={0.85}
-                    onPress={() =>
-                      router.push({ pathname: '/trails/[id]', params: { id: entry.id } } as never)
-                    }>
+                    onPress={() => openTrail(entry.id, user, isPro)}>
 
                     {thumb ? (
                       <ExpoImage

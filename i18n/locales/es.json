@@ -20,7 +20,12 @@
     "understood": "Entendido",
     "trail": "Sendero",
     "place": "Lugar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "viewOnMap": "Ver en mapa",
+    "fullscreenMap": "Ver mapa en pantalla completa",
+    "closeMap": "Cerrar mapa",
+    "reportReview": "Reportar reseña",
+    "enlargeReviewPhoto": "Ampliar foto de la reseña"
   },
   "auth": {
     "continueWithEmail": "Continuar con correo",
@@ -105,7 +110,9 @@
       "defaultSuccess": "Tu cuenta fue verificada.",
       "defaultError": "No pudimos verificar tu cuenta.",
       "goToLogin": "Ir a iniciar sesión"
-    }
+    },
+    "appleError": "No se pudo iniciar sesión con Apple",
+    "googleError": "No se pudo iniciar sesión con Google"
   },
   "tabs": {
     "home": "Inicio",
@@ -140,6 +147,10 @@
       "history": "Historia",
       "hospedaje": "Hospedaje",
       "compras": "Compras"
+    },
+    "wallpapers": {
+      "title": "Fondos de pantalla",
+      "subtitle": "Descargá wallpapers exclusivos de Ushuaia"
     }
   },
   "map": {
@@ -278,8 +289,10 @@
       "favorites": "Ver favoritos",
       "premium": "Hazte premium",
       "offline": "Abrir descargas offline",
-      "wallpapers": "Abrir fondos de pantalla"
-    }
+      "wallpapers": "Abrir fondos de pantalla",
+      "isPro": "Ya sos premium"
+    },
+    "proBadge": "PRO"
   },
   "personalInfo": {
     "title": "Información personal",
@@ -375,7 +388,11 @@
         }
       }
     },
-    "selectPlan": "Seleccionar plan {{name}}"
+    "selectPlan": "Seleccionar plan {{name}}",
+    "activeBadge": "Activo",
+    "activeTitle": "Ya sos Pro",
+    "activeSub": "Gracias por tu apoyo. Disfrutá sin límites.",
+    "manageSubscription": "Gestionar suscripción"
   },
   "languagePicker": {
     "title": "Idioma",
@@ -447,7 +464,23 @@
     "downloaded": "Descargado",
     "downloadAction": "Descargar sendero",
     "downloadManageLabel": "Gestión de descarga del sendero",
-    "submitReview": "Enviar reseña"
+    "submitReview": "Enviar reseña",
+    "invalidTrail": "Trail inválido",
+    "notFound": "No encontramos este sendero.",
+    "pointsOfInterest": "Puntos de interés",
+    "emergencyPoints": "Puntos de emergencia",
+    "reviewFormTitle": "Dejá tu reseña",
+    "reviewsLoading": "Cargando reseñas...",
+    "reviewsErrorTitle": "Error al cargar reseñas",
+    "reviewsEmptyTitle": "No hay reseñas aún",
+    "reviewsEmptySubtitle": "Sé el primero en compartir tu experiencia en este sendero.",
+    "itineraryTitle": "Recorrido",
+    "itinerarySubtitle": "Puntos en orden del sendero. Tocá uno para centrarlo en el mapa.",
+    "itineraryEmpty": "Este sendero no tiene puntos de interés cargados.",
+    "backToItinerary": "Volver al recorrido",
+    "reportTrail": "Reportar sendero",
+    "reviewsCount_one": "{{count}} reseña",
+    "reviewsCount_other": "{{count}} reseñas"
   },
   "placeDetail": {
     "loadError": "No se pudo cargar el lugar",
@@ -469,7 +502,19 @@
     "downloadErrorBody": "No se pudo descargar. Comprobá tu conexión e intentá de nuevo.",
     "downloaded": "Descargado",
     "downloadAction": "Descargar",
-    "downloadManageLabel": "Gestión de descarga del lugar"
+    "downloadManageLabel": "Gestión de descarga del lugar",
+    "invalidPlace": "Lugar inválido",
+    "reviewFormTitle": "Dejá tu reseña",
+    "reviewsLoading": "Cargando reseñas...",
+    "reviewsErrorTitle": "Error al cargar reseñas",
+    "reviewsEmptyTitle": "No hay reseñas aún",
+    "reviewsEmptySubtitle": "Sé el primero en compartir tu experiencia en este lugar.",
+    "location": "Ubicación",
+    "relatedTrails": "Senderos relacionados",
+    "howToGetThere": "Cómo llegar",
+    "openInMaps": "Abrir en mapas",
+    "reviewsCount_one": "{{count}} reseña",
+    "reviewsCount_other": "{{count}} reseñas"
   },
   "trailRecorrido": {
     "noSession": "No hay un recorrido activo.",

@@ -2,10 +2,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { hasPremiumAccess } from '@/lib/offline-download-gate';
 import { redirectToLogin } from '@/lib/needAuth';
 import { fetchProfileStats, type ProfileStatsResponse } from '@/services/api';
 import { presentCustomerCenter } from '@/services/purchases';
 import { useAuthStore } from '@/store/auth-store';
+import { usePurchasesStore } from '@/store/purchases-store';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -60,6 +62,8 @@ export default function ProfileScreen() {
   const isDark = colorScheme === 'dark';
 
   const { user, token, logout, isInitialized } = useAuthStore();
+  const isPro = usePurchasesStore((s) => s.isPro);
+  const isAlreadyPro = Platform.OS !== 'ios' && hasPremiumAccess(user, isPro);
   const skelBg = isDark ? '#2c2c2e' : '#e8e8ed';
   const [profileStats, setProfileStats] = useState<ProfileStatsResponse | null>(null);
 
@@ -197,6 +201,14 @@ export default function ProfileScreen() {
                 <ThemedText style={[styles.userName, { marginTop: 10 }]}>
                   {user?.full_name ?? t('profile.defaultUser')}
                 </ThemedText>
+                {isAlreadyPro && (
+                  <View
+                    style={styles.proBadge}
+                    accessibilityLabel={t('profile.accessibility.isPro')}>
+                    <MaterialCommunityIcons name="crown" size={12} color="#fff" />
+                    <ThemedText style={styles.proBadgeText}>{t('profile.proBadge')}</ThemedText>
+                  </View>
+                )}
               </View>
               <View style={styles.stats}>
                 <TouchableOpacity
@@ -232,9 +244,9 @@ export default function ProfileScreen() {
         {Platform.OS !== 'ios' && (
           <TouchableOpacity
             activeOpacity={0.88}
-            onPress={() => router.push('/premium')}
+            onPress={() => (isAlreadyPro ? void presentCustomerCenter() : router.push('/premium'))}
             accessibilityRole="button"
-            accessibilityLabel={t('profile.accessibility.premium')}
+            accessibilityLabel={isAlreadyPro ? t('profile.accessibility.isPro') : t('profile.accessibility.premium')}
             style={styles.premiumBannerWrap}>
             <LinearGradient
               colors={['#1a3a5c', '#0d6ebd', '#1a3a5c']}
@@ -251,23 +263,31 @@ export default function ProfileScreen() {
                   <MaterialCommunityIcons name="crown" size={28} color="#fff" />
                 </View>
                 <View style={styles.premiumTitleBlock}>
-                  <ThemedText style={styles.premiumTitle}>{t('profile.premium.title')}</ThemedText>
-                  <ThemedText style={styles.premiumSub}>Explorá Ushuaia sin límites</ThemedText>
+                  <ThemedText style={styles.premiumTitle}>
+                    {isAlreadyPro ? t('premium.activeTitle') : t('profile.premium.title')}
+                  </ThemedText>
+                  <ThemedText style={styles.premiumSub}>
+                    {isAlreadyPro ? t('premium.activeSub') : 'Explorá Ushuaia sin límites'}
+                  </ThemedText>
                 </View>
               </View>
 
               {/* Feature pills */}
-              <View style={styles.premiumPills}>
-                {['Mapas offline', 'GPS sin señal', 'Soporte 24/7'].map((pill) => (
-                  <View key={pill} style={styles.premiumPill}>
-                    <ThemedText style={styles.premiumPillText}>{pill}</ThemedText>
-                  </View>
-                ))}
-              </View>
+              {!isAlreadyPro && (
+                <View style={styles.premiumPills}>
+                  {['Mapas offline', 'GPS sin señal', 'Soporte 24/7'].map((pill) => (
+                    <View key={pill} style={styles.premiumPill}>
+                      <ThemedText style={styles.premiumPillText}>{pill}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               {/* CTA */}
               <View style={styles.premiumCta}>
-                <ThemedText style={styles.premiumCtaText}>Ver planes</ThemedText>
+                <ThemedText style={styles.premiumCtaText}>
+                  {isAlreadyPro ? t('premium.manageSubscription') : 'Ver planes'}
+                </ThemedText>
                 <Ionicons name="arrow-forward" size={14} color="#0d6ebd" />
               </View>
             </LinearGradient>
@@ -399,6 +419,17 @@ const styles = StyleSheet.create({
   statDivider: { height: 1 },
   userName: { fontSize: 22, fontWeight: '600', marginBottom: 4 },
   userLocation: { fontSize: 14 },
+  proBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: '#0d6ebd',
+  },
+  proBadgeText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
   premiumBannerWrap: {
     borderRadius: 20,
     shadowColor: '#0d6ebd',
