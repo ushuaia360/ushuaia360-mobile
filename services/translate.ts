@@ -1,7 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const CACHE_PREFIX = 'translate_cache_v1:';
-const MAX_CHUNK_CHARS = 450;
+const CACHE_PREFIX = 'translate_cache_v2:';
+const MAX_CHUNK_CHARS = 300;
+
+// MyMemory returns HTTP 200 with its error text stuffed into responseData.translatedText
+// (e.g. "MAX LENGTH QUERY LIMIT EXCEED...", "QUERY LENGTH LIMIT EXCEDED...") instead of a
+// non-200 status, so a plain "is it a non-empty string" check treats the error as a translation.
+const MYMEMORY_ERROR_PATTERN = /QUERY LENGTH LIMIT|MAX LENGTH|QUERY LIMIT EXCEED|INVALID TARGET LANGUAGE|AMOUNT OF WORDS LIMIT/i;
 
 const memoryCache = new Map<string, string>();
 
@@ -48,8 +53,12 @@ async function translateChunk(chunk: string, sourceLang: string, targetLang: str
   const res = await fetch(url);
   if (!res.ok) throw new Error(`translate http ${res.status}`);
   const json = await res.json();
+  if (json?.responseStatus !== undefined && Number(json.responseStatus) !== 200) {
+    throw new Error(`translate api status ${json.responseStatus}`);
+  }
   const translated = json?.responseData?.translatedText;
   if (typeof translated !== 'string' || !translated.trim()) throw new Error('empty translation');
+  if (MYMEMORY_ERROR_PATTERN.test(translated)) throw new Error('translate api error text');
   return translated;
 }
 

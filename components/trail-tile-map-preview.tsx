@@ -10,6 +10,7 @@ import {
   lonToTileX,
   type MapPanState,
 } from '@/lib/map-projection';
+import { esriStreetTileUrl } from '@/lib/tile-map';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
@@ -23,7 +24,7 @@ const BASE_TILE_X = MAP_BASE_TILE_X;
 const BASE_TILE_Y = MAP_BASE_TILE_Y;
 const BUFFER = 3;
 
-function calcTiles(state: MapPanState, width: number, height: number, baseUrl: string) {
+function calcTiles(state: MapPanState, width: number, height: number) {
   const { zoom, panX, panY } = state;
   const zoomScale = Math.pow(2, zoom - BASE_ZOOM);
 
@@ -47,7 +48,7 @@ function calcTiles(state: MapPanState, width: number, height: number, baseUrl: s
       if (tx < 0 || ty < 0 || tx > maxTile || ty > maxTile) continue;
       tiles.push({
         key: `${zoom}-${tx}-${ty}`,
-        url: `${baseUrl}/${zoom}/${tx}/${ty}.png`,
+        url: esriStreetTileUrl(zoom, tx, ty),
         posX: width / 2 - subX + dx * TILE_SIZE,
         posY: height / 2 - subY + dy * TILE_SIZE,
       });
@@ -77,18 +78,14 @@ export default function TrailTileMapPreview({ latitude, longitude, isDark, zoom 
   const tint = Colors[colorScheme ?? 'light'].tint;
   const [size, setSize] = useState({ w: 1, h: 1 });
 
-  const baseUrl = isDark
-    ? 'https://a.basemaps.cartocdn.com/dark_all'
-    : 'https://a.basemaps.cartocdn.com/light_all';
-
   const mapState = useMemo(
     () => centerOnLatLon(latitude, longitude, zoom),
     [latitude, longitude, zoom],
   );
 
   const tiles = useMemo(
-    () => (size.w > 0 && size.h > 0 ? calcTiles(mapState, size.w, size.h, baseUrl) : []),
-    [mapState, size.w, size.h, baseUrl],
+    () => (size.w > 0 && size.h > 0 ? calcTiles(mapState, size.w, size.h) : []),
+    [mapState, size.w, size.h],
   );
 
   const pin = useMemo(() => {

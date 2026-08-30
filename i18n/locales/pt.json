@@ -6,6 +6,7 @@
     "back": "Voltar",
     "loading": "Carregando...",
     "save": "Salvar",
+    "edit": "Editar",
     "delete": "Excluir",
     "soon": "Em breve",
     "comingSoon": "Em breve",
@@ -150,7 +151,7 @@
     },
     "wallpapers": {
       "title": "Papéis de parede",
-      "subtitle": "Baixe wallpapers exclusivos de Ushuaia"
+      "subtitle": "Baixe wallpapers exclusivos"
     }
   },
   "map": {
@@ -351,9 +352,9 @@
     "comingSoonTitle": "Em breve",
     "comingSoonBody": "As assinaturas Pro estarão disponíveis em breve.",
     "restore": "Restaurar compras",
-    "legal": "Cancele quando quiser · Preços em USD",
+    "legal": "Cancele quando quiser\nPreços em USD",
     "noOfferingTitle": "Indisponível",
-    "noOfferingBody": "Plano não encontrado na loja. Tente novamente mais tarde.",
+    "noOfferingBody": "Plano não disponível no momento.",
     "welcomeTitle": "Bem-vindo ao Pro!",
     "welcomeBody": "Sua assinatura está ativa.",
     "continue": "Continuar",
@@ -470,6 +471,9 @@
     "pointsOfInterest": "Pontos de interesse",
     "emergencyPoints": "Pontos de emergência",
     "reviewFormTitle": "Deixe sua avaliação",
+    "editReviewFormTitle": "Edite sua avaliação",
+    "editReview": "Editar minha avaliação",
+    "saveReviewEdit": "Salvar alterações",
     "reviewsLoading": "Carregando avaliações...",
     "reviewsErrorTitle": "Erro ao carregar avaliações",
     "reviewsEmptyTitle": "Ainda não há avaliações",
@@ -505,6 +509,9 @@
     "downloadManageLabel": "Gerenciar download do lugar",
     "invalidPlace": "Lugar inválido",
     "reviewFormTitle": "Deixe sua avaliação",
+    "editReviewFormTitle": "Edite sua avaliação",
+    "editReview": "Editar minha avaliação",
+    "saveReviewEdit": "Salvar alterações",
     "reviewsLoading": "Carregando avaliações...",
     "reviewsErrorTitle": "Erro ao carregar avaliações",
     "reviewsEmptyTitle": "Ainda não há avaliações",

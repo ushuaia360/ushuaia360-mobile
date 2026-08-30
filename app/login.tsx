@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   methodBtnText: {
-    fontSize: Platform.OS === 'ios' ? 18 : 16,
+    fontSize: Platform.OS === 'ios' ? 17 : 16,
     fontWeight: Platform.OS === 'ios' ? '600' : '500',
     color: '#fff',
   },

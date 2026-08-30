@@ -14,7 +14,13 @@ import {
 } from '@/lib/map-projection';
 import { pinScaleFromRegionSpan, pinScaleFromTileZoom } from '@/lib/map-pin-scale';
 import { poiTypeIcon } from '@/lib/poi-icons';
-import { calcTilesLikeHome, clampPanToTdf, fitMapStateToCoordinatesInTdf } from '@/lib/tile-map';
+import {
+  calcTilesLikeHome,
+  clampPanToTdf,
+  esriImageryTileUrl,
+  esriStreetTileUrl,
+  fitMapStateToCoordinatesInTdf,
+} from '@/lib/tile-map';
 import type {
   ActiveTrailEmergencyPoint,
   ActiveTrailMapPoint,
@@ -149,13 +155,6 @@ const FIT_MAP_PADDING = 50;
 /** Android: margen extra sobre la diagonal del viewport para la capa de tiles rotada (evita esquinas vacías). */
 const TILE_DIAG_MARGIN = 96;
 const MAX_ROUTE_VERTICES = 400;
-/**
- * Imagenería satelital sin API key de Google (mismo proveedor que `components/home/map-home.tsx`,
- * duplicado acá porque esa constante no está exportada; no modificar `map-home.tsx`).
- */
-const ESRI_IMAGERY_TILE_BASE =
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile';
-
 /** Tamaño base (antes de escalar por zoom) de cada tipo de marcador — igual criterio que la rama iOS. */
 const POI_BASE_DIM = 34;
 const POI_BASE_ICON = 18;
@@ -293,11 +292,8 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
     }, [lineCoordinates, interestPoints, mainPoint]);
 
     // ---------------------------------------------------------------------
-    // Android: mapa de tiles (sin API key de Google) — pan/pinch + rotación.
+    // Android: mapa de tiles (sin API key) — pan/pinch + rotación.
     // ---------------------------------------------------------------------
-    const streetTileBase = isDark
-      ? 'https://a.basemaps.cartocdn.com/dark_all'
-      : 'https://a.basemaps.cartocdn.com/light_all';
 
     const [size, setSize] = useState({ w: 0, h: 0 });
     const [committed, setCommitted] = useState<MapPanState>(() =>
@@ -469,15 +465,9 @@ const TrailActiveNavigationMap = forwardRef<TrailActiveNavigationMapRef, Props>(
 
     const tiles = useMemo(() => {
       if (Platform.OS === 'ios' || size.w < TILE_MIN_LAYOUT || size.h < TILE_MIN_LAYOUT) return [];
-      if (useSatellite) {
-        const raw = calcTilesLikeHome(committed, tileDiag, tileDiag, ESRI_IMAGERY_TILE_BASE);
-        return raw.map((t) => {
-          const [z, tx, ty] = t.key.split('-');
-          return { ...t, url: `${ESRI_IMAGERY_TILE_BASE}/${z}/${ty}/${tx}` };
-        });
-      }
-      return calcTilesLikeHome(committed, tileDiag, tileDiag, streetTileBase);
-    }, [committed, size.w, size.h, tileDiag, useSatellite, streetTileBase]);
+      const tileUrl = useSatellite ? esriImageryTileUrl : esriStreetTileUrl;
+      return calcTilesLikeHome(committed, tileDiag, tileDiag, tileUrl);
+    }, [committed, size.w, size.h, tileDiag, useSatellite]);
 
     const routeForDrawTile = useMemo(
       () => decimateRoute(routeLine, MAX_ROUTE_VERTICES),

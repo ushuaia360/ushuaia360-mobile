@@ -63,7 +63,7 @@ export default function ProfileScreen() {
 
   const { user, token, logout, isInitialized } = useAuthStore();
   const isPro = usePurchasesStore((s) => s.isPro);
-  const isAlreadyPro = Platform.OS !== 'ios' && hasPremiumAccess(user, isPro);
+  const isAlreadyPro = hasPremiumAccess(user, isPro);
   const skelBg = isDark ? '#2c2c2e' : '#e8e8ed';
   const [profileStats, setProfileStats] = useState<ProfileStatsResponse | null>(null);
 
@@ -240,59 +240,57 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Premium banner — hidden on iOS while IAP is disabled there */}
-        {Platform.OS !== 'ios' && (
-          <TouchableOpacity
-            activeOpacity={0.88}
-            onPress={() => (isAlreadyPro ? void presentCustomerCenter() : router.push('/premium'))}
-            accessibilityRole="button"
-            accessibilityLabel={isAlreadyPro ? t('profile.accessibility.isPro') : t('profile.accessibility.premium')}
-            style={styles.premiumBannerWrap}>
-            <LinearGradient
-              colors={['#1a3a5c', '#0d6ebd', '#1a3a5c']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.premiumBanner}>
-              {/* Glow orbs */}
-              <View style={[styles.premiumGlow, { top: -40, right: 20 }]} />
-              <View style={[styles.premiumGlow, { bottom: -30, left: 30, width: 80, height: 80 }]} />
+        {/* Premium banner — CTA routes to /premium, where iOS purchasing stays disabled until IAP is approved */}
+        <TouchableOpacity
+          activeOpacity={0.88}
+          onPress={() => (isAlreadyPro ? void presentCustomerCenter() : router.push('/premium'))}
+          accessibilityRole="button"
+          accessibilityLabel={isAlreadyPro ? t('profile.accessibility.isPro') : t('profile.accessibility.premium')}
+          style={styles.premiumBannerWrap}>
+          <LinearGradient
+            colors={['#1a3a5c', '#0d6ebd', '#1a3a5c']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.premiumBanner}>
+            {/* Glow orbs */}
+            <View style={[styles.premiumGlow, { top: -40, right: 20 }]} />
+            <View style={[styles.premiumGlow, { bottom: -30, left: 30, width: 80, height: 80 }]} />
 
-              {/* Crown + title */}
-              <View style={styles.premiumTop}>
-                <View style={styles.premiumCrownWrap}>
-                  <MaterialCommunityIcons name="crown" size={28} color="#fff" />
-                </View>
-                <View style={styles.premiumTitleBlock}>
-                  <ThemedText style={styles.premiumTitle}>
-                    {isAlreadyPro ? t('premium.activeTitle') : t('profile.premium.title')}
-                  </ThemedText>
-                  <ThemedText style={styles.premiumSub}>
-                    {isAlreadyPro ? t('premium.activeSub') : 'Explorá Ushuaia sin límites'}
-                  </ThemedText>
-                </View>
+            {/* Crown + title */}
+            <View style={styles.premiumTop}>
+              <View style={styles.premiumCrownWrap}>
+                <MaterialCommunityIcons name="crown" size={28} color="#fff" />
               </View>
-
-              {/* Feature pills */}
-              {!isAlreadyPro && (
-                <View style={styles.premiumPills}>
-                  {['Mapas offline', 'GPS sin señal', 'Soporte 24/7'].map((pill) => (
-                    <View key={pill} style={styles.premiumPill}>
-                      <ThemedText style={styles.premiumPillText}>{pill}</ThemedText>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* CTA */}
-              <View style={styles.premiumCta}>
-                <ThemedText style={styles.premiumCtaText}>
-                  {isAlreadyPro ? t('premium.manageSubscription') : 'Ver planes'}
+              <View style={styles.premiumTitleBlock}>
+                <ThemedText style={styles.premiumTitle}>
+                  {isAlreadyPro ? t('premium.activeTitle') : t('profile.premium.title')}
                 </ThemedText>
-                <Ionicons name="arrow-forward" size={14} color="#0d6ebd" />
+                <ThemedText style={styles.premiumSub}>
+                  {isAlreadyPro ? t('premium.activeSub') : 'Explorá Ushuaia sin límites'}
+                </ThemedText>
               </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
+            </View>
+
+            {/* Feature pills */}
+            {!isAlreadyPro && (
+              <View style={styles.premiumPills}>
+                {['Senderos', 'Wallpapers', 'Soporte 24/7'].map((pill) => (
+                  <View key={pill} style={styles.premiumPill}>
+                    <ThemedText style={styles.premiumPillText}>{pill}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* CTA */}
+            <View style={styles.premiumCta}>
+              <ThemedText style={styles.premiumCtaText}>
+                {isAlreadyPro ? t('premium.manageSubscription') : 'Ver planes'}
+              </ThemedText>
+              <Ionicons name="arrow-forward" size={14} color="#0d6ebd" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* Grid cards */}
         <View style={styles.grid}>
@@ -417,7 +415,7 @@ const styles = StyleSheet.create({
   statNum: { fontSize: 20, fontWeight: '600' },
   statLabel: { fontSize: 13 },
   statDivider: { height: 1 },
-  userName: { fontSize: 22, fontWeight: '600', marginBottom: 4 },
+  userName: { fontSize: 22, fontWeight: '600', marginBottom: 4, textAlign: 'center' },
   userLocation: { fontSize: 14 },
   proBadge: {
     flexDirection: 'row',

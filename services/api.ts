@@ -354,6 +354,19 @@ export async function createTrailReview(
   });
 }
 
+export async function updateTrailReview(
+  trailId: string,
+  reviewId: string,
+  token: string,
+  body: CreateTrailReviewBody,
+): Promise<CreateTrailReviewResponse> {
+  return apiRequest<CreateTrailReviewResponse>(`/trails/${trailId}/reviews/${reviewId}`, {
+    method: 'PATCH',
+    token,
+    body,
+  });
+}
+
 // ── Reseñas (puntos turísticos) — mismo cuerpo que senderos ──────────────────
 
 export interface PlaceReview {
@@ -395,6 +408,19 @@ export async function createPlaceReview(
 ): Promise<CreatePlaceReviewResponse> {
   return apiRequest<CreatePlaceReviewResponse>(`/places/${placeId}/reviews`, {
     method: 'POST',
+    token,
+    body,
+  });
+}
+
+export async function updatePlaceReview(
+  placeId: string,
+  reviewId: string,
+  token: string,
+  body: CreateTrailReviewBody,
+): Promise<CreatePlaceReviewResponse> {
+  return apiRequest<CreatePlaceReviewResponse>(`/places/${placeId}/reviews/${reviewId}`, {
+    method: 'PATCH',
     token,
     body,
   });

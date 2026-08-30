@@ -6,6 +6,7 @@
     "back": "Back",
     "loading": "Loading...",
     "save": "Save",
+    "edit": "Edit",
     "delete": "Delete",
     "soon": "Coming soon",
     "comingSoon": "Soon",
@@ -150,7 +151,7 @@
     },
     "wallpapers": {
       "title": "Wallpapers",
-      "subtitle": "Download exclusive Ushuaia backgrounds"
+      "subtitle": "Download exclusive backgrounds"
     }
   },
   "map": {
@@ -351,9 +352,9 @@
     "comingSoonTitle": "Coming soon",
     "comingSoonBody": "Pro subscriptions will be available soon.",
     "restore": "Restore purchases",
-    "legal": "Cancel anytime · Prices in USD",
+    "legal": "Cancel anytime\nPrices in USD",
     "noOfferingTitle": "Not available",
-    "noOfferingBody": "Plan not found in the store. Please try again later.",
+    "noOfferingBody": "Plan not available right now.",
     "welcomeTitle": "Welcome to Pro!",
     "welcomeBody": "Your subscription is active.",
     "continue": "Continue",
@@ -470,6 +471,9 @@
     "pointsOfInterest": "Points of interest",
     "emergencyPoints": "Emergency points",
     "reviewFormTitle": "Leave your review",
+    "editReviewFormTitle": "Edit your review",
+    "editReview": "Edit my review",
+    "saveReviewEdit": "Save changes",
     "reviewsLoading": "Loading reviews...",
     "reviewsErrorTitle": "Error loading reviews",
     "reviewsEmptyTitle": "No reviews yet",
@@ -505,6 +509,9 @@
     "downloadManageLabel": "Manage place download",
     "invalidPlace": "Invalid place",
     "reviewFormTitle": "Leave your review",
+    "editReviewFormTitle": "Edit your review",
+    "editReview": "Edit my review",
+    "saveReviewEdit": "Save changes",
     "reviewsLoading": "Loading reviews...",
     "reviewsErrorTitle": "Error loading reviews",
     "reviewsEmptyTitle": "No reviews yet",

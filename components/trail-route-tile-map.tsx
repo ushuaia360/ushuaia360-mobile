@@ -5,22 +5,28 @@ import {
   mapPixelToLatLon,
   type MapPanState,
 } from '@/lib/map-projection';
-import { offlineTileFileUri, type TileTheme } from '@/lib/offline-tile-cache';
+import { offlineTileFileUri } from '@/lib/offline-tile-cache';
 import { poiTypeIcon } from '@/lib/poi-icons';
 import { computeRouteDirectionArrows } from '@/lib/route-direction-arrows';
 import {
   calcTilesLikeHome,
   clampPanToTdf,
+  esriStreetTileUrl,
   fitMapStateToCoordinatesInTdf,
 } from '@/lib/tile-map';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Animated, PanResponder, Platform, StyleSheet, View } from 'react-native';
 import MapView, { Polyline as MapPolyline, Marker, type Region } from 'react-native-maps';
 import Svg, { Polygon, Polyline } from 'react-native-svg';
 
 const MIN_LAYOUT = 32;
+/** Mismo rango de zoom que el resto de los mapas por teselas de la app. */
+const MIN_TILE_ZOOM = 11;
+const MAX_TILE_ZOOM = 18;
+/** Por debajo de este desplazamiento (px), un gesto se trata como tap y no como arrastre. */
+const TAP_MAX_MOVEMENT = 8;
 
 const MAX_ROUTE_VERTICES = 400;
 const MAX_RECORDED_VERTICES = 600;
@@ -131,7 +137,7 @@ interface Props {
   /**
    * Sendero descargado para uso offline: id + claves de tiles ya cacheadas localmente
    * (ver `lib/offline-tile-cache.ts`). Si un tile está en `offlineTileKeys`, se sirve desde
-   * disco en vez de pedirlo a CartoDB (relevante en Android/web; iOS usa mapa nativo).
+   * disco en vez de pedirlo a Esri (relevante en Android/web; iOS usa mapa nativo).
    */
   offlineTrailId?: string | null;
   offlineTileKeys?: Set<string> | null;
@@ -165,11 +171,6 @@ export default function TrailRouteTileMap({
 }: Props) {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [userTileState, setUserTileState] = useState<MapPanState | null>(null);
-
-  const baseUrl = isDark
-    ? 'https://a.basemaps.cartocdn.com/dark_all'
-    : 'https://a.basemaps.cartocdn.com/light_all';
-  const tileTheme: TileTheme = isDark ? 'dark' : 'light';
 
   const routeForDraw = useMemo(
     () => decimateRoute(routeCoordinates, MAX_ROUTE_VERTICES),
@@ -221,9 +222,9 @@ export default function TrailRouteTileMap({
   const tiles = useMemo(
     () =>
       size.w >= MIN_LAYOUT && size.h >= MIN_LAYOUT
-        ? calcTilesLikeHome(mapState, size.w, size.h, baseUrl)
+        ? calcTilesLikeHome(mapState, size.w, size.h, esriStreetTileUrl)
         : [],
-    [mapState, size.w, size.h, baseUrl],
+    [mapState, size.w, size.h],
   );
 
   const routePixelPolyline = useMemo(() => {
@@ -350,6 +351,147 @@ export default function TrailRouteTileMap({
     });
     return () => cancelAnimationFrame(id);
   }, [size.w, size.h, allForFit]);
+
+  /**
+   * Android/web: arrastre y pellizco del mapa por teselas. No hay `MapView` nativo acá, así que
+   * el pan tiene que implementarse a mano (mismo patrón que `map-home.tsx` / `trail-active-navigation-map.tsx`).
+   */
+  const mapStateRef = useRef(mapState);
+  const pendingAnimReset = useRef(false);
+  const animPanX = useRef(new Animated.Value(0)).current;
+  const animPanY = useRef(new Animated.Value(0)).current;
+  const animScale = useRef(new Animated.Value(1)).current;
+  const gestureRef = useRef({ isPinching: false, pinchStartDist: 0, pinchCurrentScale: 1 });
+  const currentAnimPanX = useRef(0);
+  const currentAnimPanY = useRef(0);
+  const isProcessingRelease = useRef(false);
+  const tapStartRef = useRef({ x: 0, y: 0 });
+
+  useLayoutEffect(() => {
+    mapStateRef.current = mapState;
+    if (pendingAnimReset.current) {
+      animPanX.setValue(0);
+      animPanY.setValue(0);
+      currentAnimPanX.current = 0;
+      currentAnimPanY.current = 0;
+      pendingAnimReset.current = false;
+      isProcessingRelease.current = false;
+    }
+  }, [mapState, animPanX, animPanY]);
+
+  const handleTapAt = useCallback(
+    (x: number, y: number) => {
+      if (!interactive) return;
+      const state = mapStateRef.current;
+      for (const p of interestPoints) {
+        const { left, top } = latLonToMapPixel(p.latitude, p.longitude, state, size.w, size.h);
+        const cx = left;
+        const cy = top - POI_PIN / 2;
+        if (Math.hypot(x - cx, y - cy) <= POI_HIT_RADIUS) {
+          onPoiPress?.(p.id);
+          return;
+        }
+      }
+      const { latitude, longitude } = mapPixelToLatLon(x, y, state, size.w, size.h);
+      onMapPressAt?.(latitude, longitude);
+    },
+    [interactive, interestPoints, onPoiPress, onMapPressAt, size.w, size.h],
+  );
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
+
+      onPanResponderGrant: (evt) => {
+        isProcessingRelease.current = false;
+        tapStartRef.current = { x: evt.nativeEvent.locationX, y: evt.nativeEvent.locationY };
+        const touches = evt.nativeEvent.touches;
+        if (touches.length >= 2) {
+          gestureRef.current.isPinching = true;
+          gestureRef.current.pinchStartDist = Math.hypot(
+            touches[1].pageX - touches[0].pageX,
+            touches[1].pageY - touches[0].pageY,
+          );
+          gestureRef.current.pinchCurrentScale = 1;
+        } else {
+          gestureRef.current.isPinching = false;
+          animPanX.setValue(0);
+          animPanY.setValue(0);
+          currentAnimPanX.current = 0;
+          currentAnimPanY.current = 0;
+        }
+      },
+
+      onPanResponderMove: (evt, gestureState) => {
+        if (isProcessingRelease.current) return;
+        const touches = evt.nativeEvent.touches;
+        if (touches.length >= 2 && gestureRef.current.isPinching) {
+          const dist = Math.hypot(
+            touches[1].pageX - touches[0].pageX,
+            touches[1].pageY - touches[0].pageY,
+          );
+          gestureRef.current.pinchCurrentScale = dist / gestureRef.current.pinchStartDist;
+          animScale.setValue(gestureRef.current.pinchCurrentScale);
+        } else if (!gestureRef.current.isPinching) {
+          currentAnimPanX.current = gestureState.dx;
+          currentAnimPanY.current = gestureState.dy;
+          animPanX.setValue(gestureState.dx);
+          animPanY.setValue(gestureState.dy);
+        }
+      },
+
+      onPanResponderRelease: () => {
+        if (gestureRef.current.isPinching) {
+          const rawScale = gestureRef.current.pinchCurrentScale;
+          const deltaZoom = Math.round(Math.log2(rawScale));
+          gestureRef.current.isPinching = false;
+          animScale.setValue(1);
+          animPanX.setValue(0);
+          animPanY.setValue(0);
+          currentAnimPanX.current = 0;
+          currentAnimPanY.current = 0;
+          const prev = mapStateRef.current;
+          const newZoom = Math.max(MIN_TILE_ZOOM, Math.min(MAX_TILE_ZOOM, prev.zoom + deltaZoom));
+          const panMult = Math.pow(2, newZoom - prev.zoom);
+          const next = clampPanToTdf({
+            zoom: newZoom,
+            panX: prev.panX * panMult,
+            panY: prev.panY * panMult,
+          });
+          mapStateRef.current = next;
+          setUserTileState(next);
+          return;
+        }
+
+        if (isProcessingRelease.current) return;
+
+        const dx = currentAnimPanX.current;
+        const dy = currentAnimPanY.current;
+
+        if (Math.hypot(dx, dy) < TAP_MAX_MOVEMENT) {
+          animPanX.setValue(0);
+          animPanY.setValue(0);
+          currentAnimPanX.current = 0;
+          currentAnimPanY.current = 0;
+          handleTapAt(tapStartRef.current.x, tapStartRef.current.y);
+          return;
+        }
+
+        isProcessingRelease.current = true;
+        pendingAnimReset.current = true;
+        const prev = mapStateRef.current;
+        const next = clampPanToTdf({ zoom: prev.zoom, panX: prev.panX + dx, panY: prev.panY + dy });
+        mapStateRef.current = next;
+        setUserTileState(next);
+      },
+    }),
+  ).current;
+
+  const panZoomTransformStyle = {
+    transform: [{ translateX: animPanX }, { translateY: animPanY }, { scale: animScale }],
+  };
 
   if (Platform.OS === 'ios') {
     return (
@@ -489,20 +631,23 @@ export default function TrailRouteTileMap({
           setSize({ w: width, h: height });
         }
       }}>
+      <Animated.View
+        style={[StyleSheet.absoluteFillObject, panZoomTransformStyle]}
+        {...(interactive ? panResponder.panHandlers : null)}>
       <View style={styles.tileLayer} pointerEvents="none">
         {tiles.map((t) => {
           const localUri =
             offlineTrailId && offlineTileKeys?.has(t.key)
-              ? offlineTileFileUri(offlineTrailId, tileTheme, t.key)
+              ? offlineTileFileUri(offlineTrailId, t.key)
               : null;
           return (
-          <Image
-            key={t.key}
-            source={{ uri: localUri ?? t.url }}
-            style={[styles.tile, { left: t.posX, top: t.posY }]}
-            cachePolicy="memory-disk"
-            transition={0}
-          />
+            <Image
+              key={t.key}
+              source={{ uri: localUri ?? t.url }}
+              style={[styles.tile, { left: t.posX, top: t.posY }]}
+              cachePolicy="memory-disk"
+              transition={0}
+            />
           );
         })}
       </View>
@@ -606,27 +751,7 @@ export default function TrailRouteTileMap({
           <Ionicons name="location" size={LOCATION_PIN} color={tint} />
         </View>
       )}
-
-      {interactive && size.w >= MIN_LAYOUT && size.h >= MIN_LAYOUT && (
-        <Pressable
-          style={[StyleSheet.absoluteFillObject, styles.tileTouchLayer]}
-          onPress={(e) => {
-            const x = e.nativeEvent.locationX;
-            const y = e.nativeEvent.locationY;
-            for (const p of interestPoints) {
-              const { left, top } = latLonToMapPixel(p.latitude, p.longitude, mapState, size.w, size.h);
-              const cx = left;
-              const cy = top - POI_PIN / 2;
-              if (Math.hypot(x - cx, y - cy) <= POI_HIT_RADIUS) {
-                onPoiPress?.(p.id);
-                return;
-              }
-            }
-            const { latitude, longitude } = mapPixelToLatLon(x, y, mapState, size.w, size.h);
-            onMapPressAt?.(latitude, longitude);
-          }}
-        />
-      )}
+      </Animated.View>
     </View>
   );
 }
@@ -676,9 +801,5 @@ const styles = StyleSheet.create({
   locHost: {
     position: 'absolute',
     zIndex: 8,
-  },
-  tileTouchLayer: {
-    zIndex: 40,
-    elevation: 20,
   },
 });

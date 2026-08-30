@@ -3,7 +3,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { latLonToMapPixel, MAP_TILE_SIZE } from '@/lib/map-projection';
 import { loadRecordedPath } from '@/lib/recorded-trail-path';
-import { calcTilesLikeHome, fitMapStateToCoordinatesInTdf } from '@/lib/tile-map';
+import { calcTilesLikeHome, esriStreetTileUrl, fitMapStateToCoordinatesInTdf } from '@/lib/tile-map';
 import { fetchTrailRecordedPath } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -110,9 +110,6 @@ export default function RecordedRouteViewModal({
   // Android: mapa de tiles estático (sin API key de Google) — sin gestos, sin rotación.
   // ---------------------------------------------------------------------
   const [tileSize, setTileSize] = useState({ w: 0, h: 0 });
-  const tileBaseUrl = isDark
-    ? 'https://a.basemaps.cartocdn.com/dark_all'
-    : 'https://a.basemaps.cartocdn.com/light_all';
 
   const tileMapState = useMemo(() => {
     if (!path || path.length < 2) return null;
@@ -122,8 +119,8 @@ export default function RecordedRouteViewModal({
 
   const tiles = useMemo(() => {
     if (!tileMapState) return [];
-    return calcTilesLikeHome(tileMapState, tileSize.w, tileSize.h, tileBaseUrl);
-  }, [tileMapState, tileSize.w, tileSize.h, tileBaseUrl]);
+    return calcTilesLikeHome(tileMapState, tileSize.w, tileSize.h, esriStreetTileUrl);
+  }, [tileMapState, tileSize.w, tileSize.h]);
 
   const tileStartPos = useMemo(() => {
     if (!tileMapState || !startPt) return null;

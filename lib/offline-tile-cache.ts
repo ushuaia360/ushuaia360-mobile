@@ -2,16 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
 import { latToTileY, lonToTileX } from '@/lib/map-projection';
-
-/**
- * Mismas fuentes de tiles que `TrailRouteTileMap` / `TrailTileMapPreview` (CartoDB basemaps).
- */
-const TILE_SOURCES = {
-  light: 'https://a.basemaps.cartocdn.com/light_all',
-  dark: 'https://a.basemaps.cartocdn.com/dark_all',
-} as const;
-
-export type TileTheme = keyof typeof TILE_SOURCES;
+import { esriStreetTileUrl } from '@/lib/tile-map';
 
 /** Niveles de zoom cacheados por sendero (cubre el fit inicial y el acercamiento manual hasta z16-17). */
 const TILE_ZOOM_LEVELS = [12, 13, 14, 15, 16, 17];
@@ -19,14 +10,14 @@ const TILE_ZOOM_LEVELS = [12, 13, 14, 15, 16, 17];
 /** Margen (grados) alrededor del bounding box del sendero al precalcular qué tiles bajar. */
 const BBOX_PADDING_DEG = 0.008;
 
-/** Tope de tiles por sendero (por tema): evita descargas descontroladas en senderos muy largos. */
-const MAX_TILES_PER_THEME = 900;
+/** Tope de tiles por sendero: evita descargas descontroladas en senderos muy largos. */
+const MAX_TILES = 900;
 
 /** Descargas simultáneas. */
 const CONCURRENCY = 6;
 
-function tileDir(trailId: string, theme: TileTheme): string {
-  return `${FileSystem.documentDirectory}offline-tiles/${trailId}/${theme}/`;
+function tileDir(trailId: string): string {
+  return `${FileSystem.documentDirectory}offline-tiles/${trailId}/`;
 }
 
 /** Misma forma de key que `calcTilesLikeHome` (`${zoom}-${tx}-${ty}`) para poder cruzarlas directo. */
@@ -34,8 +25,8 @@ function tileKey(z: number, x: number, y: number): string {
   return `${z}-${x}-${y}`;
 }
 
-export function offlineTileFileUri(trailId: string, theme: TileTheme, key: string): string {
-  return `${tileDir(trailId, theme)}${key}.png`;
+export function offlineTileFileUri(trailId: string, key: string): string {
+  return `${tileDir(trailId)}${key}.png`;
 }
 
 interface BBox {
@@ -97,9 +88,9 @@ async function runWithConcurrency<T>(
 }
 
 /**
- * Descarga y guarda localmente los tiles del mapa (ambos temas) que cubren el recorrido de un
- * sendero, para que `TrailRouteTileMap` pueda mostrarlos sin conexión. No lanza si falla —
- * es un "mejor esfuerzo": los tiles que no se puedan bajar simplemente no estarán cacheados.
+ * Descarga y guarda localmente los tiles del mapa que cubren el recorrido de un sendero, para
+ * que `TrailRouteTileMap` pueda mostrarlos sin conexión. No lanza si falla — es un "mejor
+ * esfuerzo": los tiles que no se puedan bajar simplemente no estarán cacheados.
  */
 export async function downloadTrailOfflineTiles(
   trailId: string,
@@ -110,31 +101,27 @@ export async function downloadTrailOfflineTiles(
   const bbox = boundingBoxOf(coords);
   if (!bbox) return;
 
-  const jobs: { theme: TileTheme; z: number; x: number; y: number }[] = [];
-  for (const theme of Object.keys(TILE_SOURCES) as TileTheme[]) {
-    let countForTheme = 0;
-    for (const z of TILE_ZOOM_LEVELS) {
-      if (countForTheme >= MAX_TILES_PER_THEME) break;
-      for (const { x, y } of tilesForBoundingBox(bbox, z)) {
-        if (countForTheme >= MAX_TILES_PER_THEME) break;
-        jobs.push({ theme, z, x, y });
-        countForTheme++;
-      }
+  const jobs: { z: number; x: number; y: number }[] = [];
+  let count = 0;
+  for (const z of TILE_ZOOM_LEVELS) {
+    if (count >= MAX_TILES) break;
+    for (const { x, y } of tilesForBoundingBox(bbox, z)) {
+      if (count >= MAX_TILES) break;
+      jobs.push({ z, x, y });
+      count++;
     }
   }
   if (!jobs.length) return;
 
-  for (const theme of Object.keys(TILE_SOURCES) as TileTheme[]) {
-    await FileSystem.makeDirectoryAsync(tileDir(trailId, theme), { intermediates: true }).catch(() => {});
-  }
+  await FileSystem.makeDirectoryAsync(tileDir(trailId), { intermediates: true }).catch(() => {});
 
   let done = 0;
   await runWithConcurrency(jobs, CONCURRENCY, async (job) => {
-    const dest = offlineTileFileUri(trailId, job.theme, tileKey(job.z, job.x, job.y));
+    const dest = offlineTileFileUri(trailId, tileKey(job.z, job.x, job.y));
     try {
       const info = await FileSystem.getInfoAsync(dest);
       if (!info.exists) {
-        const url = `${TILE_SOURCES[job.theme]}/${job.z}/${job.x}/${job.y}.png`;
+        const url = esriStreetTileUrl(job.z, job.x, job.y);
         const res = await FileSystem.downloadAsync(url, dest);
         if (res.status >= 400) {
           await FileSystem.deleteAsync(dest, { idempotent: true });
@@ -149,11 +136,11 @@ export async function downloadTrailOfflineTiles(
   });
 }
 
-/** Claves (`${z}-${x}-${y}`) de los tiles ya cacheados para un sendero + tema. */
-export async function listCachedTileKeys(trailId: string, theme: TileTheme): Promise<Set<string>> {
+/** Claves (`${z}-${x}-${y}`) de los tiles ya cacheados para un sendero. */
+export async function listCachedTileKeys(trailId: string): Promise<Set<string>> {
   if (Platform.OS === 'web') return new Set();
   try {
-    const files = await FileSystem.readDirectoryAsync(tileDir(trailId, theme));
+    const files = await FileSystem.readDirectoryAsync(tileDir(trailId));
     return new Set(files.filter((f) => f.endsWith('.png')).map((f) => f.slice(0, -'.png'.length)));
   } catch {
     return new Set();

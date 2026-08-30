@@ -129,12 +129,6 @@ export function AuthHeroBackground({ children, style }: AuthHeroBackgroundProps)
     };
   }, []);
 
-  useEffect(() => {
-    if (Platform.OS === 'web' || !videoHtml) return;
-    const t = setTimeout(() => setPosterHidden(true), 4000);
-    return () => clearTimeout(t);
-  }, [videoHtml]);
-
   const onWebMessage = useCallback((e: { nativeEvent: { data: string } }) => {
     if (e.nativeEvent.data === 'playing') setPosterHidden(true);
   }, []);

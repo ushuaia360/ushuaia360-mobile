@@ -31,6 +31,7 @@ import {
   createPlaceReview,
   fetchPlace,
   fetchPlaceReviews,
+  updatePlaceReview,
   uploadReviewImages,
   type BackendPlace,
   type PlaceReview,
@@ -232,6 +233,7 @@ export default function PlaceDetailScreen() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewPhotoUris, setReviewPhotoUris] = useState<string[]>([]);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [reviewImagesLightbox, setReviewImagesLightbox] = useState<{
     uris: string[];
     index: number;
@@ -432,16 +434,28 @@ export default function PlaceDetailScreen() {
     setReviewsSubmitting(true);
     setReviewsSubmitError(null);
     try {
-      let image_urls: string[] | undefined;
-      if (reviewPhotoUris.length > 0) {
-        image_urls = await uploadReviewImages(token, reviewPhotoUris);
+      // Las fotos ya subidas (edición de una reseña existente) vienen como URL http(s); el resto
+      // son URIs locales recién elegidas y hay que subirlas.
+      const alreadyUploaded = reviewPhotoUris.filter((uri) => /^https?:\/\//.test(uri));
+      const pendingLocal = reviewPhotoUris.filter((uri) => !/^https?:\/\//.test(uri));
+      const uploaded = pendingLocal.length > 0 ? await uploadReviewImages(token, pendingLocal) : [];
+      const image_urls = [...alreadyUploaded, ...uploaded];
+
+      if (editingReviewId) {
+        await updatePlaceReview(placeId, editingReviewId, token, {
+          rating: reviewRating,
+          comment,
+          image_urls,
+        });
+      } else {
+        await createPlaceReview(placeId, token, {
+          rating: reviewRating,
+          comment,
+          ...(image_urls.length ? { image_urls } : {}),
+        });
       }
-      await createPlaceReview(placeId, token, {
-        rating: reviewRating,
-        comment,
-        ...(image_urls?.length ? { image_urls } : {}),
-      });
       await refreshReviews();
+      setEditingReviewId(null);
       setReviewComment('');
       setReviewRating(5);
       setReviewPhotoUris([]);
@@ -450,7 +464,23 @@ export default function PlaceDetailScreen() {
     } finally {
       setReviewsSubmitting(false);
     }
-  }, [pathname, placeId, reviewComment, reviewPhotoUris, reviewRating, refreshReviews, token]);
+  }, [pathname, placeId, reviewComment, reviewPhotoUris, reviewRating, refreshReviews, token, editingReviewId]);
+
+  const handleStartEditReview = useCallback((review: PlaceReview) => {
+    setEditingReviewId(review.id);
+    setReviewRating(review.rating);
+    setReviewComment(review.comment);
+    setReviewPhotoUris(review.image_urls ?? []);
+    setReviewsSubmitError(null);
+  }, []);
+
+  const handleCancelEditReview = useCallback(() => {
+    setEditingReviewId(null);
+    setReviewRating(5);
+    setReviewComment('');
+    setReviewPhotoUris([]);
+    setReviewsSubmitError(null);
+  }, []);
 
   const handlePickReviewPhotos = useCallback(async () => {
     if (reviewsSubmitting) return;
@@ -940,7 +970,21 @@ export default function PlaceDetailScreen() {
                   borderColor: isDark ? '#2a2a2a' : '#E5E7EB',
                 },
               ]}>
-              <ThemedText style={[styles.reviewFormTitle, { color: colors.text }]}>{t('placeDetail.reviewFormTitle')}</ThemedText>
+              <View style={styles.reviewFormTitleRow}>
+                <ThemedText style={[styles.reviewFormTitle, { color: colors.text }]}>
+                  {editingReviewId ? t('placeDetail.editReviewFormTitle') : t('placeDetail.reviewFormTitle')}
+                </ThemedText>
+                {editingReviewId ? (
+                  <TouchableOpacity
+                    onPress={handleCancelEditReview}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('common.cancel')}>
+                    <ThemedText style={[styles.reviewFormCancelLink, { color: colors.icon }]}>
+                      {t('common.cancel')}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
               <View style={styles.reviewFormRatingRow}>
                 {[1, 2, 3, 4, 5].map((i) => (
                   <TouchableOpacity
@@ -1018,7 +1062,11 @@ export default function PlaceDetailScreen() {
                 onPress={handleSubmitReview}
                 activeOpacity={0.85}>
                 <ThemedText style={styles.reviewSubmitBtnText}>
-                  {reviewsSubmitting ? t('common.sending') : t('celebration.submit')}
+                  {reviewsSubmitting
+                    ? t('common.sending')
+                    : editingReviewId
+                      ? t('placeDetail.saveReviewEdit')
+                      : t('celebration.submit')}
                 </ThemedText>
               </TouchableOpacity>
             </View>
@@ -1070,9 +1118,20 @@ export default function PlaceDetailScreen() {
                       <View style={styles.reviewBody}>
                         <View style={styles.reviewHeader}>
                           <ThemedText style={styles.reviewUser}>{review.name ?? t('common.user')}</ThemedText>
-                          <ThemedText style={[styles.reviewDate, { color: colors.icon }]}>
-                            {relativeDate(new Date(review.created_at), t)}
-                          </ThemedText>
+                          <View style={styles.reviewHeaderRight}>
+                            <ThemedText style={[styles.reviewDate, { color: colors.icon }]}>
+                              {relativeDate(new Date(review.created_at), t)}
+                            </ThemedText>
+                            {user && review.user_id === user.id ? (
+                              <TouchableOpacity
+                                hitSlop={10}
+                                accessibilityRole="button"
+                                accessibilityLabel={t('placeDetail.editReview')}
+                                onPress={() => handleStartEditReview(review)}>
+                                <Ionicons name="create-outline" size={15} color={colors.icon} />
+                              </TouchableOpacity>
+                            ) : null}
+                          </View>
                         </View>
                         <View style={styles.reviewStars}>
                           {[1, 2, 3, 4, 5].map((i) => (
@@ -1483,6 +1542,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   reviewFormTitle: { fontSize: 16, fontWeight: '700' },
+  reviewFormTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reviewFormCancelLink: { fontSize: 13, fontWeight: '600' },
   reviewFormRatingRow: { flexDirection: 'row', gap: 8 },
   reviewInputOuter: {
     flexDirection: 'row',
@@ -1547,6 +1612,7 @@ const styles = StyleSheet.create({
   reviewAvatarPlaceholder: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   reviewBody: { flex: 1, gap: 4 },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  reviewHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   reviewUser: { fontSize: 14, fontWeight: '600' },
   reviewDate: { fontSize: 12 },
   reviewStars: { flexDirection: 'row', gap: 2 },

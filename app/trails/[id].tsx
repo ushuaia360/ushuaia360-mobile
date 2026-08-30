@@ -48,6 +48,7 @@ import {
   startUserTrailHistory,
   submitReport,
   trailHistoryEntryStartedAt,
+  updateTrailReview,
   uploadReviewImages,
   type TrailDetail,
   type TrailPointDetail,
@@ -459,6 +460,7 @@ export default function TrailDetailScreen() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewPhotoUris, setReviewPhotoUris] = useState<string[]>([]);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [reviewImagesLightbox, setReviewImagesLightbox] = useState<{
     uris: string[];
     index: number;
@@ -533,7 +535,7 @@ export default function TrailDetailScreen() {
     }, [refreshTrailManualDownload]),
   );
 
-  /** Claves de tiles de mapa ya cacheados en disco para este sendero (tema actual). */
+  /** Claves de tiles de mapa ya cacheados en disco para este sendero. */
   const [offlineTileKeys, setOfflineTileKeys] = useState<Set<string> | null>(null);
 
   useEffect(() => {
@@ -542,13 +544,13 @@ export default function TrailDetailScreen() {
       return;
     }
     let cancelled = false;
-    void listCachedTileKeys(trailId, isDark ? 'dark' : 'light').then((keys) => {
+    void listCachedTileKeys(trailId).then((keys) => {
       if (!cancelled) setOfflineTileKeys(keys);
     });
     return () => {
       cancelled = true;
     };
-  }, [trailId, trailManualDownload, isDark]);
+  }, [trailId, trailManualDownload]);
 
   const [trailDownloadBusy, setTrailDownloadBusy] = useState(false);
 
@@ -608,14 +610,14 @@ export default function TrailDetailScreen() {
         ...(withLocalMedia.map_point ? [withLocalMedia.map_point] : []),
       ];
       void downloadTrailOfflineTiles(trailId, coordsForTiles).then(() =>
-        listCachedTileKeys(trailId, isDark ? 'dark' : 'light').then(setOfflineTileKeys),
+        listCachedTileKeys(trailId).then(setOfflineTileKeys),
       );
     } catch {
       appAlert(t('trailDetail.downloadErrorTitle'), t('trailDetail.downloadErrorBody'));
     } finally {
       setTrailDownloadBusy(false);
     }
-  }, [trailId, trailDetail, user, isPro, trailManualDownload, isDark, token, pathname]);
+  }, [trailId, trailDetail, user, isPro, trailManualDownload, token, pathname]);
 
   useEffect(() => {
     if (!trailId) return;
@@ -938,16 +940,28 @@ export default function TrailDetailScreen() {
     setReviewsSubmitting(true);
     setReviewsSubmitError(null);
     try {
-      let image_urls: string[] | undefined;
-      if (reviewPhotoUris.length > 0) {
-        image_urls = await uploadReviewImages(token, reviewPhotoUris);
+      // Las fotos ya subidas (edición de una reseña existente) vienen como URL http(s); el resto
+      // son URIs locales recién elegidas y hay que subirlas.
+      const alreadyUploaded = reviewPhotoUris.filter((uri) => /^https?:\/\//.test(uri));
+      const pendingLocal = reviewPhotoUris.filter((uri) => !/^https?:\/\//.test(uri));
+      const uploaded = pendingLocal.length > 0 ? await uploadReviewImages(token, pendingLocal) : [];
+      const image_urls = [...alreadyUploaded, ...uploaded];
+
+      if (editingReviewId) {
+        await updateTrailReview(trailId, editingReviewId, token, {
+          rating: reviewRating,
+          comment,
+          image_urls,
+        });
+      } else {
+        await createTrailReview(trailId, token, {
+          rating: reviewRating,
+          comment,
+          ...(image_urls.length ? { image_urls } : {}),
+        });
       }
-      await createTrailReview(trailId, token, {
-        rating: reviewRating,
-        comment,
-        ...(image_urls?.length ? { image_urls } : {}),
-      });
       await refreshReviews();
+      setEditingReviewId(null);
       setReviewComment('');
       setReviewRating(5);
       setReviewPhotoUris([]);
@@ -956,7 +970,23 @@ export default function TrailDetailScreen() {
     } finally {
       setReviewsSubmitting(false);
     }
-  }, [pathname, reviewComment, reviewPhotoUris, reviewRating, token, trailId, refreshReviews]);
+  }, [pathname, reviewComment, reviewPhotoUris, reviewRating, token, trailId, refreshReviews, editingReviewId]);
+
+  const handleStartEditReview = useCallback((review: TrailReview) => {
+    setEditingReviewId(review.id);
+    setReviewRating(review.rating);
+    setReviewComment(review.comment);
+    setReviewPhotoUris(review.image_urls ?? []);
+    setReviewsSubmitError(null);
+  }, []);
+
+  const handleCancelEditReview = useCallback(() => {
+    setEditingReviewId(null);
+    setReviewRating(5);
+    setReviewComment('');
+    setReviewPhotoUris([]);
+    setReviewsSubmitError(null);
+  }, []);
 
   const handlePickReviewPhotos = useCallback(async () => {
     if (reviewsSubmitting) return;
@@ -1449,9 +1479,21 @@ export default function TrailDetailScreen() {
                         borderColor: isDark ? '#2a2a2a' : '#E5E7EB',
                       },
                     ]}>
-                    <ThemedText style={[styles.reviewFormTitle, { color: colors.text }]}>
-                      {t('trailDetail.reviewFormTitle')}
-                    </ThemedText>
+                    <View style={styles.reviewFormTitleRow}>
+                      <ThemedText style={[styles.reviewFormTitle, { color: colors.text }]}>
+                        {editingReviewId ? t('trailDetail.editReviewFormTitle') : t('trailDetail.reviewFormTitle')}
+                      </ThemedText>
+                      {editingReviewId ? (
+                        <TouchableOpacity
+                          onPress={handleCancelEditReview}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('common.cancel')}>
+                          <ThemedText style={[styles.reviewFormCancelLink, { color: colors.icon }]}>
+                            {t('common.cancel')}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
                     <View style={styles.reviewFormRatingRow}>
                       {[1, 2, 3, 4, 5].map((i) => (
                         <TouchableOpacity
@@ -1530,7 +1572,11 @@ export default function TrailDetailScreen() {
                       onPress={handleSubmitReview}
                       activeOpacity={0.85}>
                       <ThemedText style={styles.reviewSubmitBtnText}>
-                        {reviewsSubmitting ? t('common.sending') : t('trailDetail.submitReview')}
+                        {reviewsSubmitting
+                          ? t('common.sending')
+                          : editingReviewId
+                            ? t('trailDetail.saveReviewEdit')
+                            : t('trailDetail.submitReview')}
                       </ThemedText>
                     </TouchableOpacity>
                   </View>
@@ -1594,13 +1640,23 @@ export default function TrailDetailScreen() {
                                 <ThemedText style={[styles.reviewDate, { color: colors.icon }]}>
                                   {relativeDate(new Date(review.created_at), t)}
                                 </ThemedText>
-                                <TouchableOpacity
-                                  hitSlop={10}
-                                  accessibilityRole="button"
-                                  accessibilityLabel={t('common.reportReview')}
-                                  onPress={() => handleReportPress('review', review.id)}>
-                                  <Ionicons name="flag-outline" size={14} color={colors.icon} />
-                                </TouchableOpacity>
+                                {user && review.user_id === user.id ? (
+                                  <TouchableOpacity
+                                    hitSlop={10}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={t('trailDetail.editReview')}
+                                    onPress={() => handleStartEditReview(review)}>
+                                    <Ionicons name="create-outline" size={15} color={colors.icon} />
+                                  </TouchableOpacity>
+                                ) : (
+                                  <TouchableOpacity
+                                    hitSlop={10}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={t('common.reportReview')}
+                                    onPress={() => handleReportPress('review', review.id)}>
+                                    <Ionicons name="flag-outline" size={14} color={colors.icon} />
+                                  </TouchableOpacity>
+                                )}
                               </View>
                             </View>
                             <View style={styles.reviewStars}>
@@ -2268,6 +2324,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   reviewFormTitle: { fontSize: 16, fontWeight: '700' },
+  reviewFormTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reviewFormCancelLink: { fontSize: 13, fontWeight: '600' },
   reviewFormRatingRow: { flexDirection: 'row', gap: 8 },
   reviewInputOuter: {
     flexDirection: 'row',

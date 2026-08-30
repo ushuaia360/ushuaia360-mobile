@@ -1,3 +1,4 @@
+import { LegalDocModal } from '@/components/legal-doc-modal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
@@ -16,9 +17,10 @@ import { useAuthStore } from '@/store/auth-store';
 import { usePurchasesStore } from '@/store/purchases-store';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import type { PurchasesPackage } from 'react-native-purchases';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PRO_BENEFITS = [
@@ -51,9 +53,31 @@ export default function PremiumScreen() {
   const user = useAuthStore((s) => s.user);
   const refreshUser = useAuthStore((s) => s.refreshUser);
   const isPro = usePurchasesStore((s) => s.isPro);
-  const isAlreadyPro = Platform.OS !== 'ios' && hasPremiumAccess(user, isPro);
+  const isAlreadyPro = hasPremiumAccess(user, isPro);
   const [purchaseBusy, setPurchaseBusy] = useState(false);
   const [restoreBusy, setRestoreBusy] = useState(false);
+  const [pkg, setPkg] = useState<PurchasesPackage | null>(null);
+  const [offeringsLoading, setOfferingsLoading] = useState(true);
+  const [legalType, setLegalType] = useState<'terms' | 'privacy' | null>(null);
+
+  useEffect(() => {
+    if (isAlreadyPro || !isPurchasesReady()) {
+      setOfferingsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const offerings = await getOfferings();
+      const found = offerings?.current?.monthly ?? offerings?.current?.availablePackages[0] ?? null;
+      if (!cancelled) {
+        setPkg(found);
+        setOfferingsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAlreadyPro]);
 
   const handleRestore = useCallback(async () => {
     if (restoreBusy) return;
@@ -84,19 +108,12 @@ export default function PremiumScreen() {
 
   const handlePurchase = useCallback(async () => {
     if (purchaseBusy) return;
-    if (!isPurchasesReady()) {
-      Alert.alert(t('common.error'), t('premium.purchaseError'));
+    if (!isPurchasesReady() || !pkg) {
+      Alert.alert(t('premium.noOfferingTitle'), t('premium.noOfferingBody'));
       return;
     }
     setPurchaseBusy(true);
     try {
-      const offerings = await getOfferings();
-      const pkg =
-        offerings?.current?.monthly ?? offerings?.current?.availablePackages[0] ?? null;
-      if (!pkg) {
-        Alert.alert(t('premium.noOfferingTitle'), t('premium.noOfferingBody'));
-        return;
-      }
       const { customerInfo } = await purchasePackage(pkg);
       usePurchasesStore.getState().setCustomerInfo(customerInfo);
       void refreshUser();
@@ -110,7 +127,7 @@ export default function PremiumScreen() {
     } finally {
       setPurchaseBusy(false);
     }
-  }, [purchaseBusy, refreshUser, goBack, t]);
+  }, [purchaseBusy, pkg, refreshUser, goBack, t]);
 
   if (!isAuthed) {
     return (
@@ -139,7 +156,7 @@ export default function PremiumScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(bottom + 140, 160) }]}>
+        contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(bottom + 210, 230) }]}>
 
         {/* Hero */}
         <View style={[styles.hero, { backgroundColor: colors.tint + '12' }]}>
@@ -156,11 +173,7 @@ export default function PremiumScreen() {
         <View style={[styles.priceCard, { backgroundColor: cardBg, borderColor: colors.tint + '40' }]}>
           <View style={[styles.popularBadge, { backgroundColor: isAlreadyPro ? '#34c759' : colors.tint }]}>
             <ThemedText style={styles.popularText}>
-              {isAlreadyPro
-                ? t('premium.activeBadge')
-                : Platform.OS === 'ios'
-                  ? t('premium.comingSoonTitle')
-                  : t('premium.popular')}
+              {isAlreadyPro ? t('premium.activeBadge') : t('premium.popular')}
             </ThemedText>
           </View>
           {isAlreadyPro ? (
@@ -170,21 +183,27 @@ export default function PremiumScreen() {
                 {t('premium.activeTitle')}
               </ThemedText>
             </View>
-          ) : Platform.OS === 'ios' ? (
-            <ThemedText style={[styles.priceAmount, { fontSize: 22, textAlign: 'center' }]}>
-              {t('premium.comingSoonBody')}
-            </ThemedText>
+          ) : offeringsLoading ? (
+            <ActivityIndicator color={colors.tint} style={{ marginTop: 16, marginBottom: 4 }} />
+          ) : pkg ? (
+            <>
+              <ThemedText style={[styles.subTitle, { color: textSub }]} numberOfLines={1}>
+                {pkg.product.title}
+              </ThemedText>
+              <View style={styles.priceRow}>
+                <ThemedText style={styles.priceAmount}>{pkg.product.priceString}</ThemedText>
+                <ThemedText style={[styles.pricePeriod, { color: textSub }]}>
+                  / {t('premium.tiers.pro.period')}
+                </ThemedText>
+              </View>
+            </>
           ) : (
-            <View style={styles.priceRow}>
-              <ThemedText style={styles.priceCurrency}>$</ThemedText>
-              <ThemedText style={styles.priceAmount}>6.99</ThemedText>
-              <ThemedText style={[styles.pricePeriod, { color: textSub }]}>/ mes</ThemedText>
-            </View>
+            <ThemedText style={styles.comingSoonBody}>{t('premium.noOfferingBody')}</ThemedText>
           )}
           {isAlreadyPro ? (
             <ThemedText style={[styles.priceSub, { color: textSub }]}>{t('premium.activeSub')}</ThemedText>
-          ) : Platform.OS !== 'ios' ? (
-            <ThemedText style={[styles.priceSub, { color: textSub }]}>Cancelá en cualquier momento</ThemedText>
+          ) : pkg ? (
+            <ThemedText style={[styles.priceSub, { color: textSub }]}>{t('premium.legal')}</ThemedText>
           ) : null}
         </View>
 
@@ -223,19 +242,15 @@ export default function PremiumScreen() {
               <ThemedText style={[styles.declineText, { color: textSub }]}>{t('common.back')}</ThemedText>
             </TouchableOpacity>
           </>
-        ) : Platform.OS === 'ios' ? (
-          <TouchableOpacity
-            style={[styles.ctaBtn, { backgroundColor: colors.tint }]}
-            activeOpacity={0.85}
-            onPress={goBack}>
-            <ThemedText style={styles.ctaBtnText}>{t('common.ok')}</ThemedText>
-          </TouchableOpacity>
         ) : (
           <>
             <TouchableOpacity
-              style={[styles.ctaBtn, { backgroundColor: colors.tint, opacity: purchaseBusy ? 0.7 : 1 }]}
+              style={[
+                styles.ctaBtn,
+                { backgroundColor: colors.tint, opacity: purchaseBusy || offeringsLoading ? 0.7 : 1 },
+              ]}
               activeOpacity={0.85}
-              disabled={purchaseBusy}
+              disabled={purchaseBusy || offeringsLoading}
               onPress={handlePurchase}>
               {purchaseBusy ? (
                 <ActivityIndicator color="#fff" />
@@ -266,7 +281,23 @@ export default function PremiumScreen() {
             </TouchableOpacity>
           </>
         )}
+
+        <ThemedText style={[styles.legalLinksText, { color: textSub }]}>
+          <ThemedText
+            style={[styles.legalLinksText, styles.legalLinksLink, { color: textSub }]}
+            onPress={() => setLegalType('terms')}>
+            {t('auth.register.legalTerms')}
+          </ThemedText>
+          {'   ·   '}
+          <ThemedText
+            style={[styles.legalLinksText, styles.legalLinksLink, { color: textSub }]}
+            onPress={() => setLegalType('privacy')}>
+            {t('auth.register.legalPrivacy')}
+          </ThemedText>
+        </ThemedText>
       </View>
+
+      <LegalDocModal type={legalType} onClose={() => setLegalType(null)} />
     </ThemedView>
   );
 }
@@ -329,12 +360,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   popularText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  subTitle: { fontSize: 13, fontWeight: '600', marginTop: 10 },
   priceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 2, marginTop: 6 },
   activeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   priceCurrency: { fontSize: 20, fontWeight: '700', marginTop: 6 },
-  priceAmount: { fontSize: 48, fontWeight: '800', letterSpacing: -2, lineHeight: 52 },
-  pricePeriod: { fontSize: 16, fontWeight: '500', marginTop: 28 },
-  priceSub: { fontSize: 12, fontWeight: '500' },
+  priceAmount: { fontSize: 34, fontWeight: '800', letterSpacing: -1, lineHeight: 38 },
+  comingSoonBody: { fontSize: 16, fontWeight: '600', letterSpacing: 0, lineHeight: 22, textAlign: 'center' },
+  pricePeriod: { fontSize: 15, fontWeight: '500', marginTop: 12 },
+  priceSub: { fontSize: 12, fontWeight: '500', textAlign: 'center' },
 
   // Benefits
   benefitsCard: {
@@ -383,4 +416,6 @@ const styles = StyleSheet.create({
   ctaBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
   declineText: { fontSize: 14, fontWeight: '500' },
   restoreText: { fontSize: 12, textDecorationLine: 'underline' },
+  legalLinksText: { fontSize: 11, marginTop: 4 },
+  legalLinksLink: { textDecorationLine: 'underline' },
 });

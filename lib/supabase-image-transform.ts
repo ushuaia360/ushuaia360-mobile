@@ -5,7 +5,7 @@
  */
 export function supabaseThumbnailUrl(
   url: string | null | undefined,
-  opts: { width?: number; quality?: number; resize?: 'cover' | 'contain' | 'fill' } = {},
+  opts: { width?: number; height?: number; quality?: number; resize?: 'cover' | 'contain' | 'fill' } = {},
 ): string | null {
   if (!url) return null;
   const match = url.match(/^(https?:\/\/[^/]+)\/storage\/v1\/object\/public\/(.+)$/);
@@ -13,6 +13,7 @@ export function supabaseThumbnailUrl(
   const [, base, path] = match;
   const params = new URLSearchParams();
   if (opts.width) params.set('width', String(opts.width));
+  if (opts.height) params.set('height', String(opts.height));
   if (opts.quality) params.set('quality', String(opts.quality));
   if (opts.resize) params.set('resize', opts.resize);
   const qs = params.toString();

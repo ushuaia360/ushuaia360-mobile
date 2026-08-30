@@ -191,9 +191,21 @@ type WallpaperCardProps = {
   t: (key: string) => string;
 };
 
+/** Ancho pedido para la miniatura de grilla; el alto se deriva del aspect ratio real de la card
+ * (9:16 vertical, 16:9 horizontal) para que el recorte de Supabase coincida con el contenedor —
+ * si solo se manda `width`, Supabase no recorta al mismo AR y el `contentFit="cover"` local
+ * termina haciendo un segundo recorte descoordinado (efecto de "mucho zoom"). */
+const GRID_THUMB_WIDTH = 600;
+
 function WallpaperCard({ item, index, isHorizontal, skelBg, colors, downloadingId, onPress, onDownload, t }: WallpaperCardProps) {
   const imageUrl = resolveApiMediaUrl(item.url);
-  const thumbUrl = supabaseThumbnailUrl(imageUrl, { width: 600, quality: 25, resize: 'cover' });
+  const thumbHeight = Math.round(GRID_THUMB_WIDTH * (isHorizontal ? 9 / 16 : 16 / 9));
+  const thumbUrl = supabaseThumbnailUrl(imageUrl, {
+    width: GRID_THUMB_WIDTH,
+    height: thumbHeight,
+    quality: 25,
+    resize: 'cover',
+  });
   const hasDifferentThumb = thumbUrl !== null && thumbUrl !== imageUrl;
   const gridTarget = hasDifferentThumb ? thumbUrl : imageUrl;
 

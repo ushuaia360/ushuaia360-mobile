@@ -48,11 +48,35 @@ export function clampPanToTdf(state: MapPanState): MapPanState {
   };
 }
 
+/**
+ * Esri ArcGIS Online: servicios públicos sin API key (mismo proveedor que ya se usaba para la
+ * capa satelital). Reemplaza los basemaps de CartoDB, que ahora exigen key y marcan de agua
+ * ("API KEY REQUIRED") los pedidos sin autenticar.
+ */
+const ESRI_SERVICES_BASE = 'https://server.arcgisonline.com/ArcGIS/rest/services';
+export const ESRI_IMAGERY_TILE_BASE = `${ESRI_SERVICES_BASE}/World_Imagery/MapServer/tile`;
+const ESRI_STREET_TILE_BASE = `${ESRI_SERVICES_BASE}/Canvas/World_Light_Gray_Base/MapServer/tile`;
+
+/** Esquema de tesela Esri: `{nivel}/{fila}/{columna}` = z/y/x, sin extensión. */
+function esriTileUrl(base: string, zoom: number, tx: number, ty: number): string {
+  return `${base}/${zoom}/${ty}/${tx}`;
+}
+
+/** Calle: gris minimalista, mismo basemap en claro y oscuro — la app no tiene un tema oscuro real que atender. */
+export function esriStreetTileUrl(zoom: number, tx: number, ty: number): string {
+  return esriTileUrl(ESRI_STREET_TILE_BASE, zoom, tx, ty);
+}
+
+/** Satélite. */
+export function esriImageryTileUrl(zoom: number, tx: number, ty: number): string {
+  return esriTileUrl(ESRI_IMAGERY_TILE_BASE, zoom, tx, ty);
+}
+
 export function calcTilesLikeHome(
   state: MapPanState,
   width: number,
   height: number,
-  baseUrl: string,
+  tileUrl: (zoom: number, tx: number, ty: number) => string,
 ): { key: string; url: string; posX: number; posY: number }[] {
   const { zoom, panX, panY } = state;
   const zoomScale = Math.pow(2, zoom - BASE_ZOOM);
@@ -77,7 +101,7 @@ export function calcTilesLikeHome(
       if (tx < 0 || ty < 0 || tx > maxTile || ty > maxTile) continue;
       tiles.push({
         key: `${zoom}-${tx}-${ty}`,
-        url: `${baseUrl}/${zoom}/${tx}/${ty}.png`,
+        url: tileUrl(zoom, tx, ty),
         posX: width / 2 - subX + dx * TILE_SIZE,
         posY: height / 2 - subY + dy * TILE_SIZE,
       });

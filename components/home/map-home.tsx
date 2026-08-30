@@ -19,6 +19,7 @@ import {
   latToTileY,
   lonToTileX,
 } from '@/lib/map-projection';
+import { esriImageryTileUrl, esriStreetTileUrl } from '@/lib/tile-map';
 import { useWatchUserLocation } from '@/hooks/use-watch-user-location';
 import { homePinScaleFromRegionSpan, pinScaleFromTileZoom } from '@/lib/map-pin-scale';
 import { useNetworkReachable } from '@/hooks/use-network-reachable';
@@ -68,8 +69,6 @@ const MARKER_SELECT_FOCUS_SPAN_LAT = 0.009;
 const ANDROID_MARKER_SELECT_MIN_ZOOM = 15;
 /** Al tocar un POI en Android: suma estos niveles, y no queda por debajo de ANDROID_MARKER_SELECT_MIN_ZOOM. */
 const ANDROID_MARKER_SELECT_ZOOM_IN_STEPS = 3;
-const ESRI_IMAGERY_TILE_BASE =
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile';
 
 // Ushuaia geographic bounds (city + surroundings + Parque Nacional TdF)
 const TDF_BOUNDS = {
@@ -116,8 +115,6 @@ function calcTiles(
   state: MapState,
   width: number,
   height: number,
-  streetCartoBase: string,
-  esriImageryBase: string,
   useImageryTiles: boolean,
 ) {
   const { zoom, panX, panY } = state;
@@ -142,8 +139,8 @@ function calcTiles(
       const ty = centerY + dy;
       if (tx < 0 || ty < 0 || tx > maxTile || ty > maxTile) continue;
       const url = useImageryTiles
-        ? `${esriImageryBase}/${zoom}/${ty}/${tx}`
-        : `${streetCartoBase}/${zoom}/${tx}/${ty}.png`;
+        ? esriImageryTileUrl(zoom, tx, ty)
+        : esriStreetTileUrl(zoom, tx, ty);
       tiles.push({
         key: `${zoom}-${tx}-${ty}`,
         url,
@@ -167,10 +164,6 @@ export default function MapHome() {
   const isPro = usePurchasesStore((s) => s.isPro);
   const LANG_FLAG: Record<string, string> = { es: '🇦🇷', en: '🇺🇸', pt: '🇧🇷' };
 
-  const streetCartoBase = isDark
-    ? 'https://a.basemaps.cartocdn.com/dark_all'
-    : 'https://a.basemaps.cartocdn.com/light_all';
-
   const [useSatellite, setUseSatellite] = useState(false);
   const [langSheetVisible, setLangSheetVisible] = useState(false);
   const langSheetOverlay = useRef(new Animated.Value(0)).current;
@@ -190,8 +183,12 @@ export default function MapHome() {
       Animated.timing(langSheetY, { toValue: 260, duration: 220, useNativeDriver: true }),
     ]).start(() => { setLangSheetVisible(false); cb?.(); });
   };
-  /** iOS siempre MapKit. Android: teselas PNG remotas en calle; satélite con MapView nativo (mejor sin red vía caché de Google). */
-  const useNativeMapView = Platform.OS === 'ios' || (Platform.OS === 'android' && useSatellite);
+  /**
+   * iOS siempre MapKit. Android: siempre teselas de Esri ArcGIS Online (calle: Canvas gris +
+   * referencia; satélite: World Imagery) — sin API key, a diferencia del MapView nativo de
+   * Android (requeriría key de Google) y de CartoDB (ahora exige key y marca de agua las tiles).
+   */
+  const useNativeMapView = Platform.OS === 'ios';
 
   const [committed, setCommitted] = useState<MapState>({ zoom: BASE_ZOOM, panX: 0, panY: 0 });
   const { searchOpen, setSearchOpen, setMapPanning } = useHomeStore();
@@ -423,9 +420,8 @@ export default function MapHome() {
   ).current;
 
   const tiles = useMemo(
-    () =>
-      calcTiles(committed, width, height, streetCartoBase, ESRI_IMAGERY_TILE_BASE, useSatellite),
-    [committed, width, height, streetCartoBase, useSatellite],
+    () => calcTiles(committed, width, height, useSatellite),
+    [committed, width, height, useSatellite],
   );
 
   const applyAndroidZoomStep = (deltaLevels: number) => {
@@ -574,7 +570,7 @@ export default function MapHome() {
           ref={iosMapRef}
           style={StyleSheet.absoluteFillObject}
           initialRegion={USHUAIA_REGION}
-          mapType={Platform.OS === 'ios' ? (useSatellite ? 'satellite' : 'standard') : 'satellite'}
+          mapType={useSatellite ? 'satellite' : 'standard'}
           userInterfaceStyle={isDark ? 'dark' : 'light'}
           showsUserLocation={false}
           onRegionChange={(_r: Region, details: Details) => {
